@@ -13,12 +13,13 @@ final class MenuBarPanelWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
-/// Sticky menu-bar window. Default is the current 360pt compact size; attached
-/// stretch stops at 500pt. Detached uses normal window min/max (no 500pt cap).
+    /// Sticky menu-bar window. Default is 400pt; attached stretch stops at 500pt.
+    /// Detached uses normal window min/max (no 500pt cap). Compact layout tests
+    /// still use `PopoverMetrics.width` (360).
 enum MenuBarPanelMetrics {
-    static let defaultWidth: CGFloat = PopoverMetrics.width
+    static let defaultWidth: CGFloat = 400
     static let defaultHeight: CGFloat = 640
-    static let minWidth: CGFloat = PopoverMetrics.width
+    static let minWidth: CGFloat = 400
     static let minHeight: CGFloat = 520
     static let attachedMaxWidth: CGFloat = 500
     static let attachedMaxHeight: CGFloat = 660

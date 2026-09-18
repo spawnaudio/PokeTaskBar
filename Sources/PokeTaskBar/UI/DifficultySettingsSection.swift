@@ -42,10 +42,11 @@ struct DifficultySettingsSection: View {
                 Divider()
                 row(l.difficultyShopLabel, value: $draft.shop)
             }
-            .background(Color(nsColor: MenuBarPanelMetrics.cardFill),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1))
+            .background {
+                TahoeStrokedFill(
+                    shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                    fill: Color(nsColor: MenuBarPanelMetrics.cardFill))
+            }
             Text("10%–200% · " + l.difficultyHint).font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
             if draft.differs(from: companion) {
                 HStack {

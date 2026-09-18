@@ -957,6 +957,76 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(
             MenuBarLines.compose(usageLines: ["1.2M", "$3"], sessionClock: nil, scoreLine: "9.8M"),
             ["9.8M", "1.2M · $3"])
+        XCTAssertEqual(
+            MenuBarLines.compose(usageLines: ["1.2M"], sessionClock: nil, scoreLine: nil),
+            ["1.2M"],
+            "score off omits the XP line")
+        XCTAssertEqual(
+            MenuBarLines.compose(
+                usageLines: ["1.2M"], sessionClock: nil, scoreLine: "9.8M", linearIssuesLine: nil),
+            ["9.8M", "1.2M"],
+            "Linear counts off omit in-progress/completed")
+        XCTAssertEqual(
+            MenuBarLines.compose(
+                usageLines: ["1.2M"], sessionClock: nil, scoreLine: nil, linearIssuesLine: "3 · 1"),
+            ["3 · 1", "1.2M"])
+        XCTAssertEqual(
+            MenuBarLines.compose(
+                usageLines: ["1.2M", "$3"], sessionClock: nil, scoreLine: "9.8M", linearIssuesLine: "3 · 1"),
+            ["9.8M · 3 · 1", "1.2M · $3"])
+        XCTAssertEqual(
+            MenuBarLines.compose(
+                usageLines: ["1.2M"], sessionClock: "12:34", scoreLine: "9.8M", linearIssuesLine: "3 · 1"),
+            ["12:34", "9.8M · 3 · 1"])
+        XCTAssertEqual(
+            MenuBarLines.compose(usageLines: [], sessionClock: nil, scoreLine: "9.8M", linearIssuesLine: "3 · 1"),
+            ["9.8M", "3 · 1"])
+    }
+
+    func testMenuBarPillOmitsDanglingPipeAndPrefersTimer() {
+        XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: "12:34"), "Ship login | 12:34")
+        XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: "3 open · 1 done"), "Ship login | 3 open · 1 done")
+        XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: nil), "Ship login")
+        XCTAssertEqual(MenuBarLines.pillText(title: nil, trailing: "12:34"), "12:34")
+        XCTAssertEqual(MenuBarLines.pillText(title: "  ", trailing: "  "), "")
+        XCTAssertEqual(
+            MenuBarLines.pillTrailing(sessionClock: "12:34", linearIssuesLine: "3 open · 1 done", scoreLine: "9.8M"),
+            "12:34")
+        XCTAssertEqual(
+            MenuBarLines.pillTrailing(sessionClock: nil, linearIssuesLine: "3 open · 1 done", scoreLine: "9.8M"),
+            "3 open · 1 done")
+        XCTAssertEqual(
+            MenuBarLines.pillTrailing(sessionClock: nil, linearIssuesLine: nil, scoreLine: "9.8M"),
+            "9.8M")
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(nil))
+        XCTAssertEqual(MenuBarLines.focusedIssueTitle(runningSession()), "Ship login")
+        var pomo = runningSession()
+        pomo.issue = FocusPinnedIssue.pomodoro(title: L(.en).pomoTimer)
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(pomo))
+    }
+
+    func testMenuBarLinearIssuesLineFollowsVisibilityAndLinearSetup() {
+        let l = L(.en)
+        XCTAssertEqual(l.menuBarLinearIssues(3, 1), "3 open · 1 done")
+        XCTAssertNil(MenuBarLines.linearIssuesLine(
+            show: false, integrationEnabled: true, apiKeyConfigured: true,
+            inProgress: 3, completed: 1, localization: l))
+        XCTAssertNil(MenuBarLines.linearIssuesLine(
+            show: true, integrationEnabled: false, apiKeyConfigured: true,
+            inProgress: 3, completed: 1, localization: l))
+        XCTAssertNil(MenuBarLines.linearIssuesLine(
+            show: true, integrationEnabled: true, apiKeyConfigured: false,
+            inProgress: 3, completed: 1, localization: l))
+        XCTAssertEqual(
+            MenuBarLines.linearIssuesLine(
+                show: true, integrationEnabled: true, apiKeyConfigured: true,
+                inProgress: 3, completed: 1, localization: l),
+            "3 open · 1 done")
+        XCTAssertEqual(
+            MenuBarLines.linearIssuesLine(
+                show: true, integrationEnabled: true, apiKeyConfigured: true,
+                inProgress: 0, completed: 0, localization: l),
+            "0 open · 0 done")
     }
 
     func testPromptRoutesToPopoverWhenPetOffAndOverlayWhenPetOn() {
@@ -1127,6 +1197,46 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertGreaterThan(setup.height, toggle.height)
         XCTAssertEqual(setup.height, FloatingPetController.setupIslandHeight)
         XCTAssertGreaterThan(setup.width, toggle.width)
+    }
+
+    /// [회귀] Accrual ticks wrote the session JSON every second (atomic encode+write
+    /// on the main actor). That hitch is independent of the 1Hz clock display.
+    func testAccrualTicksDoNotRewriteSessionFileEverySecond() throws {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.focus.pin(issue(), openDesk: false)
+        let afterPin = try Data(contentsOf: stores.focusURL)
+
+        clock.now = t0.addingTimeInterval(1)
+        stores.focus.tick(now: clock.now)
+        XCTAssertEqual(try Data(contentsOf: stores.focusURL), afterPin,
+                       "1s accrual must not rewrite the session file")
+
+        clock.now = t0.addingTimeInterval(FocusSessionStore.tickPersistInterval)
+        stores.focus.tick(now: clock.now)
+        XCTAssertNotEqual(try Data(contentsOf: stores.focusURL), afterPin,
+                          "cadence elapsed: checkpoint the accrued time")
+    }
+
+    func testPhaseChangePersistsImmediately() throws {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.focus.pin(issue(), openDesk: false)
+        let afterPin = try Data(contentsOf: stores.focusURL)
+
+        clock.now = t0.addingTimeInterval(1)
+        stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
+        XCTAssertEqual(stores.focus.session?.phase, .awaitingChoice)
+        XCTAssertNotEqual(try Data(contentsOf: stores.focusURL), afterPin,
+                          "zero-time / phase change must flush immediately, not wait for cadence")
+    }
+
+    func testTickPersistCadencePure() {
+        XCTAssertGreaterThan(FocusSessionStore.tickPersistInterval, 1)
+        XCTAssertFalse(FocusSessionStore.shouldPersistTick(elapsedSinceLastPersist: 1, semanticChange: false))
+        XCTAssertTrue(FocusSessionStore.shouldPersistTick(
+            elapsedSinceLastPersist: FocusSessionStore.tickPersistInterval, semanticChange: false))
+        XCTAssertTrue(FocusSessionStore.shouldPersistTick(elapsedSinceLastPersist: 0.1, semanticChange: true))
     }
 
     func testStartPomodoroIsNoOpWhenASessionExists() {

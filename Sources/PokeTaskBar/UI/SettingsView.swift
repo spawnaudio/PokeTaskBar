@@ -92,6 +92,7 @@ struct SettingsView: View {
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onAppear {
                     guard !didApplyStartExpanded else { return }
                     didApplyStartExpanded = true
@@ -110,7 +111,7 @@ struct SettingsView: View {
             Divider()
             footer
         }
-        .frame(height: 460)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var header: some View {
@@ -187,9 +188,9 @@ struct SettingsView: View {
                     Button(l.representativeChooseFromDex, action: onChooseRepresentative)
                 } label: {
                     TahoeMenuLabel(text: representativeSelectionText)
+                        .linearChipChrome()
                 }
                 .menuIndicator(.hidden)
-                .linearChipChrome()
                 .controlSize(.small)
                 .frame(width: 150, alignment: .trailing)
                 .layoutPriority(1)
@@ -283,6 +284,10 @@ struct SettingsView: View {
                 toggleRow(l.todayCost, $store.showCostInMenu)
                 Divider()
                 toggleRow(l.limitPercent, $store.showLimitInMenu)
+                Divider()
+                toggleRow(l.scoreLabel, $store.showScoreInMenu)
+                Divider()
+                toggleRow(l.menuBarLinearIssuesLabel, $store.showLinearIssuesInMenu)
             }
             Text(l.allOffHint).font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
         }
@@ -622,10 +627,10 @@ struct SettingsView: View {
                     Text(l.advancedDisclosureLabel)
                     Spacer()
                 }
+                .padding(.horizontal, 12).padding(.vertical, 9)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 12).padding(.vertical, 9)
             .onChange(of: advancedExpanded) { _, expanded in
                 if !expanded {
                     commitCustomScanDraft()
@@ -774,10 +779,11 @@ struct SettingsView: View {
                 .font(.caption).fontWeight(.semibold).foregroundStyle(.secondary)
                 .textCase(.uppercase).padding(.leading, 4)
             VStack(spacing: 0) { content() }
-                .background(Color(nsColor: MenuBarPanelMetrics.cardFill),
-                           in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1))
+                .background {
+                    TahoeStrokedFill(
+                        shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                        fill: Color(nsColor: MenuBarPanelMetrics.cardFill))
+                }
         }
     }
 

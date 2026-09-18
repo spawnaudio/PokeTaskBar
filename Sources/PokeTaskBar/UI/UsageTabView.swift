@@ -33,8 +33,12 @@ struct TodayUsageSummary: View {
             }
             Group {
                 if let onTap {
-                    Button(action: onTap) { totals }
-                        .buttonStyle(.plain)
+                    Button(action: onTap) {
+                        totals
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 } else {
                     totals
                 }
@@ -154,9 +158,12 @@ struct UsageTabView: View {
                 }
             }
             if let updated = store.lastUpdated {
-                (Text("\(l.updated) ") + Text(updated, style: .relative))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 0) {
+                    Text("\(l.updated) ")
+                    RelativeTimestampText(date: updated)
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
             }
             if store.lastErrorDescription != nil {
                 Image(systemName: "exclamationmark.triangle")
@@ -343,9 +350,12 @@ struct UsageTabView: View {
                                 .font(.caption)
                                 .monospacedDigit()
                             Spacer()
-                            (Text("\(l.reset) ") + Text(end, style: .relative))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                            HStack(spacing: 0) {
+                                Text("\(l.reset) ")
+                                RelativeTimestampText(date: end)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                         }
                     }
                 }
@@ -414,8 +424,12 @@ struct UsageTabView: View {
                 Text(l.limitsTapToLoad)
                     .font(.caption).foregroundStyle(.secondary)
             } else {
-                (Text(l.staleLimits) + Text(" · ") + Text(store.antigravityLimitsUpdatedAt ?? Date(), style: .relative))
-                    .font(.caption).foregroundStyle(.orange)
+                HStack(spacing: 0) {
+                    Text(l.staleLimits)
+                    Text(" · ")
+                    RelativeTimestampText(date: store.antigravityLimitsUpdatedAt ?? Date())
+                }
+                .font(.caption).foregroundStyle(.orange)
             }
             Spacer()
             Button {
@@ -473,8 +487,12 @@ struct UsageTabView: View {
         return Text(" (\(f.string(from: reset)))")
     }
 
-    private func resetLabel(_ reset: Date) -> Text {
-        Text("\(reset, style: .relative)") + resetClockSuffix(reset)
+    @ViewBuilder
+    private func resetLabel(_ reset: Date) -> some View {
+        HStack(spacing: 0) {
+            RelativeTimestampText(date: reset)
+            resetClockSuffix(reset)
+        }
     }
 
     @ViewBuilder
@@ -590,8 +608,12 @@ struct UsageTabView: View {
                 Text(l.limitsTapToLoad)
                     .font(.caption).foregroundStyle(.secondary)
             } else {
-                (Text(l.staleLimits) + Text(" · ") + Text(store.limitsUpdatedAt ?? Date(), style: .relative))
-                    .font(.caption).foregroundStyle(.orange)
+                HStack(spacing: 0) {
+                    Text(l.staleLimits)
+                    Text(" · ")
+                    RelativeTimestampText(date: store.limitsUpdatedAt ?? Date())
+                }
+                .font(.caption).foregroundStyle(.orange)
             }
             Spacer()
             Button {
@@ -612,9 +634,13 @@ struct UsageTabView: View {
     @ViewBuilder
     private func staleBadge(updatedAt: Date?) -> some View {
         if let updatedAt {
-            (Text(l.staleLimits) + Text(" · ") + Text(updatedAt, style: .relative))
-                .font(.caption)
-                .foregroundStyle(.orange)
+            HStack(spacing: 0) {
+                Text(l.staleLimits)
+                Text(" · ")
+                RelativeTimestampText(date: updatedAt)
+            }
+            .font(.caption)
+            .foregroundStyle(.orange)
         }
     }
 

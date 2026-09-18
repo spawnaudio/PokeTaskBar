@@ -341,9 +341,9 @@ struct LinearIssueLabelsMenu: View {
             }
         } label: {
             TahoeMenuLabel(text: title, expands: true)
+                .linearChipChrome(expands: true)
         }
         .menuIndicator(.hidden)
-        .linearChipChrome(expands: true)
         .disabled(labels.isEmpty)
         .accessibilityLabel(l.linearIssueLabels)
         .accessibilityValue(title)

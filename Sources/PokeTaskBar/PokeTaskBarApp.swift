@@ -179,6 +179,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeStore() {
         withObservationTracking {
             _ = store.menuTitle
+            _ = store.showScoreInMenu
+            _ = store.menuLinearIssuesLine
+            _ = companion.lifetimeXP
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -195,6 +198,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = sessionStore.session?.phase
             _ = sessionStore.session?.accumulatedSeconds
             _ = sessionStore.session?.plannedSeconds
+            _ = sessionStore.session?.issue.title
+            _ = sessionStore.session?.issue.id
             _ = store.floatingPetEnabled
             _ = companion.language
         } onChange: { [weak self] in
@@ -251,12 +256,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             floatingPetEnabled: store.floatingPetEnabled,
             clock: sessionStore.clockDisplay(),
             overtimeAbbrev: companion.l.overtimeAbbrev)
-        Self.applyMenuText(
-            MenuBarLines.compose(
-                usageLines: store.menuLines,
+        let pill = MenuBarLines.pillText(
+            title: MenuBarLines.focusedIssueTitle(sessionStore.session),
+            trailing: MenuBarLines.pillTrailing(
                 sessionClock: sessionClock,
-                scoreLine: TokenFormatter.compact(companion.lifetimeXP)),
-            to: button)
+                linearIssuesLine: store.menuLinearIssuesLine,
+                scoreLine: store.showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil))
+        let lines: [String]
+        if !store.menuFlashLines.isEmpty {
+            lines = MenuBarLines.compose(
+                usageLines: store.menuLines,
+                sessionClock: sessionClock)
+        } else if !pill.isEmpty {
+            lines = [pill]
+        } else {
+            lines = MenuBarLines.compose(usageLines: store.menuLines, sessionClock: nil)
+        }
+        Self.applyMenuText(lines, to: button)
         button.toolTip = MenuBarLines.toolTip(
             identifier: sessionStore.session?.issue.identifier,
             sessionClock: sessionClock)

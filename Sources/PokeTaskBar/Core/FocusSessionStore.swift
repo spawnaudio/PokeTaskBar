@@ -50,6 +50,10 @@ final class FocusSessionStore {
     private var isLoading = false
     private var pendingAfterForfeit: PendingAfterForfeit = .none
     private let createIssue: ((LinearIssueDraft) async -> LinearIssueSummary?)?
+    /// Last successful session-file write. Accrual ticks checkpoint on this cadence
+    /// instead of rewriting JSON every second on the main actor.
+    private var lastPersistAt: Date = .distantPast
+    static let tickPersistInterval: TimeInterval = 10
 
     private enum PendingAfterForfeit: Equatable {
         case none
@@ -331,15 +335,38 @@ final class FocusSessionStore {
         persist()
     }
 
+    /// Persist an accrual tick when the phase/XP/check-in changed, or when the
+    /// last write is at least `tickPersistInterval` old. User actions always persist.
+    static func shouldPersistTick(
+        elapsedSinceLastPersist: TimeInterval,
+        semanticChange: Bool,
+        interval: TimeInterval = tickPersistInterval
+    ) -> Bool {
+        semanticChange || elapsedSinceLastPersist >= interval
+    }
+
     func tick(now: Date? = nil) {
         guard let session else { return }
-        let result = FocusTick.apply(session, now: now ?? clock())
+        let instant = now ?? clock()
+        let result = FocusTick.apply(session, now: instant)
+        let semantic = result.sessionXP > 0
+            || result.hitZero
+            || result.autoContinued
+            || result.checkInBecameDue
+            || result.session.phase != session.phase
+            || result.session.pendingCheckIn != session.pendingCheckIn
+            || result.session.userPaused != session.userPaused
         self.session = result.session
         if result.sessionXP > 0 { grantSessionXP(result.sessionXP) }
         if result.hitZero {
             usage.announceTimesUp(result.session.issue.identifier)
         }
-        persist()
+        if Self.shouldPersistTick(
+            elapsedSinceLastPersist: instant.timeIntervalSince(lastPersistAt),
+            semanticChange: semantic)
+        {
+            persist(at: instant)
+        }
         syncTimer()
     }
 
@@ -590,6 +617,10 @@ final class FocusSessionStore {
     }
 
     private func persist() {
+        persist(at: clock())
+    }
+
+    private func persist(at now: Date) {
         guard !isLoading else { return }
         let snapshot = FocusPersistedState(
             plannedMinutes: plannedMinutes,
@@ -606,6 +637,7 @@ final class FocusSessionStore {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
+        lastPersistAt = now
     }
 }
 

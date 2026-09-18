@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - ccusage daily
 
-struct DailyUsage: Decodable, Sendable {
+struct DailyUsage: Decodable, Sendable, Equatable {
     var date: String
     var inputTokens: Int
     var outputTokens: Int
@@ -69,7 +69,7 @@ struct DailyReport: Decodable, Sendable {
 
 // MARK: - ccusage blocks
 
-struct BlockUsage: Decodable, Sendable {
+struct BlockUsage: Decodable, Sendable, Equatable {
     var id: String
     var startTime: String
     var endTime: String
@@ -133,7 +133,7 @@ struct BlocksReport: Decodable, Sendable {
 
 // MARK: - ccusage weekly / monthly
 
-struct PeriodUsage: Decodable, Sendable {
+struct PeriodUsage: Decodable, Sendable, Equatable {
     /// 주 시작일("2026-05-31") 또는 월("2026-06")
     var period: String
     var totalTokens: Int
@@ -524,6 +524,24 @@ struct ProviderSnapshot: Sendable, Identifiable {
 
     var id: String { providerID }
     var todayTotalTokens: Int { today?.totalTokens ?? 0 }
+
+    /// Display payload, ignoring `fetchedAt`. A poll that only bumps the fetch clock
+    /// must not publish a new `snapshots` array (@Observable full-tree invalidation).
+    func payloadEquals(_ other: ProviderSnapshot) -> Bool {
+        providerID == other.providerID
+            && displayName == other.displayName
+            && today == other.today
+            && activeBlock == other.activeBlock
+            && weekTotal == other.weekTotal
+            && monthTotal == other.monthTotal
+            && monthDaily == other.monthDaily
+            && reportsCost == other.reportsCost
+    }
+
+    static func payloadsMatch(_ lhs: [ProviderSnapshot], _ rhs: [ProviderSnapshot]) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        return zip(lhs, rhs).allSatisfy { $0.payloadEquals($1) }
+    }
 }
 
 // MARK: - ISO8601 with fractional seconds

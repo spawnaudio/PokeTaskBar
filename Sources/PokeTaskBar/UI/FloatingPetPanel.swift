@@ -136,14 +136,17 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func observeSettings() {
+        observeLayout()
+        observeHoverTooltip()
+    }
+
+    /// Layout / hosting — not token totals. Token polls must not `setFrame` the pet.
+    private func observeLayout() {
         withObservationTracking {
             _ = store.floatingPetEnabled
             _ = store.floatingPetSize
             _ = store.floatingPetIslandFolded
             _ = store.currentSpeechBubble
-            _ = store.todayTotalTokens
-            _ = store.highestLimitUtilization
-            _ = store.limitDisplayMode   // hover 툴팁 %가 파생되는 값 — 수동 관찰 표면은 파생 원천을 직접 추적(defect-log §표시·UI)
             _ = companion.language
             _ = session.isActive
             _ = session.pomodoroSetupOpen
@@ -156,7 +159,23 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             Task { @MainActor in
                 guard let self else { return }
                 self.sync()
-                self.observeSettings()
+                self.observeLayout()
+            }
+        }
+    }
+
+    /// Hover tooltip only — usage refresh used to call `sync()` → `setFrame(display: true)`.
+    private func observeHoverTooltip() {
+        withObservationTracking {
+            _ = store.todayTotalTokens
+            _ = store.highestLimitUtilization
+            _ = store.limitDisplayMode
+            _ = companion.language
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.updateHoverTooltip()
+                self.observeHoverTooltip()
             }
         }
     }
@@ -167,6 +186,12 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         ) { [weak self] _ in
             Task { @MainActor in self?.sync() }
         }
+    }
+
+    /// Visible pet at the same rect: skip `setFrame` / `orderFrontRegardless`
+    /// (token-poll `sync` used to force a WindowServer commit every refresh).
+    static func shouldApplyPanelFrame(current: NSRect, target: NSRect, isVisible: Bool) -> Bool {
+        !isVisible || !current.equalTo(target)
     }
 
     static func shouldAnimate(lowPower: Bool) -> Bool { !lowPower }
@@ -337,9 +362,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
         }
         let petSize = CGFloat(store.floatingPetSize)
-        p.setFrame(targetFrame(petSize: petSize, showingBubble: store.currentSpeechBubble != nil),
-                   display: true)
-        p.orderFrontRegardless()
+        let target = targetFrame(petSize: petSize, showingBubble: store.currentSpeechBubble != nil)
+        if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
+            p.setFrame(target, display: true)
+            p.orderFrontRegardless()
+        } else if !p.isVisible {
+            p.orderFrontRegardless()
+        }
         let needsKey = Self.overlayNeedsKeyWindow(
             composingNote: session.isComposingNote, prompt: session.prompt)
         if needsKey, !textInputArmed {
@@ -358,6 +387,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         p.orderOut(nil)
         p.contentView = nil
         builtAnimated = nil
+    }
+
+    private func updateHoverTooltip() {
+        if let hosting = panel?.contentView as? PetHostingView {
+            hosting.toolTip = currentHoverText()
+        }
+        if hoverPanel?.isVisible == true { showHoverCallout() }
     }
 
     private func currentHoverText() -> String {

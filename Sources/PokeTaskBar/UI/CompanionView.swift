@@ -96,6 +96,8 @@ struct SpriteView: View {
     /// 22px 메뉴바보다 큰 펫은 같은 fps 에서도 끊김이 더 보인다.
     /// 팝오버 등 일시적 표시는 0(기본)으로 두어 네이티브 fps 유지.
     var minFrameDelay: TimeInterval = 0
+    /// Crop padded static PNGs to opaque pixels (storage thumbs). Dex grid stays uncropped.
+    var cropToContent: Bool = false
     private let spriteStore: SpriteStore
     @State private var img: NSImage?
     @State private var up = false
@@ -106,7 +108,8 @@ struct SpriteView: View {
     @State private var frameIndex = 0
 
     init(speciesID: Int?, size: CGFloat = 84, bob: Bool = false, animated: Bool = false,
-         shiny: Bool = false, minFrameDelay: TimeInterval = 0, spriteStore: SpriteStore = .shared) {
+         shiny: Bool = false, minFrameDelay: TimeInterval = 0, cropToContent: Bool = false,
+         spriteStore: SpriteStore = .shared) {
         self.speciesID = speciesID
         self.spriteStore = spriteStore
         self.size = size
@@ -114,6 +117,7 @@ struct SpriteView: View {
         self.animated = animated
         self.shiny = shiny
         self.minFrameDelay = minFrameDelay
+        self.cropToContent = cropToContent
         // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지 + 정적 스냅샷에서도 보임.
         // speciesID==nil(알 상태)이면 알 스프라이트를 시드(없으면 body 가 🥚 폴백).
         let cached = speciesID.map { SpriteLoader.cachedImage(speciesID: $0, shiny: shiny, directory: spriteStore.directory) } ?? SpriteLoader.cachedEggImage()
@@ -180,7 +184,9 @@ struct SpriteView: View {
                 // (잭키 36×66) 정사각으로 늘리면 뚱뚱해진다 → fitted 로 비율 유지.
                 fitted(frames[frameIndex % frames.count].image)
             } else if let img {
-                fitted(animated && speciesID != nil ? SpriteLoader.animationPlaceholder(img) : img)
+                let display = cropToContent || (animated && speciesID != nil)
+                    ? SpriteLoader.animationPlaceholder(img) : img
+                fitted(display)
             } else {
                 Text("🥚").font(.system(size: size * 0.62)).frame(width: size, height: size)
             }
@@ -379,6 +385,7 @@ struct EvoLineView: View {
                     .frame(width: 16, height: 16)
                     .background(.regularMaterial, in: Circle())
                     .overlay(Circle().strokeBorder(Color.primary.opacity(0.12)))
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(forward ? L(language).evolutionScrollNext : L(language).evolutionScrollPrevious)
@@ -453,6 +460,7 @@ struct CompanionHeader: View {
     let store: CompanionStore
     static let spriteSize: CGFloat = 120
     @Environment(\.popoverContentWidth) private var popoverContentWidth
+    @State private var showStorageNeedsEgg = false
     // 연출 상태 — 부화/진화 순간 흰 플래시 + 스프링 스케일(본가 진화 신 오마주)
     @State private var flashOpacity: Double = 0
     @State private var celebScale: CGFloat = 1
@@ -473,7 +481,7 @@ struct CompanionHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 SpriteView(speciesID: store.currentSpeciesID, size: CompanionHeader.spriteSize, bob: true, animated: true,
                            shiny: store.currentIsShiny)
                     .frame(width: CompanionHeader.spriteSize, height: CompanionHeader.spriteSize)
@@ -499,9 +507,10 @@ struct CompanionHeader: View {
                             Text("+\(TokenFormatter.compact(candyXPAmount)) XP")
                                 .font(.caption.weight(.bold)).foregroundStyle(.orange)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Color.primary.opacity(0.10), in: Capsule())
-                                .overlay {
-                                    Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                                .background {
+                                    TahoeStrokedFill(
+                                        shape: Capsule(),
+                                        fill: Color.primary.opacity(0.10))
                                 }
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                                 .offset(y: -16)
@@ -548,7 +557,7 @@ struct CompanionHeader: View {
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
-                    } else {
+                    } else if store.isEgg {
                         // 알 인큐베이션 — 부화까지 진행 (임박 시 문구·색 전환)
                         HStack(spacing: 6) {
                             Text(eggImminent ? store.l.eggImminent : store.l.eggIncubating)
@@ -568,19 +577,34 @@ struct CompanionHeader: View {
                             .font(.caption2).foregroundStyle(.tertiary)
                         // 첫 실행(적립 0) — 정적 알 앞에서 "고장났나" 오해 방지용 한 줄 안내
                         if !store.eggStarted {
-                            Text(store.l.eggFirstRunHint)
+                            Text(store.l.eggFirstRunHint(TokenFormatter.compact(store.eggTokensToHatch)))
                                 .font(.caption2).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
+                    } else {
+                        Text(store.l.trainingSlotEmpty)
+                            .font(.caption2.weight(.semibold))
+                        Text(store.l.trainingSlotEmptyHint)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Text(statusLine).font(.caption2).foregroundStyle(.secondary)
+                    if store.hasActive {
+                        HStack(alignment: .center, spacing: 8) {
+                            if !store.lineNodes.isEmpty {
+                                EvoLineView(
+                                    nodes: store.lineNodes,
+                                    mysteryLabel: store.l.unknownNextEvolution,
+                                    language: store.language,
+                                    shiny: store.currentIsShiny,
+                                    maxWidth: evoLineMaxWidth)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            storePartnerButton
+                        }
+                    }
                 }
-                Spacer()
-            }
-            if store.hasActive, !store.lineNodes.isEmpty {
-                // 폭을 안 주면 분기 라인(이브이)이 넘쳐 팝오버 콘텐츠 전체가 좌우로 잘린다.
-                EvoLineView(nodes: store.lineNodes, mysteryLabel: store.l.unknownNextEvolution, language: store.language, shiny: store.currentIsShiny,
-                            maxWidth: popoverContentWidth)
+                Spacer(minLength: 0)
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
@@ -597,6 +621,31 @@ struct CompanionHeader: View {
         .onChange(of: store.candyFeedbackSeq) { showCandyXPIfNeeded() }
         .onChange(of: store.mintFeedbackSeq) { showMintIfNeeded() }
         .onChange(of: eggImminent) { syncEggWiggle() }
+    }
+
+    /// Right-column budget minus the Store chip, so long lines scroll instead of stretching the header.
+    private var evoLineMaxWidth: CGFloat {
+        let column = popoverContentWidth - CompanionHeader.spriteSize - 12
+        return max(72, column - 132)
+    }
+
+    private var storePartnerButton: some View {
+        Button(store.l.storeInStorage) {
+            if store.storePartnerReplacingWithStoredEgg() {
+                showStorageNeedsEgg = false
+            } else {
+                showStorageNeedsEgg = true
+            }
+        }
+        .tahoeButtonStyle(.regular)
+        .controlSize(.small)
+        .fixedSize()
+        .popover(isPresented: $showStorageNeedsEgg, arrowEdge: .bottom) {
+            Text(store.l.storageNeedsEgg)
+                .font(.caption)
+                .padding(8)
+                .frame(maxWidth: 220)
+        }
     }
 
     /// 부화/진화 연출 1회 재생 — 흰 플래시 페이드아웃 + 스프링 팝. shiny 부화는 ✨ 버스트 추가.
@@ -676,20 +725,41 @@ struct CompanionHeader: View {
     }
 }
 
+enum DexHeaderFilter: Hashable {
+    case rarity(Rarity)
+    case shiny
+}
+
 /// 희귀도 1종 캡슐 — 색 점 + 라벨 + 개수. 선택 시 원색 링 + 체크마크로 강조.
+/// Compact wrap: unselected chips show the first letter; the selected filter keeps full text.
 /// (solid 채움 대신 링+체크 — green/orange 위 흰 텍스트 대비 문제 회피 + 라이트/다크 양쪽 가독.
 ///  텍스트는 .primary 라 모드 자동 적응, 색 정체성은 점·링·체크로 유지 → 엔트리 배지와 안 어긋남.)
 /// 0이면 흐리게(필터 불가).
 @MainActor
 struct RarityTally: View {
     let label: String
+    var compactLabel: String? = nil
     let count: Int
     let color: Color
-    var isSelected: Bool = false      // 이 희귀도로 필터 활성 → 원색 링 + 체크
+    var isSelected: Bool = false
+    var compact: Bool = false
+    var sparkleMark: Bool = false
+
+    private var shownLabel: String {
+        if compact, !isSelected, let compactLabel, !compactLabel.isEmpty {
+            return compactLabel
+        }
+        return label
+    }
+
     var body: some View {
         HStack(spacing: 3) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9, weight: isSelected ? .semibold : .medium))
+            if sparkleMark {
+                Text("✨").font(.system(size: 8))
+            } else {
+                Circle().fill(color).frame(width: 6, height: 6)
+            }
+            Text(shownLabel).font(.system(size: 9, weight: isSelected ? .semibold : .medium))
             Text("\(count)").font(.system(size: 9, weight: .bold))
             if isSelected {
                 Image(systemName: "checkmark")
@@ -698,21 +768,88 @@ struct RarityTally: View {
         }
         .foregroundStyle(.primary)
         .padding(.horizontal, 6).padding(.vertical, 2)
-        .background(color.opacity(isSelected ? 0.22 : 0.12))
-        .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(isSelected ? color : color.opacity(0.35),
-                                        lineWidth: isSelected ? 1.5 : 0.5))
+        .background {
+            TahoeStrokedFill(
+                shape: Capsule(),
+                fill: color.opacity(isSelected ? 0.22 : 0.12),
+                stroke: isSelected ? color : color.opacity(0.35),
+                lineWidth: isSelected ? 1.5 : TahoeHairline.width)
+        }
+        .contentShape(Capsule())
         .opacity(count == 0 ? 0.4 : 1)
     }
 }
 
-/// 포획 로그 요약 헤더 — 총 개체 수 + 희귀도별 개체 수 캡슐.
+@MainActor
+struct DexFilterBar: View {
+    let localization: L
+    let selected: DexHeaderFilter?
+    let rarityCounts: [Rarity: Int]
+    let shinyCount: Int
+    let onSelect: (DexHeaderFilter) -> Void
+
+    private static let shinyColor = Color(red: 0.92, green: 0.72, blue: 0.15)
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            row(compact: false)
+                .fixedSize(horizontal: true, vertical: false)
+            row(compact: true)
+        }
+    }
+
+    private func row(compact: Bool) -> some View {
+        HStack(spacing: 4) {
+            ForEach(rarityDisplayOrder, id: \.self) { rarity in
+                chip(
+                    filter: .rarity(rarity),
+                    label: localization.rarityLabel(rarity),
+                    count: rarityCounts[rarity] ?? 0,
+                    color: rarityColor(rarity),
+                    compact: compact,
+                    sparkle: false)
+            }
+            chip(
+                filter: .shiny,
+                label: localization.dexShinyLabel,
+                count: shinyCount,
+                color: Self.shinyColor,
+                compact: compact,
+                sparkle: true)
+        }
+    }
+
+    private func chip(
+        filter: DexHeaderFilter,
+        label: String,
+        count: Int,
+        color: Color,
+        compact: Bool,
+        sparkle: Bool
+    ) -> some View {
+        Button { onSelect(filter) } label: {
+            RarityTally(
+                label: label,
+                compactLabel: String(label.prefix(1)),
+                count: count,
+                color: color,
+                isSelected: selected == filter,
+                compact: compact,
+                sparkleMark: sparkle)
+        }
+        .buttonStyle(.plain)
+        .disabled(count == 0)
+        .help(localization.dexFilterHint)
+    }
+}
+
+/// 포획 로그 요약 헤더 — 총 개체 수 + 희귀도·이로치 캡슐.
 /// 개수 단위가 개체(store.dexCount)라 종 단위인 도감 헤더와 공유하지 않는다.
 @MainActor
 struct DexSummaryHeader: View {
     let store: CompanionStore
-    let selected: Rarity?                  // nil = 필터 없음(전체)
-    let onSelect: (Rarity) -> Void         // 캡슐 탭 → 토글
+    let selected: DexHeaderFilter?
+    let onSelect: (DexHeaderFilter) -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 6) {
@@ -720,19 +857,14 @@ struct DexSummaryHeader: View {
                 Text(store.l.dexTotal(store.dexEntries.count))
                     .font(.caption2).foregroundStyle(.secondary)
             }
-            HStack(spacing: 4) {
-                ForEach(rarityDisplayOrder, id: \.self) { r in
-                    let count = store.dexCount(r)
-                    Button { onSelect(r) } label: {
-                        RarityTally(
-                            label: store.l.rarityLabel(r), count: count, color: rarityColor(r),
-                            isSelected: selected == r)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(count == 0)          // 0마리 희귀도는 필터 불가
-                    .help(store.l.dexFilterHint)
-                }
-            }
+            DexFilterBar(
+                localization: store.l,
+                selected: selected,
+                rarityCounts: Dictionary(uniqueKeysWithValues: rarityDisplayOrder.map {
+                    ($0, store.dexCount($0))
+                }),
+                shinyCount: store.dexShinyCount,
+                onSelect: onSelect)
         }
     }
 }
@@ -748,16 +880,22 @@ struct DexSummaryHeader: View {
 struct CollectionView: View {
     let store: CompanionStore
     let navigation: PopoverNavigation
-    /// 로그 전용 희귀도 필터. 도감은 개수 단위가 종이라 자기 필터를 따로 갖는다(DexGridView).
-    @State private var selectedRarity: Rarity?
+    /// 로그 전용 필터. 도감은 개수 단위가 종이라 자기 필터를 따로 갖는다(DexGridView).
+    @State private var selectedFilter: DexHeaderFilter?
 
     /// 도감·로그 공통 최소 높이 — 상점·가방과 같음. 창이 커지면 격자·로그가 나머지를 채운다.
     private static let contentHeight: CGFloat = 520
 
-    /// 선택된 희귀도만 노출(없으면 전체). 상단 캡슐 토글로 설정.
+    /// 선택된 희귀도·이로치만 노출(없으면 전체). 상단 캡슐 토글로 설정.
     private var visibleEntries: [DexEntry] {
-        guard let r = selectedRarity else { return store.dexEntriesSorted }
-        return store.dexEntriesSorted.filter { $0.rarity == r }
+        switch selectedFilter {
+        case .rarity(let rarity):
+            return store.dexEntriesSorted.filter { $0.rarity == rarity }
+        case .shiny:
+            return store.dexEntriesSorted.filter(\.isShiny)
+        case nil:
+            return store.dexEntriesSorted
+        }
     }
 
     var body: some View {
@@ -780,9 +918,9 @@ struct CollectionView: View {
     /// (아래로 내리는 중에도 희귀도 필터를 토글할 수 있다).
     private var catchLog: some View {
         VStack(alignment: .leading, spacing: 8) {
-            DexSummaryHeader(store: store, selected: selectedRarity) { r in
+            DexSummaryHeader(store: store, selected: selectedFilter) { filter in
                 withAnimation(.easeInOut(duration: 0.15)) {
-                    selectedRarity = (selectedRarity == r) ? nil : r
+                    selectedFilter = (selectedFilter == filter) ? nil : filter
                 }
             }
             // maxHeight 는 팝오버 재오픈 시 ScrollView fitting size 가 작게 잡혀 크기가 줄어드는
@@ -800,7 +938,7 @@ struct CollectionView: View {
                 }
                 .frame(maxHeight: .infinity)
                 // 필터 토글 시 목록 최상단으로 — 이전 스크롤 위치가 새 필터 결과 밖이어도 처음부터 보이게.
-                .onChange(of: selectedRarity) {
+                .onChange(of: selectedFilter) {
                     withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo("dexTop", anchor: .top) }
                 }
             }
@@ -856,7 +994,7 @@ struct RepresentativeFooterButton: View {
 @MainActor
 private struct DexGridView: View {
     let store: CompanionStore
-    @State private var selectedRarity: Rarity?
+    @State private var selectedFilter: DexHeaderFilter?
 
     /// 선택한 칸 — 하단 줄에 희귀도를 띄우고, 이로치를 잡은 종이면 스프라이트를 그 색으로 바꾼다.
     @State private var selectedID: Int?
@@ -870,7 +1008,16 @@ private struct DexGridView: View {
     var body: some View {
         // 종별 집계는 한 번만 훑고 하위로 넘긴다 — 칸마다 재집계하면 도감이 O(칸×도감) 이 된다.
         let all = store.dexSpecies
-        let visible = selectedRarity.map { r in all.filter { $0.rarity == r } } ?? all
+        let visible: [CompanionStore.DexSpecies] = {
+            switch selectedFilter {
+            case .rarity(let rarity):
+                return all.filter { $0.rarity == rarity }
+            case .shiny:
+                return all.filter(\.isShiny)
+            case nil:
+                return all
+            }
+        }()
         Group {
             if let id = detailSpeciesID, let species = all.first(where: { $0.id == id }) {
                 PokemonDetailView(store: store, species: species) { detailSpeciesID = nil }
@@ -887,32 +1034,24 @@ private struct DexGridView: View {
         .task { await store.backfillMissingDexNames() }
     }
 
-    /// 희귀도 필터 — 로그와 같은 RarityTally 를 쓰되 개수는 **종 단위**다.
-    /// (DexSummaryHeader 는 개체 수 dexCount 를 내부에서 직접 부르므로 재사용하려면 시그니처를 바꿔
-    ///  로그 경로까지 건드려야 한다. 캡슐 4개짜리 헤더라 여기서는 인라인으로 둔다.)
+    /// 희귀도·이로치 필터 — 로그와 같은 DexFilterBar 를 쓰되 개수는 **종 단위**다.
     private func header(_ all: [CompanionStore.DexSpecies]) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 6) {
                 Text(store.l.dexTitle).font(.callout.weight(.semibold))
-                // 총계는 필터와 무관한 전체 종 수 — 로그 헤더(dexTotal)와 같은 규칙.
-                // 필터 중인 희귀도의 개수는 아래 캡슐이 이미 보여준다.
                 Text(store.l.dexSpeciesTotal(all.count)).font(.caption2).foregroundStyle(.secondary)
             }
-            HStack(spacing: 4) {
-                ForEach(rarityDisplayOrder, id: \.self) { r in
-                    let count = all.lazy.filter { $0.rarity == r }.count
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            selectedRarity = (selectedRarity == r) ? nil : r
-                            selectedID = nil // 선택한 칸이 필터 밖으로 나가면 하단 줄이 유령 정보를 남긴다
-                        }
-                    } label: {
-                        RarityTally(label: store.l.rarityLabel(r), count: count,
-                                    color: rarityColor(r), isSelected: selectedRarity == r)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(count == 0)          // 0종 희귀도는 필터 불가
-                    .help(store.l.dexFilterHint)
+            DexFilterBar(
+                localization: store.l,
+                selected: selectedFilter,
+                rarityCounts: Dictionary(uniqueKeysWithValues: rarityDisplayOrder.map { rarity in
+                    (rarity, all.lazy.filter { $0.rarity == rarity }.count)
+                }),
+                shinyCount: all.lazy.filter(\.isShiny).count
+            ) { filter in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    selectedFilter = (selectedFilter == filter) ? nil : filter
+                    selectedID = nil
                 }
             }
         }
@@ -937,7 +1076,7 @@ private struct DexGridView: View {
             }
             .frame(maxHeight: .infinity)
             // 필터 토글 시 격자 최상단으로 — 이전 스크롤 위치가 새 필터 결과 밖이어도 처음부터 보이게.
-            .onChange(of: selectedRarity) {
+            .onChange(of: selectedFilter) {
                 withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo("dexGridTop", anchor: .top) }
             }
         }
@@ -1258,6 +1397,7 @@ private struct DexSpeciesCell: View {
                         .strokeBorder(Color.accentColor, lineWidth: 1.5)
                 }
             }
+            .contentShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
         .help(tooltip)

@@ -377,6 +377,7 @@ final class PremiumEggTests: XCTestCase {
         s.applyUsage(PokemonBalance.graduationTotal(active.rarity) * 2)   // 단일 형태 → 졸업
         XCTAssertNil(s.state.active, "졸업")
         XCTAssertEqual(s.state.dex.count, 1)
+        XCTAssertTrue(s.isEgg, "졸업으로 받는 다음 알은 육성 슬롯에 있다")
         XCTAssertNil(s.state.eggTier, "졸업으로 받는 알에는 보증이 없다")
         XCTAssertNil(s.eggGuarantee)
     }

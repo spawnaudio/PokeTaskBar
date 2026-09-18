@@ -99,6 +99,7 @@ final class LocalizationInterpolationTests: XCTestCase {
             expect(lang, "linearCompletedBubbleTitleCount", l.linearCompletedBubbleTitleCount(4242), "4242")
             expect(lang, "linearCompletedBubbleBody", l.linearCompletedBubbleBody(a, b), a, b)
             expect(lang, "linearCompletedFlashTitleCount", l.linearCompletedFlashTitleCount(4242), "4242")
+            expect(lang, "menuBarLinearIssues", l.menuBarLinearIssues(4242, 1717), "4242", "1717")
 
             expect(lang, "minutesValue", l.minutesValue(4242), "4242")
             expect(lang, "timesUpBubbleTitle", l.timesUpBubbleTitle(a), a)

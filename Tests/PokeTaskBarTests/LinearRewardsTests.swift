@@ -1055,7 +1055,11 @@ final class LinearRewardsTests: XCTestCase {
     @MainActor
     func testComposerTriggerDisabledWithoutLinearKey() {
         let defaults = UserDefaults(suiteName: "linear-compose-\(UUID().uuidString)")!
-        let usage = UsageStore(providers: [], autoRefresh: false, defaults: defaults)
+        let emptyKeyURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("linear-key-empty-\(UUID().uuidString).json")
+        let emptyKeys = LinearAPIKeyStore(fileURL: emptyKeyURL)
+        let usage = UsageStore(
+            providers: [], autoRefresh: false, defaults: defaults, linearAPIKeys: emptyKeys)
         usage.linearIntegrationEnabled = true
         XCTAssertFalse(usage.canComposeLinearIssue)
 

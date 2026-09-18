@@ -135,7 +135,7 @@ struct LinearIntegrationView: View {
                         Text(l.linearLastSynced)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text(updated, style: .relative)
+                        RelativeTimestampText(date: updated)
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -184,7 +184,7 @@ struct LinearIntegrationView: View {
                 .padding(.top, 4)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(visibleIssues) { issue in
                         issueCard(issue)
                         if issue.id != visibleIssues.last?.id {
@@ -210,7 +210,7 @@ struct LinearIntegrationView: View {
                     .padding(.top, 4)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(items) { row in
                             LinearFoldableRow(row: row, openHelp: openHelp) {
                                 if row.issues.isEmpty {
@@ -457,6 +457,8 @@ private struct LinearFoldableRow<Content: View>: View {
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .controlSize(.mini)

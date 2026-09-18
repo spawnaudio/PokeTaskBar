@@ -39,6 +39,15 @@ struct L {
           "Selecione uma issue do Linear para focar",
           "Wähle ein Linear-Issue zum Fokussieren")
     }
+    var focusIssueOrTimerPrompt: String {
+        t("이슈에 집중하거나 타이머 시작",
+          "Focus on Issue or Start Timer",
+          "課題に集中、またはタイマー開始",
+          "Enfócate en una issue o inicia el timer",
+          "Concentre-toi sur une issue ou lance le timer",
+          "Foque em uma issue ou inicie o timer",
+          "Issue fokussieren oder Timer starten")
+    }
     var openLinearTab: String { t("Linear 열기", "Open Linear", "Linearを開く", "Abrir Linear", "Ouvrir Linear", "Abrir Linear", "Linear öffnen") }
     var pomodoroTitle: String { t("포모도로", "Pomodoro", "ポモドーロ", "Pomodoro", "Pomodoro", "Pomodoro", "Pomodoro") }
     var pomoTimer: String { t("포모 타이머", "Pomo Timer", "ポモタイマー", "Pomo Timer", "Pomo Timer", "Pomo Timer", "Pomo-Timer") }
@@ -174,6 +183,20 @@ struct L {
     var todayTokensShort: String { t("오늘 토큰", "Today's tokens", "本日のトークン", "Tokens de hoy", "Tokens du jour", "Tokens de hoje", "Heutige Tokens") }
     var todayCost: String { t("오늘 비용 ($)", "Today's cost ($)", "本日のコスト ($)", "Coste de hoy ($)", "Coût du jour ($)", "Custo de hoje ($)", "Heutige Kosten ($)") }
     var limitPercent: String { t("한도 %", "Limit %", "上限 %", "Límite %", "Limite %", "Limite %", "Limit %") }
+    var menuBarLinearIssuesLabel: String {
+        t("진행 중 / 오늘 완료", "In progress / completed", "進行中 / 今日完了",
+          "En curso / completadas", "En cours / terminées", "Em andamento / concluídas",
+          "In Arbeit / abgeschlossen")
+    }
+    func menuBarLinearIssues(_ inProgress: Int, _ completed: Int) -> String {
+        t("진행 \(inProgress) · 완료 \(completed)",
+          "\(inProgress) open · \(completed) done",
+          "進行 \(inProgress) · 完了 \(completed)",
+          "\(inProgress) en curso · \(completed) hechas",
+          "\(inProgress) en cours · \(completed) faites",
+          "\(inProgress) abertas · \(completed) feitas",
+          "\(inProgress) offen · \(completed) fertig")
+    }
     var animationQualityLabel: String { t("애니메이션", "Animation", "アニメーション", "Animación", "Animation", "Animação", "Animation") }
     var animationQualityHint: String {
         t("부드러울수록 배터리를 더 씁니다", "Smoother uses more battery",
@@ -1149,7 +1172,7 @@ struct L {
     var rarityUncommon: String { t("고급", "Uncommon", "アンコモン", "Poco común", "Peu commun", "Incomum", "Ungewöhnlich") }
     var rarityRare: String { t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten") }
     var rarityLegendary: String { t("전설", "Legendary", "伝説", "Legendario", "Légendaire", "Lendário", "Legendär") }
-    var dexFilterHint: String { t("탭하면 이 희귀도만 보기 · 다시 탭하면 전체", "Tap to show only this rarity · tap again to clear", "タップでこの希少度のみ表示・再タップで全体", "Toca para ver solo esta rareza · toca de nuevo para ver todo", "Touche pour n'afficher que cette rareté · touche à nouveau pour tout afficher", "Toque para ver só esta raridade · toque de novo para ver tudo", "Tippe, um nur diese Seltenheit zu sehen · tippe erneut für alle") }
+    var dexFilterHint: String { t("탭하면 이 항목만 보기 · 다시 탭하면 전체", "Tap to show only this · tap again to clear", "タップでこれのみ表示・再タップで全体", "Toca para ver solo esto · toca de nuevo para ver todo", "Touche pour n'afficher que ceci · touche à nouveau pour tout afficher", "Toque para ver só isto · toque de novo para ver tudo", "Tippe, um nur dies zu sehen · tippe erneut für alle") }
     /// 도감 칸의 ✨ 를 읽어주는 명사 — 이모지는 스크린리더가 일관되게 읽지 못한다.
     var dexShinyLabel: String { t("이로치", "Shiny", "色違い", "Variocolor", "Chromatique", "Shiny", "Schillernd") }
     // MARK: Pokémon 상세
@@ -1227,15 +1250,16 @@ struct L {
     var notifShinyHatchTitle: String { t("✨ 이로치 포켓몬!", "✨ Shiny Pokémon!", "✨ 色違いポケモン！", "✨ ¡Pokémon variocolor!", "✨ Pokémon chromatique !", "✨ Pokémon shiny!", "✨ Schillerndes Pokémon!") }
     func notifShinyHatchBody(_ name: String) -> String { t("이로치 \(name)이(가) 태어났어요! (1/64)", "A shiny \(name) hatched! (1 in 64)", "色違いの \(name) が生まれました！(1/64)", "¡Nació un \(name) variocolor! (1 entre 64)", "Un \(name) chromatique est né ! (1 sur 64)", "Nasceu um \(name) shiny! (1 em 64)", "Ein schillerndes \(name) ist geschlüpft! (1/64)") }
     var eggImminent: String { t("곧 부화해요!", "About to hatch!", "もうすぐ孵化！", "¡Está a punto de eclosionar!", "Sur le point d'éclore !", "Está quase chocando!", "Schlüpft gleich!") }
-    /// 첫 실행(아직 토큰 적립 0) 안내 — "왜 아무 일도 안 일어나지"를 방지.
-    var eggFirstRunHint: String {
-        t("로컬 AI 코딩 도구 사용량과 Linear 일이 XP가 돼요. 약 5M XP면 알이 부화해요.",
-          "Grows from Linear work and local AI coding usage. Your egg hatches after ~5M XP.",
-          "Linear の仕事とローカルの AI コーディング使用量が XP になります。約5M XP でタマゴが孵化します。",
-          "Crece con el trabajo de Linear y el uso local de IA. Tu huevo eclosiona tras unos 5M de XP.",
-          "Il grandit avec le travail Linear et l’usage IA local. Ton œuf éclôt après environ 5M d’XP.",
-          "Cresce com o trabalho no Linear e o uso local de IA. O ovo choca depois de uns 5M de XP.",
-          "Wächst mit Linear-Arbeit und lokaler KI-Nutzung. Nach etwa 5M XP schlüpft dein Ei.") }
+    /// 첫 실행(아직 토큰 적립 0) 안내 — 임계는 EconomyScale 적용값을 넘겨 5M 원문과 어긋나지 않게.
+    func eggFirstRunHint(_ amount: String) -> String {
+        t("로컬 AI 코딩 도구 사용량과 Linear 일이 XP가 돼요. 약 \(amount) XP면 알이 부화해요.",
+          "Grows from Linear work and local AI coding usage. Your egg hatches after ~\(amount) XP.",
+          "Linear の仕事とローカルの AI コーディング使用量が XP になります。約\(amount) XP でタマゴが孵化します。",
+          "Crece con el trabajo de Linear y el uso local de IA. Tu huevo eclosiona tras unos \(amount) de XP.",
+          "Il grandit avec le travail Linear et l’usage IA local. Ton œuf éclôt après environ \(amount) d’XP.",
+          "Cresce com o trabalho no Linear e o uso local de IA. O ovo choca depois de uns \(amount) de XP.",
+          "Wächst mit Linear-Arbeit und lokaler KI-Nutzung. Nach etwa \(amount) XP schlüpft dein Ei.")
+    }
     var notifEvolveTitle: String { t("✨ 진화!", "✨ Evolved!", "✨ 進化！", "✨ ¡Evolucionó!", "✨ Évolution !", "✨ Evoluiu!", "✨ Entwicklung!") }
     func notifEvolveBody(_ name: String) -> String { t("\(name)(으)로 진화했어요!", "Evolved into \(name)!", "\(name) に進化しました！", "¡Evolucionó a \(name)!", "A évolué en \(name) !", "Evoluiu para \(name)!", "Hat sich zu \(name) entwickelt!") }
     // 메타몽 위장 리빌 — 진화 못 하는 메타몽이 첫 진화 순간 정체를 드러낸다.
@@ -1428,18 +1452,21 @@ struct L {
     func scoreValue(_ amount: String) -> String { t("점수 \(amount) XP", "Score \(amount) XP", "スコア \(amount) XP", "Puntuación \(amount) XP", "Score \(amount) XP", "Pontuação \(amount) XP", "Punktzahl \(amount) XP") }
     func coinsValue(_ amount: String) -> String { t("코인 \(amount)", "\(amount) Coins", "コイン \(amount)", "\(amount) monedas", "\(amount) pièces", "\(amount) moedas", "\(amount) Münzen") }
     var trainingEgg: String { t("키우는 알", "Training egg", "育て中のタマゴ", "Huevo en entrenamiento", "Œuf en élevage", "Ovo em treino", "Ei im Training") }
+    var trainingSlotEmpty: String { t("키우는 포켓몬이 없어요", "Nothing in training", "育成中のポケモンはいません", "Nada en entrenamiento", "Rien en élevage", "Nada em treino", "Nichts im Training") }
+    var trainingSlotEmptyHint: String { t("상점에서 알을 사거나 보관함에서 꺼내 키우세요.", "Buy an egg from the Shop or swap one in from Storage.", "ショップでタマゴを買うか、預かり箱から出して育てましょう。", "Compra un huevo en la Tienda o saca uno del almacén.", "Achète un œuf dans la Boutique ou sors-en un du stockage.", "Compre um ovo na Loja ou tire um do depósito.", "Kaufe ein Ei im Laden oder hol eines aus dem Lager.") }
 
     // MARK: Pokémon Storage
     var pokemonStorage: String { t("포켓몬 보관", "Pokémon Storage", "ポケモン預かり", "Almacén Pokémon", "Stockage Pokémon", "Depósito Pokémon", "Pokémon-Lager") }
     var pokemonStorageEmpty: String { t("보관함이 비어 있어요", "Storage is empty", "預かり箱は空です", "El almacén está vacío", "Le stockage est vide", "O depósito está vazio", "Das Lager ist leer") }
     var pokemonStorageHint: String { t("알과 졸업 전 포켓몬을 보관하고, 한 마리만 키워요. 언제든 교체할 수 있어요.", "Bank eggs and mid-evolution partners. Train one at a time; swap anytime.", "タマゴと進化途中のポケモンを預け、一度に1匹だけ育てます。いつでも交代できます。", "Guarda huevos y socios a medio evolucionar. Entrena uno a la vez; cámbialo cuando quieras.", "Banque œufs et partenaires en cours d’évolution. Un seul à la fois ; échange quand tu veux.", "Guarde ovos e parceiros no meio da evolução. Treine um de cada vez; troque quando quiser.", "Lagere Eier und Partner vor dem Abschluss. Trainiere eines; tausche jederzeit.") }
     var pokemonStorageEggHint: String { t("보관 중인 알", "Stored egg", "預け中のタマゴ", "Huevo guardado", "Œuf stocké", "Ovo guardado", "Gelagertes Ei") }
-    var storagePartner: String { t("육성 중인 포켓몬", "Training partner", "育成中のポケモン", "Compañero en entrenamiento", "Partenaire en élevage", "Parceiro em treino", "Partner im Training") }
     func storagePartnerHint(stage: Int, total: Int) -> String {
         t("진화 \(stage)/\(total) · 보관 중", "Stage \(stage)/\(total) · stored", "進化 \(stage)/\(total) · 預かり", "Fase \(stage)/\(total) · guardado", "Stade \(stage)/\(total) · stocké", "Estágio \(stage)/\(total) · guardado", "Phase \(stage)/\(total) · gelagert")
     }
     var storageTrain: String { t("키우기", "Train", "育てる", "Entrenar", "Élever", "Treinar", "Trainieren") }
     var storageSwapConfirm: String { t("지금 키우는 포켓몬과 바꿀까요?", "Swap with the one in training?", "今育てているポケモンと交代しますか？", "¿Cambiar con el que estás entrenando?", "Échanger avec celui en élevage ?", "Trocar com o que está em treino?", "Mit dem aktuellen Trainingstier tauschen?") }
+    var storeInStorage: String { t("보관함에 넣기", "Store in Storage", "預かり箱へ", "Guardar en el almacén", "Mettre en stockage", "Guardar no depósito", "Ins Lager legen") }
+    var storageNeedsEgg: String { t("먼저 상점에서 알을 구매해야 해요", "Buy an egg from the Shop first", "先にショップでタマゴを買ってください", "Primero compra un huevo en la Tienda", "Achète d’abord un œuf dans la Boutique", "Compre um ovo na Loja primeiro", "Kaufe zuerst ein Ei im Laden") }
     var dexTrophy: String { t("졸업 트로피", "Graduated", "卒業トロフィー", "Graduado", "Diplômé", "Formado", "Abschied") }
 
     // MARK: 상점 (재화 = Coins)

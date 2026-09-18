@@ -216,7 +216,7 @@ struct TodayDeskView: View {
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(store.linearInProgressIssues) { issue in
                             TodayDeskPinRow(issue: issue, pinned: session.session?.issue.id == issue.id) {
                                 session.pin(issue, openDesk: true)
@@ -234,7 +234,7 @@ struct TodayDeskView: View {
 
     private var completedToday: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(store.linearCompletedTodayIssues) { issue in
                     HStack(alignment: .center, spacing: 6) {
                         LinearStatusDot(type: issue.stateType)

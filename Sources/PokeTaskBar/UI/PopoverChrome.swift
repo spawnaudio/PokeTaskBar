@@ -19,11 +19,46 @@ struct PopoverMaterialBackground: NSViewRepresentable {
 
 /// Shared 0.5pt hairline so buttons, chips, tabs, and cards all read as bordered.
 enum TahoeHairline {
-    static let width: CGFloat = 0.5
+    static let width: CGFloat = 1
     static let idle = Color(nsColor: MenuBarPanelMetrics.hairline)
     static let selected = Color(nsColor: MenuBarPanelMetrics.hairlineSelected)
 
     static func tinted(_ color: Color) -> Color { color.opacity(0.45) }
+}
+
+/// Fill + stroke on one shape so  hairlines stay closed (sibling overlays clip corners).
+struct TahoeStrokedFill<S: InsettableShape>: View {
+    var shape: S
+    var fill: Color
+    var stroke: Color = TahoeHairline.idle
+    var lineWidth: CGFloat = TahoeHairline.width
+
+    var body: some View {
+        shape.fill(fill)
+            .overlay {
+                shape.strokeBorder(stroke, lineWidth: lineWidth)
+            }
+    }
+}
+
+/// Ultra-thin divider between Linear tab chrome and the list. Hidden until the pointer is near it.
+@MainActor
+struct HoverHairlineSeparator: View {
+    @State private var hovering = false
+
+    var body: some View {
+        Color.clear
+            .frame(height: 12)
+            .overlay {
+                Rectangle()
+                    .fill(TahoeHairline.idle)
+                    .frame(height: TahoeHairline.width)
+                    .opacity(hovering ? 1 : 0)
+            }
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .accessibilityHidden(true)
+    }
 }
 
 /// Opaque card: 12pt continuous corners + hairline.
@@ -33,12 +68,9 @@ struct PopoverCardModifier: ViewModifier {
         content
             .padding(12)
             .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(nsColor: MenuBarPanelMetrics.cardFill))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
+                TahoeStrokedFill(
+                    shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                    fill: Color(nsColor: MenuBarPanelMetrics.cardFill))
             }
     }
 }
@@ -48,6 +80,118 @@ enum TahoeButtonKind {
     case prominent
     case regular
     case accessory
+}
+
+/// Capsule fill + hairline + `contentShape` around a label. Buttons wrap this in a
+/// `ButtonStyle` so padding hits; Menu labels apply it directly on the label.
+struct TahoeCapsuleChrome<Content: View>: View {
+    var kind: TahoeButtonKind
+    var expands: Bool = false
+    var tint: Color? = nil
+    var pressed: Bool = false
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        let shape = Capsule()
+        content
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .frame(maxWidth: expands ? .infinity : nil, alignment: expands ? .leading : .center)
+            .background {
+                TahoeStrokedFill(shape: shape, fill: fill, stroke: stroke)
+            }
+            .contentShape(shape)
+            .opacity(pressed ? 0.72 : 1)
+    }
+
+    private var horizontalPadding: CGFloat {
+        switch kind {
+        case .prominent: return 10
+        case .regular: return 8
+        case .accessory: return 6
+        }
+    }
+
+    private var verticalPadding: CGFloat {
+        switch kind {
+        case .prominent, .regular: return 6
+        case .accessory: return 4
+        }
+    }
+
+    private var fill: Color {
+        switch kind {
+        case .prominent: return Color(nsColor: MenuBarPanelMetrics.selectedFill)
+        case .regular: return tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)
+        case .accessory: return Color.clear
+        }
+    }
+
+    private var stroke: Color {
+        switch kind {
+        case .prominent: return TahoeHairline.selected
+        case .regular: return tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle
+        case .accessory: return TahoeHairline.idle
+        }
+    }
+}
+
+/// Hit region = drawn capsule. Chrome lives on `configuration.label`, not outside `.plain`.
+struct TahoeChromeButtonStyle: ButtonStyle {
+    var kind: TahoeButtonKind
+    var expands: Bool = false
+    var tint: Color? = nil
+
+    func makeBody(configuration: Configuration) -> some View {
+        TahoeCapsuleChrome(
+            kind: kind,
+            expands: expands,
+            tint: tint,
+            pressed: configuration.isPressed
+        ) {
+            configuration.label
+        }
+    }
+}
+
+/// Segmented tab / duration chips. Selected fill + full-capsule hit target.
+struct LinearSegmentButtonStyle: ButtonStyle {
+    var selected: Bool
+    var expands: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = Capsule()
+        configuration.label
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(maxWidth: expands ? .infinity : nil)
+            .background {
+                TahoeStrokedFill(
+                    shape: shape,
+                    fill: selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
+                    stroke: selected ? TahoeHairline.selected : TahoeHairline.idle)
+            }
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+/// Circular toolbar icons. Hit region is the full circle, not the SF Symbol.
+struct TahoeIconButtonStyle: ButtonStyle {
+    var selected: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = Circle()
+        configuration.label
+            .background {
+                TahoeStrokedFill(
+                    shape: shape,
+                    fill: selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
+                    stroke: selected ? TahoeHairline.selected : TahoeHairline.idle)
+            }
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
 }
 
 /// Layout-only cluster.
@@ -64,96 +208,50 @@ extension View {
         modifier(PopoverCardModifier())
     }
 
-    /// Quiet bordered pill for menus/dropdowns.
+    /// Quiet bordered pill for **Menu labels** (chrome on the label, not the Menu).
     func linearChipChrome(expands: Bool = false, tint: Color? = nil) -> some View {
-        self
-            .buttonStyle(.plain)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .frame(maxWidth: expands ? .infinity : nil, alignment: .leading)
-            .background((tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)), in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(
-                    tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle,
-                    lineWidth: TahoeHairline.width)
-            }
+        TahoeCapsuleChrome(kind: .regular, expands: expands, tint: tint) { self }
     }
 
-    /// Quiet segmented item: selected is a filled pill (`--bg-control`) plus a hairline.
-    func linearSegmentChrome(selected: Bool) -> some View {
-        self
-            .buttonStyle(.plain)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear, in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(
-                    selected ? TahoeHairline.selected : TahoeHairline.idle,
-                    lineWidth: TahoeHairline.width)
-            }
+    /// Segmented Button chrome. Hit region matches the drawn pill.
+    func linearSegmentChrome(selected: Bool, expands: Bool = false) -> some View {
+        buttonStyle(LinearSegmentButtonStyle(selected: selected, expands: expands))
     }
 
     /// Toolbar strip: filled control surface + hairline.
     func popoverBottomBarChrome() -> some View {
         self
-            .background(Color(nsColor: MenuBarPanelMetrics.chipFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
+            .background {
+                TahoeStrokedFill(
+                    shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                    fill: Color(nsColor: MenuBarPanelMetrics.chipFill))
             }
     }
 
     /// Button chrome. Prominent = filled control; regular = chip; accessory = plain.
-    @ViewBuilder
     func tahoeButtonStyle(_ kind: TahoeButtonKind) -> some View {
-        switch kind {
-        case .prominent:
-            self
-                .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: MenuBarPanelMetrics.selectedFill), in: Capsule())
-                .overlay {
-                    Capsule().strokeBorder(TahoeHairline.selected, lineWidth: TahoeHairline.width)
-                }
-        case .regular:
-            self.linearChipChrome()
-        case .accessory:
-            self
-                .buttonStyle(.plain)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
-                .overlay {
-                    Capsule().strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
-                }
-        }
+        buttonStyle(TahoeChromeButtonStyle(kind: kind))
     }
 
     /// Overlay island / prompt chrome: filled panel.
     func tahoeFloatingChrome(cornerRadius: CGFloat = 12) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return self
-            .background(Color.primary.opacity(0.08), in: shape)
-            .overlay { shape.strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width) }
+            .background {
+                TahoeStrokedFill(shape: shape, fill: Color.primary.opacity(0.08))
+            }
     }
 
     func tahoePromptChrome(cornerRadius: CGFloat = 10) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return self
-            .background(Color.primary.opacity(0.08), in: shape)
-            .overlay { shape.strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width) }
+            .background {
+                TahoeStrokedFill(shape: shape, fill: Color.primary.opacity(0.08))
+            }
     }
 
     func tahoeIconChrome(selected: Bool = false) -> some View {
-        self
-            .background(
-                selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
-                in: Circle())
-            .overlay {
-                Circle().strokeBorder(
-                    selected ? TahoeHairline.selected : TahoeHairline.idle,
-                    lineWidth: TahoeHairline.width)
-            }
+        buttonStyle(TahoeIconButtonStyle(selected: selected))
     }
 }
 
@@ -203,9 +301,9 @@ struct TahoePopupMenu<Selection: Hashable, Content: View>: View {
         } label: {
             TahoeMenuLabel(text: selectionTitle, expands: expands)
                 .foregroundStyle(tint ?? Color.primary)
+                .linearChipChrome(expands: expands, tint: tint)
         }
         .menuIndicator(.hidden)
-        .linearChipChrome(expands: expands, tint: tint)
         .controlSize(size)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue(selectionTitle)
@@ -227,11 +325,13 @@ struct TahoeTabItem<Value: Hashable> {
 }
 
 /// Selected = filled quiet pill, idle = no fill. Labels collapse to icons
-/// when the labeled cluster would wrap.
+/// when the labeled cluster would wrap. `expands` splits width evenly and
+/// follows the window.
 @MainActor
 struct TahoeTabBar<Value: Hashable>: View {
     @Binding var selection: Value
     var size: ControlSize = .small
+    var expands: Bool = false
     let items: [TahoeTabItem<Value>]
 
     private var canCollapseToIcons: Bool {
@@ -241,11 +341,12 @@ struct TahoeTabBar<Value: Hashable>: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             tabRow(showTitle: true)
-                .fixedSize(horizontal: true, vertical: false)
+                .fixedSize(horizontal: !expands, vertical: false)
             if canCollapseToIcons {
                 tabRow(showTitle: false)
             }
         }
+        .frame(maxWidth: expands ? .infinity : nil)
     }
 
     private func tabRow(showTitle: Bool) -> some View {
@@ -264,14 +365,16 @@ struct TahoeTabBar<Value: Hashable>: View {
                         if showTitle {
                             Text(item.title)
                                 .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
+                                .minimumScaleFactor(0.85)
                         }
                     }
+                    .frame(maxWidth: expands ? .infinity : nil)
                 }
                 .font(.system(size: 13, weight: selected ? .medium : .regular))
                 .foregroundStyle(selected ? Color.primary : Color.secondary)
-                .linearSegmentChrome(selected: selected)
+                .linearSegmentChrome(selected: selected, expands: expands)
                 .controlSize(size)
+                .frame(maxWidth: expands ? .infinity : nil)
                 .help(item.title)
                 .accessibilityLabel(item.title)
                 .accessibilityAddTraits(selected ? .isSelected : [])
@@ -292,13 +395,14 @@ struct LinearTagChip: View {
             .foregroundStyle(tint ?? Color.secondary)
             .lineLimit(1)
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background((tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)), in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(
-                    tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle,
-                    lineWidth: TahoeHairline.width)
+        .padding(.vertical, 4)
+            .background {
+                TahoeStrokedFill(
+                    shape: Capsule(),
+                    fill: tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill),
+                    stroke: tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle)
             }
+            .contentShape(Capsule())
     }
 }
 
@@ -344,11 +448,9 @@ struct MutedProgressBar: View {
         let fraction = total > 0 ? min(max(value / total, 0), 1) : 0
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.primary.opacity(0.08))
-                    .overlay {
-                        Capsule().strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
-                    }
+                TahoeStrokedFill(
+                    shape: Capsule(),
+                    fill: Color.primary.opacity(0.08))
                 Capsule()
                     .fill(Color.accentColor)
                     .frame(width: max(4, geo.size.width * fraction))
@@ -419,10 +521,8 @@ struct PopoverShellToolbar: View {
                         .font(.body.weight(.medium))
                         .foregroundStyle(.secondary)
                         .frame(width: 28, height: 28)
-                        .contentShape(Circle())
-                        .tahoeIconChrome()
                 }
-                .buttonStyle(.plain)
+                .tahoeIconChrome()
                 .help(l.goBack)
                 .accessibilityLabel(l.goBack)
             }
@@ -463,9 +563,8 @@ struct PopoverShellToolbar: View {
                 .font(.body)
                 .foregroundStyle(selected ? Color.primary : Color.secondary)
                 .frame(width: 32, height: 32)
-                .tahoeIconChrome(selected: selected)
         }
-        .buttonStyle(.plain)
+        .tahoeIconChrome(selected: selected)
         .help(help)
         .accessibilityLabel(label)
     }
@@ -488,18 +587,8 @@ struct PopoverShellToolbar: View {
                     }
                     .font(.system(size: 13, weight: selected ? .medium : .regular))
                     .foregroundStyle(selected ? Color.primary : Color.secondary)
-                    .padding(.horizontal, showTitle ? 10 : 8)
-                    .padding(.vertical, 6)
-                    .background(
-                        selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
-                        in: Capsule())
-                    .overlay {
-                        Capsule().strokeBorder(
-                            selected ? TahoeHairline.selected : TahoeHairline.idle,
-                            lineWidth: TahoeHairline.width)
-                    }
                 }
-                .buttonStyle(.plain)
+                .linearSegmentChrome(selected: selected)
                 .help(tab.title(l))
                 .accessibilityLabel(tab.title(l))
                 .accessibilityAddTraits(selected ? .isSelected : [])

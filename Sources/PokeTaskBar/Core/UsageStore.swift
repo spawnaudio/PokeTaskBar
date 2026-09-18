@@ -79,6 +79,12 @@ final class UsageStore {
     var showLimitInMenu: Bool {
         didSet { defaults.set(showLimitInMenu, forKey: "showLimitInMenu") }
     }
+    var showScoreInMenu: Bool {
+        didSet { defaults.set(showScoreInMenu, forKey: "showScoreInMenu") }
+    }
+    var showLinearIssuesInMenu: Bool {
+        didSet { defaults.set(showLinearIssuesInMenu, forKey: "showLinearIssuesInMenu") }
+    }
     /// 한도 % 표시 방식 — 사용한 양(기본) 또는 남은 양. 숫자 표시에만 적용되고
     /// 경고/위험 판정·게이지 채움·알림은 사용률 원값 기준을 유지한다(경고 의미론 분리).
     enum LimitDisplayMode: String, CaseIterable {
@@ -348,6 +354,17 @@ final class UsageStore {
 
     /// 단일 줄 표현 — 관찰(observeStore)·접근성·1줄 렌더 폴백용. 세로 렌더는 menuLines 사용.
     var menuTitle: String { menuLines.joined(separator: " · ") }
+
+    /// Compact in-progress / completed-today counts. Nil when the toggle is off or Linear is unset.
+    var menuLinearIssuesLine: String? {
+        MenuBarLines.linearIssuesLine(
+            show: showLinearIssuesInMenu,
+            integrationEnabled: linearIntegrationEnabled,
+            apiKeyConfigured: linearAPIKeyConfigured,
+            inProgress: linearInProgressIssues.count,
+            completed: linearCompletedTodayIssues.count,
+            localization: L(localizationLanguage))
+    }
 
     /// Snapshots that participate in cost aggregates / cost UI.
     var costingSnapshots: [ProviderSnapshot] { snapshots.filter(\.reportsCost) }
@@ -636,6 +653,8 @@ final class UsageStore {
         showTokensInMenu = d.object(forKey: "showTokensInMenu") as? Bool ?? true
         showCostInMenu = d.object(forKey: "showCostInMenu") as? Bool ?? false
         showLimitInMenu = d.object(forKey: "showLimitInMenu") as? Bool ?? false
+        showScoreInMenu = d.object(forKey: "showScoreInMenu") as? Bool ?? true
+        showLinearIssuesInMenu = d.object(forKey: "showLinearIssuesInMenu") as? Bool ?? true
         limitDisplayMode = LimitDisplayMode(rawValue: d.string(forKey: "limitDisplayMode") ?? "") ?? .used
         limitNotifications = d.object(forKey: "limitNotifications") as? Bool ?? true
         companionNotifications = d.object(forKey: "companionNotifications") as? Bool ?? true
@@ -835,7 +854,9 @@ final class UsageStore {
                     reportsCost: provider.reportsCost))
             }
         }
-        snapshots = newSnapshots
+        if !ProviderSnapshot.payloadsMatch(snapshots, newSnapshots) {
+            snapshots = newSnapshots
+        }
 
         if errors.isEmpty {
             lastUpdated = Date()
@@ -873,8 +894,13 @@ final class UsageStore {
                     }
                     continue
                 }
-                if enrichment.blocksOK { snapshots[index].activeBlock = enrichment.activeBlock }
-                if enrichment.periodsOK {
+                if enrichment.blocksOK, snapshots[index].activeBlock != enrichment.activeBlock {
+                    snapshots[index].activeBlock = enrichment.activeBlock
+                }
+                if enrichment.periodsOK,
+                   snapshots[index].weekTotal != enrichment.weekTotal
+                    || snapshots[index].monthTotal != enrichment.monthTotal
+                    || snapshots[index].monthDaily != enrichment.monthDaily {
                     snapshots[index].weekTotal = enrichment.weekTotal
                     snapshots[index].monthTotal = enrichment.monthTotal
                     snapshots[index].monthDaily = enrichment.monthDaily

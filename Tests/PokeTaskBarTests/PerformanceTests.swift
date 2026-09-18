@@ -103,6 +103,7 @@ final class StoreTerminationTests: XCTestCase {
         await s.hatch(baseID: 1)
         s.applyUsage(Int(PokemonBalance.graduationTotal(.common)) * 10)   // 졸업 총량의 10배
         XCTAssertNil(s.state.active)            // 졸업 완료
+        XCTAssertTrue(s.isEgg)
         XCTAssertEqual(s.dexEntries.count, 1)   // 정확히 1회
         XCTAssertEqual(s.dexEntries[0].chainOrder, [1, 2, 3])
         XCTAssertEqual(s.state.eggUsage, 0)     // 새 알 인큐베이션 리셋
@@ -499,5 +500,150 @@ final class FloatingPetEnergyTests: XCTestCase {
             }
         }
         return text
+    }
+
+    /// Token-poll `sync()` must not `setFrame(display:)` / `orderFrontRegardless` when the
+    /// pet is already on screen at the target rect — that forces a WindowServer round-trip
+    /// on every usage refresh (and used to yank z-order every 2 minutes).
+    func testVisiblePetSkipsRedundantFrameCommits() {
+        let rect = NSRect(x: 10, y: 20, width: 96, height: 96)
+        XCTAssertFalse(
+            FloatingPetController.shouldApplyPanelFrame(current: rect, target: rect, isVisible: true),
+            "same frame while visible: skip setFrame + orderFront")
+        XCTAssertTrue(
+            FloatingPetController.shouldApplyPanelFrame(current: rect, target: rect, isVisible: false),
+            "hidden pet still needs a frame before orderFront")
+        XCTAssertTrue(
+            FloatingPetController.shouldApplyPanelFrame(
+                current: rect, target: NSRect(x: 10, y: 20, width: 180, height: 168), isVisible: true),
+            "size/origin change must still commit")
+    }
+}
+
+// MARK: - Refresh / timestamp snappiness
+
+private final class SnappyUsageProvider: UsageProvider, @unchecked Sendable {
+    let id = "snappy"
+    let displayName = "Snappy"
+    nonisolated(unsafe) var daily: DailyUsage?
+    init(daily: DailyUsage?) { self.daily = daily }
+    func fetchDaily() async throws -> DailyUsage? { daily }
+    func fetchEnrichment() async -> ProviderEnrichment { ProviderEnrichment() }
+}
+
+private struct SnappySilentClaudeLimits: ClaudeLimitsProviding {
+    func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
+        throw LimitsError.keychainInteractionNotAllowed
+    }
+}
+
+private struct SnappySilentCodexLimits: CodexLimitsProviding {
+    func fetch() async throws -> CodexRateLimitStatus? { nil }
+}
+
+private struct SnappySilentAntigravityLimits: AntigravityLimitsProviding {
+    func fetch(allowKeychainPrompt: Bool) async throws -> AntigravityRateLimitStatus {
+        throw LimitsError.keychainInteractionNotAllowed
+    }
+}
+
+private struct SnappySilentStatus: ProviderStatusProviding {
+    func fetch() async -> [String: ProviderStatus] { [:] }
+}
+
+@MainActor
+final class RefreshPublishPerformanceTests: XCTestCase {
+    private func makeStore(provider: SnappyUsageProvider) -> UsageStore {
+        UsageStore(
+            providers: [provider],
+            claudeLimitsProvider: SnappySilentClaudeLimits(),
+            codexLimitsProvider: SnappySilentCodexLimits(),
+            antigravityLimitsProvider: SnappySilentAntigravityLimits(),
+            statusProvider: SnappySilentStatus(),
+            autoRefresh: false,
+            defaults: UserDefaults(suiteName: "snappy-refresh-\(UUID().uuidString)")!)
+    }
+
+    private func daily(_ tokens: Int) -> DailyUsage {
+        DailyUsage(date: LocalUsageReader.todayKey(), inputTokens: 0, outputTokens: 0,
+                   cacheCreationTokens: 0, cacheReadTokens: 0, totalTokens: tokens, totalCost: 0)
+    }
+
+    /// [회귀] A no-op poll used to assign a new `snapshots` array (`fetchedAt: Date()`)
+    /// so every @Observable consumer (Focus glance, floating-pet tooltip observer,
+    /// Usage tab) rebuilt even when tokens did not move.
+    func testIdenticalRefreshKeepsSnapshotPayloadIdentity() async {
+        let provider = SnappyUsageProvider(daily: daily(1_000))
+        let store = makeStore(provider: provider)
+        await store.refresh(scheduleEmptyRetry: false)
+        let firstFetched = store.snapshots.first?.fetchedAt
+        XCTAssertEqual(store.snapshots.first?.todayTotalTokens, 1_000)
+        XCTAssertNotNil(firstFetched)
+
+        await store.refresh(scheduleEmptyRetry: false)
+        XCTAssertEqual(store.snapshots.first?.fetchedAt, firstFetched,
+                       "identical daily payload must not replace snapshots (avoids full-tree invalidation)")
+        XCTAssertEqual(store.snapshots.first?.todayTotalTokens, 1_000)
+    }
+
+    func testTokenChangeStillPublishesNewSnapshots() async {
+        let provider = SnappyUsageProvider(daily: daily(1_000))
+        let store = makeStore(provider: provider)
+        await store.refresh(scheduleEmptyRetry: false)
+        let firstFetched = store.snapshots.first?.fetchedAt
+        provider.daily = daily(2_000)
+        await store.refresh(scheduleEmptyRetry: false)
+        XCTAssertEqual(store.snapshots.first?.todayTotalTokens, 2_000)
+        XCTAssertNotEqual(store.snapshots.first?.fetchedAt, firstFetched)
+    }
+
+    func testPayloadEqualsIgnoresFetchedAt() {
+        let today = daily(50)
+        let a = ProviderSnapshot(
+            providerID: "snappy", displayName: "Snappy", today: today,
+            activeBlock: nil, weekTotal: nil, monthTotal: nil,
+            fetchedAt: Date(timeIntervalSince1970: 1), reportsCost: true)
+        let b = ProviderSnapshot(
+            providerID: "snappy", displayName: "Snappy", today: today,
+            activeBlock: nil, weekTotal: nil, monthTotal: nil,
+            fetchedAt: Date(timeIntervalSince1970: 99), reportsCost: true)
+        XCTAssertTrue(a.payloadEquals(b))
+        XCTAssertTrue(ProviderSnapshot.payloadsMatch([a], [b]))
+        var c = b
+        c.today = daily(51)
+        XCTAssertFalse(a.payloadEquals(c))
+    }
+}
+
+final class RelativeTimestampPerformanceTests: XCTestCase {
+    /// [회귀] `Text(_, style: .relative)` self-invalidates the hosting tree ~1Hz
+    /// (defect-log energy: StackLayout.placeChildren). Open Usage/Linear tabs
+    /// were paying that while the panel is shown. Cadence must stay coarse.
+    @MainActor
+    func testRelativeTimestampCadenceIsCoarse() {
+        XCTAssertGreaterThan(RelativeTimestampText.refreshInterval, 1,
+                             "1s relative Text is the open-panel layout hitch")
+        XCTAssertLessThanOrEqual(RelativeTimestampText.refreshInterval, 30)
+    }
+
+    @MainActor
+    func testRelativeTimestampStringMovesWithNow() {
+        let past = Date(timeIntervalSince1970: 1_700_000_000)
+        let soon = RelativeTimestampText.string(from: past, now: past.addingTimeInterval(60), locale: Locale(identifier: "en_US"))
+        let later = RelativeTimestampText.string(from: past, now: past.addingTimeInterval(3600), locale: Locale(identifier: "en_US"))
+        XCTAssertFalse(soon.isEmpty)
+        XCTAssertNotEqual(soon, later)
+    }
+
+    func testLinearIssueListsUseLazyStacks() throws {
+        let linear = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/LinearIntegrationView.swift")
+        let source = try String(contentsOf: linear, encoding: .utf8)
+        XCTAssertTrue(
+            source.contains("LazyVStack(alignment: .leading, spacing: 0)"),
+            "Linear issue/project lists must lazy-load rows (eager VStack+ForEach builds every card)")
     }
 }

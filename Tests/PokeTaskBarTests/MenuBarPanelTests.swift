@@ -4,8 +4,9 @@ import XCTest
 
 final class MenuBarPanelTests: XCTestCase {
     func testDefaultIsCompactAndMaxStaysBelowToday() {
-        XCTAssertEqual(MenuBarPanelMetrics.minWidth, 360)
-        XCTAssertEqual(MenuBarPanelMetrics.defaultWidth, 360)
+        XCTAssertEqual(PopoverMetrics.width, 360, "compact layout tests keep 360")
+        XCTAssertEqual(MenuBarPanelMetrics.minWidth, 400)
+        XCTAssertEqual(MenuBarPanelMetrics.defaultWidth, 400)
         XCTAssertEqual(MenuBarPanelMetrics.attachedMaxWidth, 500)
         XCTAssertLessThan(MenuBarPanelMetrics.attachedMaxWidth, TodayDeskMetrics.defaultWidth)
         XCTAssertLessThan(MenuBarPanelMetrics.attachedMaxHeight, TodayDeskMetrics.defaultHeight)
@@ -35,7 +36,7 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(window.styleMask.contains(.borderless))
         XCTAssertFalse(window.styleMask.contains(.titled))
         XCTAssertTrue(window.styleMask.contains(.resizable))
-        XCTAssertEqual(window.contentMinSize.width, 360)
+        XCTAssertEqual(window.contentMinSize.width, 400)
         XCTAssertEqual(window.contentMaxSize.width, 500)
         XCTAssertFalse(window.isOpaque)
         XCTAssertEqual(window.backgroundColor, NSColor.clear)
@@ -68,10 +69,10 @@ final class MenuBarPanelTests: XCTestCase {
     func testClampedContentSizePinsToMinAndMax() {
         XCTAssertEqual(
             MenuBarPanelMetrics.clampedContentSize(NSSize(width: 200, height: 100), detached: false),
-            NSSize(width: 360, height: 520))
+            NSSize(width: 400, height: 520))
         XCTAssertEqual(
             MenuBarPanelMetrics.clampedContentSize(NSSize(width: 200, height: 100), detached: true),
-            NSSize(width: 360, height: 400))
+            NSSize(width: 400, height: 400))
         XCTAssertEqual(
             MenuBarPanelMetrics.clampedContentSize(NSSize(width: 900, height: 900), detached: false),
             NSSize(width: 500, height: 660))
@@ -156,13 +157,26 @@ final class MenuBarPanelTests: XCTestCase {
             .deletingLastPathComponent()
             .appendingPathComponent("Sources/PokeTaskBar/UI")
         let focus = try String(contentsOf: root.appendingPathComponent("FocusTabView.swift"), encoding: .utf8)
-        XCTAssertTrue(focus.contains("pomodoroSection"))
-        XCTAssertTrue(focus.contains("linearSection"))
+        XCTAssertTrue(focus.contains("focusSessionSection"))
+        XCTAssertTrue(focus.contains("idleFocusPrompt"))
         XCTAssertTrue(focus.contains("TimeXPView"))
         XCTAssertTrue(focus.contains("session.openPomodoroSetup()"))
         XCTAssertTrue(focus.contains("l.pomoTimer"))
+        XCTAssertTrue(focus.contains("l.focusIssueOrTimerPrompt"))
+        XCTAssertTrue(focus.contains("l.openLinearTab"))
+        XCTAssertTrue(focus.contains("l.todayDeskMenuOpen"))
+        XCTAssertFalse(focus.contains("pomodoroSection"))
+        XCTAssertFalse(focus.contains("idleLinearPrompt"))
+        XCTAssertFalse(focus.contains("l.focusIdlePrompt"))
+        XCTAssertFalse(focus.contains("l.pomodoroTitle"))
         XCTAssertTrue(focus.contains("CompanionHeader(store: companion)"))
         XCTAssertTrue(focus.contains(".popoverCard()"))
+        XCTAssertFalse(
+            focus.contains("storePartnerControl"),
+            "Store in Storage sits on the companion header evo row, not under the sprite")
+        XCTAssertFalse(
+            focus.contains("l.storeInStorage"),
+            "Focus tab must not keep a full-width Store button below the header")
         let companionRange = try XCTUnwrap(focus.range(of: "CompanionHeader(store: companion)"))
         let nextToken = focus[companionRange.upperBound...]
             .split(separator: "\n", omittingEmptySubsequences: false)
@@ -171,6 +185,93 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertFalse(
             nextToken.hasPrefix(".popoverCard("),
             "CompanionHeader is a canvas hero, not a hairline content card")
+        XCTAssertTrue(
+            nextToken.hasPrefix("ScoreBoard"),
+            "ScoreBoard follows the header; Store in Storage is not a sibling row")
+    }
+
+    func testCompanionHeaderPutsEvoLineAndStoreOnStatusRow() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/CompanionView.swift")
+        let source = try String(contentsOf: root, encoding: .utf8)
+        guard let start = source.range(of: "struct CompanionHeader") else {
+            return XCTFail("CompanionHeader missing")
+        }
+        let rest = source[start.lowerBound...]
+        guard let end = rest.range(of: "enum DexHeaderFilter") else {
+            return XCTFail("CompanionHeader bounds missing")
+        }
+        let header = String(rest[..<end.lowerBound])
+        XCTAssertTrue(header.contains("Text(statusLine)"))
+        XCTAssertTrue(header.contains("EvoLineView"), "evo line lives in the header right column")
+        XCTAssertTrue(header.contains("storeInStorage"), "Store in Storage is on the evo row")
+        XCTAssertTrue(header.contains("storePartnerReplacingWithStoredEgg"))
+        XCTAssertTrue(header.contains("storageNeedsEgg"))
+        let statusIdx = try XCTUnwrap(header.range(of: "Text(statusLine)"))
+        let evoIdx = try XCTUnwrap(header.range(of: "EvoLineView"))
+        let storeIdx = try XCTUnwrap(header.range(of: "storeInStorage"))
+        XCTAssertLessThan(statusIdx.lowerBound, evoIdx.lowerBound,
+                          "evo line sits under the status/caption line")
+        XCTAssertLessThan(evoIdx.lowerBound, storeIdx.lowerBound,
+                          "Store in Storage stays to the right of the evo line in source order")
+        XCTAssertFalse(
+            header.contains("maxWidth: popoverContentWidth)"),
+            "evo line uses the right-column budget, not the full popover width under the sprite")
+    }
+
+    func testSettingsFooterFillsWindowHeight() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/SettingsView.swift")
+        let settings = try String(contentsOf: root, encoding: .utf8)
+        XCTAssertFalse(
+            settings.contains(".frame(height: 460)"),
+            "fixed 460pt Settings clips the footer above the window bottom")
+        XCTAssertTrue(settings.contains("maxHeight: .infinity"))
+        XCTAssertTrue(settings.contains("footer"))
+        XCTAssertTrue(settings.contains("showScoreInMenu"))
+        XCTAssertTrue(settings.contains("showLinearIssuesInMenu"))
+        XCTAssertTrue(settings.contains("l.scoreLabel"))
+        XCTAssertTrue(settings.contains("l.menuBarLinearIssuesLabel"))
+    }
+
+    func testMenuBarApplyStateHonorsScoreAndLinearIssueFlags() throws {
+        let app = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/PokeTaskBarApp.swift")
+        let source = try String(contentsOf: app, encoding: .utf8)
+        XCTAssertTrue(source.contains("MenuBarLines.pillText"))
+        XCTAssertTrue(source.contains("MenuBarLines.focusedIssueTitle"))
+        XCTAssertTrue(source.contains("MenuBarLines.pillTrailing"))
+        XCTAssertTrue(source.contains("showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil"))
+        XCTAssertTrue(source.contains("store.menuLinearIssuesLine"))
+        XCTAssertTrue(source.contains("_ = store.showScoreInMenu"))
+        XCTAssertTrue(source.contains("_ = store.menuLinearIssuesLine"))
+        XCTAssertTrue(source.contains("_ = sessionStore.session?.issue.title"))
+    }
+
+    func testHairlineStrokeLivesOnTheFillShape() throws {
+        XCTAssertEqual(TahoeHairline.width, 1, "0.5pt continuous strokes drop corners")
+        let chrome = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/PopoverChrome.swift")
+        let source = try String(contentsOf: chrome, encoding: .utf8)
+        XCTAssertTrue(source.contains("struct TahoeStrokedFill"))
+        XCTAssertTrue(source.contains("struct HoverHairlineSeparator"))
+        let card = structSource(source, named: "PopoverCardModifier", until: "TahoeButtonKind")
+        XCTAssertTrue(card.contains("TahoeStrokedFill"))
+        XCTAssertFalse(
+            card.contains(".overlay {\n                RoundedRectangle"),
+            "card stroke must ride the fill, not a sibling overlay that clips")
     }
 
     func testLightAndDarkShellMatchLinearSurfaces() throws {
@@ -223,6 +324,27 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(panel.canBecomeMain)
     }
 
+    func testDexHeaderIncludesShinyFilterAndCompactLetters() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/CompanionView.swift")
+        let source = try String(contentsOf: root, encoding: .utf8)
+        XCTAssertTrue(source.contains("enum DexHeaderFilter"))
+        XCTAssertTrue(source.contains("case shiny"))
+        XCTAssertTrue(source.contains("dexShinyLabel"))
+        XCTAssertTrue(source.contains("ViewThatFits(in: .horizontal)"))
+        XCTAssertTrue(source.contains("prefix(1)"))
+        XCTAssertTrue(source.contains("compact"))
+        let en = L(.en)
+        XCTAssertEqual(String(en.rarityLabel(.legendary).prefix(1)), "L")
+        XCTAssertEqual(String(en.rarityLabel(.rare).prefix(1)), "R")
+        XCTAssertEqual(String(en.rarityLabel(.uncommon).prefix(1)), "U")
+        XCTAssertEqual(String(en.rarityLabel(.common).prefix(1)), "C")
+        XCTAssertEqual(String(en.dexShinyLabel.prefix(1)), "S")
+    }
+
     func testLinearAPIKeyLivesInVisibleGeneralSettings() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -240,6 +362,15 @@ final class MenuBarPanelTests: XCTestCase {
             generalBody.contains("linearIntegrationRows"),
             "Linear API key must not be buried in collapsed Advanced")
         XCTAssertFalse(settings[advanced.lowerBound...].contains("linearIntegrationRows(store)"))
+    }
+
+    private func structSource(_ source: String, named name: String, until nextName: String) -> String {
+        guard let start = source.range(of: "struct \(name)") else { return "" }
+        let rest = source[start.lowerBound...]
+        guard let end = rest.range(of: "enum \(nextName)") ?? rest.range(of: "struct \(nextName)") else {
+            return String(rest)
+        }
+        return String(rest[..<end.lowerBound])
     }
 
     private static func snapshot(_ color: NSColor, for appearance: NSAppearance) -> NSColor {

@@ -19,48 +19,24 @@ struct FocusTabView: View {
                 CompanionHeader(store: companion)
                 ScoreBoard(store: companion)
                     .popoverCard()
-                pomodoroSection
-                linearSection
+                focusSessionSection
                 TimeXPView(store: store, companion: companion, compact: true)
                     .popoverCard()
             }
         }
     }
 
+    /// One panel: idle CTAs, a running pomodoro clock, or the pinned Linear issue.
     @ViewBuilder
-    private var pomodoroSection: some View {
-        if let current = session.session, current.issue.isPomodoro {
-            pomodoroClock(current)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                PopoverSectionLabel(text: l.pomodoroTitle)
-                ViewThatFits(in: .horizontal) {
-                    Button(l.pomoTimer) { session.openPomodoroSetup() }
-                        .tahoeButtonStyle(.prominent)
-                        .controlSize(.regular)
-                        .fixedSize(horizontal: true, vertical: false)
-                    Button {
-                        session.openPomodoroSetup()
-                    } label: {
-                        Image(systemName: "timer")
-                    }
-                    .tahoeButtonStyle(.prominent)
-                    .controlSize(.regular)
-                    .help(l.pomoTimer)
-                    .accessibilityLabel(l.pomoTimer)
-                }
+    private var focusSessionSection: some View {
+        if let current = session.session {
+            if current.issue.isPomodoro {
+                pomodoroClock(current)
+            } else {
+                pinnedIssue(current)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .popoverCard()
-        }
-    }
-
-    @ViewBuilder
-    private var linearSection: some View {
-        if let current = session.session, !current.issue.isPomodoro {
-            pinnedIssue(current)
         } else {
-            idleLinearPrompt
+            idleFocusPrompt
         }
     }
 
@@ -134,7 +110,7 @@ struct FocusTabView: View {
         let clock = session.clockDisplay()
         let paused = current.userPaused || current.phase == .paused
         return VStack(alignment: .leading, spacing: 8) {
-            PopoverSectionLabel(text: l.pomodoroTitle)
+            PopoverSectionLabel(text: l.focusIssueOrTimerPrompt)
             HStack(alignment: .center, spacing: 10) {
                 Text(clock.text)
                     .font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
@@ -163,13 +139,14 @@ struct FocusTabView: View {
         .popoverCard()
     }
 
-    private var idleLinearPrompt: some View {
+    private var idleFocusPrompt: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(l.focusIdlePrompt)
+            Text(l.focusIssueOrTimerPrompt)
                 .font(.title3.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
+                    pomoTimerButton(showsTitle: true)
                     Button(l.openLinearTab) { nav.tab = .linear }
                         .tahoeButtonStyle(.regular)
                     Button(l.todayDeskMenuOpen) { session.openDesk() }
@@ -178,6 +155,7 @@ struct FocusTabView: View {
                 .controlSize(.regular)
                 .fixedSize(horizontal: true, vertical: false)
                 HStack(spacing: 8) {
+                    pomoTimerButton(showsTitle: false)
                     Button { nav.tab = .linear } label: {
                         Image(systemName: "circle")
                     }
@@ -196,5 +174,20 @@ struct FocusTabView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .popoverCard()
+    }
+
+    @ViewBuilder
+    private func pomoTimerButton(showsTitle: Bool) -> some View {
+        if showsTitle {
+            Button(l.pomoTimer) { session.openPomodoroSetup() }
+                .tahoeButtonStyle(.prominent)
+        } else {
+            Button { session.openPomodoroSetup() } label: {
+                Image(systemName: "timer")
+            }
+            .tahoeButtonStyle(.prominent)
+            .help(l.pomoTimer)
+            .accessibilityLabel(l.pomoTimer)
+        }
     }
 }

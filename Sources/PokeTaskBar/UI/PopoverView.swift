@@ -28,7 +28,7 @@ enum CollectionSegment: Hashable, CaseIterable {
 }
 
 /// Compact / test layout width. The live menu-bar panel is a resizable window
-/// (`MenuBarPanelMetrics`, attached 360–500; detached is a normal window).
+/// (`MenuBarPanelMetrics`, attached 400–500; detached is a normal window).
 enum PopoverMetrics {
     static let width: CGFloat = 360
     static let padding: CGFloat = 14
@@ -150,12 +150,10 @@ struct PopoverView: View {
                 .padding(panelPad)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(nsColor: MenuBarPanelMetrics.canvasFill))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(TahoeHairline.idle, lineWidth: 1)
+                    TahoeStrokedFill(
+                        shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                        fill: Color(nsColor: MenuBarPanelMetrics.canvasFill),
+                        lineWidth: 1)
                 }
                 .padding(.leading, leadingChrome)
                 .padding(.trailing, gap)

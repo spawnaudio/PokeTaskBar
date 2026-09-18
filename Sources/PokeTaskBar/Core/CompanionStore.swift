@@ -354,6 +354,8 @@ final class CompanionStore {
 
     /// 희귀도별 포획 로그 개수(요약 헤더용) — 개체 수 기준. 도감(종 단위)은 dexSpecies 를 쓴다.
     func dexCount(_ rarity: Rarity) -> Int { dexEntries.lazy.filter { $0.rarity == rarity }.count }
+    /// Catch-log shiny count (individuals). Dex grid counts shiny species separately.
+    var dexShinyCount: Int { dexEntries.lazy.filter(\.isShiny).count }
 
     /// 도감 한 칸 — 종 1개로 접힌 수집 기록. 같은 라인을 여러 번 키워도 종은 한 칸이다.
     /// **종 정보만 담는다** — 성격·획득 횟수처럼 개체에 딸린 것은 포획 로그가 개체 단위로 보여준다.
@@ -741,7 +743,9 @@ final class CompanionStore {
         onPetBubble?(l.notifGraduateTitle, l.notifGraduateBody(name))
         eventUntil = clock().addingTimeInterval(6)
         state.active = nil
-        state.trainingEmpty = true
+        // Empty training dropped later token XP (`hatchIfNeeded` requires an egg in the slot).
+        // A free un-guaranteed egg rolls rarity at hatch the same way as a shop fresh egg.
+        state.trainingEmpty = false
         state.eggUsage = 0
         state.eggTier = nil
         state.pendingHatchID = nil
@@ -920,6 +924,37 @@ final class CompanionStore {
 
     var storedCompanions: [PokemonStorageItem] { state.pokemonStorage }
 
+    /// Session cache so a banked partner keeps its localized species name after
+    /// `currentLine` is cleared. Reloaded on demand if the row appears after a restart.
+    private(set) var storedPartnerLines: [Int: EvoLine] = [:]
+
+    /// Species name for a banked partner. Eggs keep `L.eggName`; this is never a
+    /// "Training partner" suffix — the row title is the Pokémon name alone.
+    func displayName(for mon: MonState) -> String {
+        if let line = storedPartnerLines[mon.baseID]
+            ?? (currentLine?.baseID == mon.baseID ? currentLine : nil) {
+            return line.localizedName(mon.currentID, state.language)
+        }
+        for entry in state.dex {
+            if let names = entry.names?[mon.currentID],
+               let name = state.language.resolveName(names) {
+                return name
+            }
+        }
+        return "#\(mon.currentID)"
+    }
+
+    func ensureStoredPartnerLine(_ mon: MonState) async {
+        if storedPartnerLines[mon.baseID] != nil { return }
+        if let line = currentLine, line.baseID == mon.baseID {
+            storedPartnerLines[mon.baseID] = line
+            return
+        }
+        if let line = try? await dexNameLine(baseID: mon.baseID) {
+            storedPartnerLines[mon.baseID] = line
+        }
+    }
+
     func canBuyEgg(_ tier: Rarity?) -> Bool {
         guard FreshEgg.shopTiers.contains(tier) else { return false }
         return availableCoins >= price(of: .egg(tier))
@@ -950,8 +985,16 @@ final class CompanionStore {
         return true
     }
 
+    /// Bank the active partner and unpack the first stored egg. False when there is no egg to swap in.
+    @discardableResult
+    func storePartnerReplacingWithStoredEgg() -> Bool {
+        guard hasActive, let egg = storedCompanions.first(where: \.isEgg) else { return false }
+        return swapFromStorage(egg.id)
+    }
+
     private func packTrainingIntoStorage() {
         if let a = state.active {
+            if let line = currentLine { storedPartnerLines[a.baseID] = line }
             let id = a.profile?.instanceID ?? UUID().uuidString
             state.pokemonStorage.append(.partner(id: id, mon: a))
             state.active = nil
@@ -987,6 +1030,7 @@ final class CompanionStore {
             state.eggTier = nil
             state.pendingHatchID = nil
             activeGeneration += 1
+            if currentLine == nil { currentLine = storedPartnerLines[mon.baseID] }
             kickLineLoadIfNeeded()
         }
     }
@@ -1229,6 +1273,9 @@ final class CompanionStore {
             _ = await SpriteStore.shared.data(speciesID: line.baseID, animated: true, shiny: true)
         }
         prefetchedLineID = id
+        if state.eggUsage >= eggHatchThreshold {
+            await hatchIfNeeded()
+        }
     }
 
     func hatch(baseID: Int) async {
@@ -1457,7 +1504,7 @@ final class CompanionStore {
     }
 
     private func computeState(burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool, today: Int) -> CompanionStateKind {
-        if state.active == nil { return .egg }
+        if state.active == nil { return state.trainingEmpty ? .idle : .egg }
         if justGraduated != nil || (eventUntil != nil && clock() < eventUntil!) { return .levelUp }
         if limitWarning { return .tired }
         if !hasUsageData || today == 0 { return .sleep }

@@ -104,21 +104,61 @@ enum MenuBarLines {
         return clock.overtime ? "\(clock.text) \(overtimeAbbrev)" : clock.text
     }
 
-    /// Session clock is the first line, then score. Extra usage items collapse — never 3+.
-    static func compose(usageLines: [String], sessionClock: String?, scoreLine: String? = nil) -> [String] {
-        if let sessionClock, let scoreLine {
-            return [sessionClock, scoreLine]
-        }
+    /// Session clock is the first line, then score (and Linear counts). Extra usage items collapse — never 3+.
+    static func compose(usageLines: [String], sessionClock: String?, scoreLine: String? = nil,
+                        linearIssuesLine: String? = nil) -> [String] {
+        let status = [scoreLine, linearIssuesLine].compactMap { $0 }
         if let sessionClock {
-            if usageLines.isEmpty { return [sessionClock] }
-            if usageLines.count == 1 { return [sessionClock, usageLines[0]] }
-            return [sessionClock, usageLines.joined(separator: " · ")]
+            if status.isEmpty {
+                if usageLines.isEmpty { return [sessionClock] }
+                if usageLines.count == 1 { return [sessionClock, usageLines[0]] }
+                return [sessionClock, usageLines.joined(separator: " · ")]
+            }
+            return [sessionClock, status.joined(separator: " · ")]
         }
-        if let scoreLine {
-            if usageLines.isEmpty { return [scoreLine] }
-            return [scoreLine, usageLines.joined(separator: " · ")]
+        if status.isEmpty { return usageLines }
+        if usageLines.isEmpty { return status }
+        if status.count == 1 { return [status[0], usageLines.joined(separator: " · ")] }
+        return [status.joined(separator: " · "), usageLines.joined(separator: " · ")]
+    }
+
+    static func linearIssuesLine(
+        show: Bool,
+        integrationEnabled: Bool,
+        apiKeyConfigured: Bool,
+        inProgress: Int,
+        completed: Int,
+        localization: L
+    ) -> String? {
+        guard show, integrationEnabled, apiKeyConfigured else { return nil }
+        return localization.menuBarLinearIssues(inProgress, completed)
+    }
+
+    /// Linear issue title for the compact menu-bar pill. Pomodoro has no issue name.
+    static func focusedIssueTitle(_ session: FocusSession?) -> String? {
+        guard let session, !session.issue.isPomodoro else { return nil }
+        let title = session.issue.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? nil : title
+    }
+
+    /// After the pipe: running timer, else Linear counts, else companion XP.
+    static func pillTrailing(sessionClock: String?, linearIssuesLine: String?, scoreLine: String?) -> String? {
+        if let sessionClock, !sessionClock.isEmpty { return sessionClock }
+        if let linearIssuesLine, !linearIssuesLine.isEmpty { return linearIssuesLine }
+        if let scoreLine, !scoreLine.isEmpty { return scoreLine }
+        return nil
+    }
+
+    /// Compact `title | trailing`. Omits a dangling pipe when either side is empty.
+    static func pillText(title: String?, trailing: String?) -> String {
+        let lead = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trail = trailing?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        switch (!lead.isEmpty, !trail.isEmpty) {
+        case (true, true): return "\(lead) | \(trail)"
+        case (true, false): return lead
+        case (false, true): return trail
+        case (false, false): return ""
         }
-        return usageLines
     }
 
     static func toolTip(identifier: String?, sessionClock: String?) -> String? {

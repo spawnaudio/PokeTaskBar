@@ -290,6 +290,7 @@ final class RareCandyStoreTests: XCTestCase {
         let result = s.useRareCandy()
         XCTAssertEqual(result, .graduated)
         XCTAssertNil(s.state.active)
+        XCTAssertTrue(s.isEgg, "candy graduation also grants a free training egg")
         XCTAssertEqual(s.dexEntries.count, 1)
     }
 

@@ -313,10 +313,10 @@ struct LinearMarkdownText: View {
                 .font(.system(.callout, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
-                .background(Color(nsColor: MenuBarPanelMetrics.chipFill), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
+                .background {
+                    TahoeStrokedFill(
+                        shape: RoundedRectangle(cornerRadius: 8, style: .continuous),
+                        fill: Color(nsColor: MenuBarPanelMetrics.chipFill))
                 }
         case .list(let items, let ordered):
             VStack(alignment: .leading, spacing: 4) {
@@ -387,9 +387,9 @@ struct LinearPriorityButton: View {
         } label: {
             Text(l.linearPriorityChip(issue.priority))
                 .foregroundStyle(tint)
+                .linearChipChrome(tint: tint)
         }
         .menuIndicator(.hidden)
-        .linearChipChrome(tint: tint)
         .controlSize(compact ? .mini : .small)
         .disabled(store.updatingLinearIssueID != nil)
         .help(l.linearPriorityChip(issue.priority))
@@ -467,6 +467,9 @@ struct LinearIssueIDButton: View {
             Text(identifier)
                 .font(style)
                 .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .disabled(url == nil)
@@ -600,7 +603,7 @@ struct LinearFocusButton: View {
             Text(isPinned ? l.focusingNow : l.focusAction)
                 .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
         }
-        .linearChipChrome()
+        .tahoeButtonStyle(.regular)
         .controlSize(compact ? .mini : .small)
     }
 }
@@ -640,7 +643,7 @@ struct NewLinearIssueButton: View {
         } label: {
             Label(l.newLinearIssue, systemImage: "plus")
         }
-        .linearChipChrome()
+        .tahoeButtonStyle(.regular)
     }
 
     private var iconButton: some View {
@@ -752,9 +755,9 @@ struct FocusTimerControls: View {
                 }
             } label: {
                 TahoeMenuLabel(text: l.addTime)
+                    .linearChipChrome()
             }
             .menuIndicator(.hidden)
-            .linearChipChrome()
             .disabled(!session.canAddRemainingTime)
             Button(l.unfocusAction) { session.requestUnfocus() }
                 .foregroundStyle(.red)
@@ -779,9 +782,9 @@ struct FocusTimerControls: View {
                 }
             } label: {
                 Image(systemName: "plus")
+                    .linearChipChrome()
             }
             .menuIndicator(.hidden)
-            .linearChipChrome()
             .disabled(!session.canAddRemainingTime)
             .help(l.addTime)
             .accessibilityLabel(l.addTime)

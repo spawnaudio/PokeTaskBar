@@ -924,6 +924,30 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertEqual(s.state.eggUsage, 0)
     }
 
+    /// Token-only growth must hatch the egg. Linear seed/completions are not required.
+    func testTokenUsageWithoutLinearCompletionsGrowsAndHatchesEgg() async {
+        let s = store(linear3)
+        XCTAssertTrue(s.isEgg)
+        XCTAssertEqual(s.state.bonusXP, 0)
+        _ = s.creditLinearCompletions([])
+        XCTAssertEqual(s.state.bonusXP, 0, "seed poll must not dump Linear XP onto the egg")
+        XCTAssertTrue(s.state.linearCreditedIssueIDs.isEmpty)
+
+        base(s)
+        let half = PokemonBalance.eggHatchThreshold / 2
+        use(s, half)
+        XCTAssertEqual(s.state.eggUsage, half)
+        XCTAssertEqual(s.state.usedSinceInstall, half)
+        XCTAssertTrue(s.isEgg)
+        XCTAssertEqual(s.state.bonusXP, 0)
+
+        use(s, PokemonBalance.eggHatchThreshold)
+        XCTAssertEqual(s.state.eggUsage, PokemonBalance.eggHatchThreshold)
+        await s.hatchIfNeeded()
+        XCTAssertNotNil(s.state.active, "local AI token deltas must hatch without Linear completions")
+        XCTAssertEqual(s.state.eggUsage, 0)
+    }
+
     /// [회귀] 부화한 현재 포켓몬은 졸업 전에도 도감에 보여야 한다. 영구 dex 에 미리 저장하지 않고
     /// 화면용 엔트리로 합쳐, 진화 경로는 즉시 갱신되고 졸업 시 중복이 생기지 않는다.
     func testActiveCompanionAppearsInDexBeforeGraduationWithoutDuplicate() async {
@@ -1014,14 +1038,27 @@ final class CompanionStoreTests: XCTestCase {
     func testNewEggAfterGraduationReincubates() async {
         let s = store(noEvo)
         base(s)
+        let spentBefore = s.state.spentTokens
         use(s, PokemonBalance.eggHatchThreshold)
         await s.hatchIfNeeded()
         XCTAssertNotNil(s.state.active)
         s.applyUsage(PokemonBalance.graduationTotal(.common))   // 무진화 졸업
         XCTAssertNil(s.state.active)
+        XCTAssertTrue(s.isEgg, "graduation must leave a free egg in training so later XP can hatch")
+        XCTAssertFalse(s.state.trainingEmpty)
+        XCTAssertNil(s.state.eggTier, "free egg rolls rarity at hatch like a shop fresh egg")
+        XCTAssertNil(s.eggGuarantee)
         XCTAssertEqual(s.state.eggUsage, 0)                     // 새 알 인큐베이션 리셋
+        XCTAssertEqual(s.state.spentTokens, spentBefore, "graduation egg is free")
+        XCTAssertTrue(s.storedCompanions.isEmpty, "free egg goes into training, not storage")
         await s.hatchIfNeeded()                                 // eggUsage=0 → 즉시 부화 안 함
         XCTAssertNil(s.state.active)
+        XCTAssertTrue(s.isEgg)
+
+        let afterGraduate = PokemonBalance.eggHatchThreshold + 1_000
+        use(s, afterGraduate)
+        XCTAssertEqual(s.state.eggUsage, 1_000, "token XP after graduation must incubate the free egg")
+        XCTAssertTrue(s.isEgg)
     }
 
     func testStateDecodesWithoutEggUsage() throws {
@@ -1713,6 +1750,7 @@ final class CompanionIdentityTests: XCTestCase {
         await s.hatchIfNeeded()
         XCTAssertNil(s.state.active, "즉시 졸업")
         XCTAssertEqual(s.state.dex.count, 1)
+        XCTAssertTrue(s.isEgg, "instant graduate still leaves a free egg in training")
         XCTAssertNil(s.celebration, "떠난 mon 의 hatch 연출을 재생하면 안 된다")
     }
 

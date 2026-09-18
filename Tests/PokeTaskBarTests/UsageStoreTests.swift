@@ -197,6 +197,30 @@ final class UsageStoreTests: XCTestCase {
                    defaults: testDefaults)
     }
 
+    func testMenuBarScoreAndLinearIssueFlagsPersistAndDefaultOn() {
+        let store = makeStore(providers: [])
+        XCTAssertTrue(store.showScoreInMenu)
+        XCTAssertTrue(store.showLinearIssuesInMenu)
+        store.showScoreInMenu = false
+        store.showLinearIssuesInMenu = false
+        XCTAssertFalse(testDefaults.bool(forKey: "showScoreInMenu"))
+        XCTAssertFalse(testDefaults.bool(forKey: "showLinearIssuesInMenu"))
+        let reloaded = makeStore(providers: [])
+        XCTAssertFalse(reloaded.showScoreInMenu)
+        XCTAssertFalse(reloaded.showLinearIssuesInMenu)
+        XCTAssertNil(reloaded.menuLinearIssuesLine)
+        reloaded.showLinearIssuesInMenu = true
+        XCTAssertNil(
+            MenuBarLines.linearIssuesLine(
+                show: reloaded.showLinearIssuesInMenu,
+                integrationEnabled: false,
+                apiKeyConfigured: false,
+                inProgress: 2,
+                completed: 1,
+                localization: L(.en)),
+            "Linear unset omits in-progress/completed counts")
+    }
+
     private func makeStatusStore(_ stub: FakeStatusProvider) -> UsageStore {
         let claude = FakeUsageProvider(id: "claude_code", displayName: "Claude Code", daily: todayDaily(1_000))
         return UsageStore(providers: [claude], claudeLimitsProvider: FakeClaudeLimits(status: nil),

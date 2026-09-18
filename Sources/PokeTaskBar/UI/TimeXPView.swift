@@ -64,7 +64,7 @@ struct TimeXPView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else if let lastAwardAt {
-                Text(lastAwardAt.addingTimeInterval(TimeOpenXP.awardIntervalSeconds), style: .relative)
+                RelativeTimestampText(date: lastAwardAt.addingTimeInterval(TimeOpenXP.awardIntervalSeconds))
                     .font(.callout.monospacedDigit())
             } else {
                 Text(l.timeXPWaiting)
