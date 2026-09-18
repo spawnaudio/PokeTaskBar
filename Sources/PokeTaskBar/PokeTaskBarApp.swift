@@ -251,28 +251,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applyState() {
         guard let button = statusItem.button else { return }
+        MenuBarStatusItemChrome.apply(to: button)
         let sessionClock = MenuBarLines.sessionClock(
             session: sessionStore.session,
             floatingPetEnabled: store.floatingPetEnabled,
             clock: sessionStore.clockDisplay(),
             overtimeAbbrev: companion.l.overtimeAbbrev)
-        let pill = MenuBarLines.pillText(
-            title: MenuBarLines.focusedIssueTitle(sessionStore.session),
-            trailing: MenuBarLines.pillTrailing(
-                sessionClock: sessionClock,
-                linearIssuesLine: store.menuLinearIssuesLine,
-                scoreLine: store.showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil))
-        let lines: [String]
+        let trailing = MenuBarLines.pillTrailing(
+            sessionClock: sessionClock,
+            linearCounts: store.menuLinearIssueCounts,
+            scoreLine: store.showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil)
+        let title = MenuBarLines.focusedIssueTitle(sessionStore.session)
+        let pill = MenuBarLines.pillText(title: title, trailing: trailing?.plainFallback)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         if !store.menuFlashLines.isEmpty {
-            lines = MenuBarLines.compose(
-                usageLines: store.menuLines,
-                sessionClock: sessionClock)
+            Self.applyMenuText(
+                MenuBarLines.compose(usageLines: store.menuLines, sessionClock: sessionClock),
+                to: button)
         } else if !pill.isEmpty {
-            lines = [pill]
+            Self.applyMenuAttributedTitle(
+                MenuBarLines.attributedTitle(title: title, trailing: trailing, font: font),
+                to: button)
         } else {
-            lines = MenuBarLines.compose(usageLines: store.menuLines, sessionClock: nil)
+            Self.applyMenuText(
+                MenuBarLines.compose(usageLines: store.menuLines, sessionClock: nil),
+                to: button)
         }
-        Self.applyMenuText(lines, to: button)
         button.toolTip = MenuBarLines.toolTip(
             identifier: sessionStore.session?.issue.identifier,
             sessionClock: sessionClock)
@@ -281,6 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 으로 오인되던 것 방지(사용자 반복 지적). 데이터가 오래됐다는 신호가 필요하면 팝오버
         // (limitsUpdatedAt 등)에서 제공하고, 메뉴바 아이콘·숫자는 흐리게 하지 않는다.
         button.appearsDisabled = false
+        MenuBarStatusItemChrome.refresh(button)
 
         updateCompanion()
         ensureMenuAnimation()
@@ -324,11 +329,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 button.attributedTitle = titled(0)   // 레이아웃 전(폭 0) — 보정 없이, 다음 갱신에 재보정
             }
         } else {
-            // 1줄로 되돌릴 때 이전 attributedTitle 이 남지 않게 먼저 비운다.
-            button.attributedTitle = NSAttributedString(string: "")
-            let title = lines.first ?? ""
-            button.title = title.isEmpty ? "" : " " + title
+            Self.applyMenuAttributedTitle(
+                NSAttributedString(string: lines.first ?? ""),
+                to: button)
         }
+    }
+
+    private static func applyMenuAttributedTitle(_ title: NSAttributedString, to button: NSStatusBarButton) {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        if title.length == 0 {
+            button.attributedTitle = NSAttributedString(string: "")
+            button.title = ""
+            return
+        }
+        let spaced = NSMutableAttributedString(string: " ", attributes: [.font: font])
+        spaced.append(title)
+        button.attributedTitle = spaced
     }
 
     /// UsageStore 값 → CompanionStore (사용량 적립 + 표시 상태). 매 관찰 변경 시 호출.
@@ -493,6 +509,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if spriteLayer.superlayer !== host { host.addSublayer(spriteLayer) }
         spriteLayer.frame = rect
         CATransaction.commit()
+        MenuBarStatusItemChrome.refresh(button)
         needsSpriteLayout = false
     }
 

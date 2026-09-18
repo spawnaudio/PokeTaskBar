@@ -883,9 +883,6 @@ struct CollectionView: View {
     /// 로그 전용 필터. 도감은 개수 단위가 종이라 자기 필터를 따로 갖는다(DexGridView).
     @State private var selectedFilter: DexHeaderFilter?
 
-    /// 도감·로그 공통 최소 높이 — 상점·가방과 같음. 창이 커지면 격자·로그가 나머지를 채운다.
-    private static let contentHeight: CGFloat = 520
-
     /// 선택된 희귀도·이로치만 노출(없으면 전체). 상단 캡슐 토글로 설정.
     private var visibleEntries: [DexEntry] {
         switch selectedFilter {
@@ -898,6 +895,8 @@ struct CollectionView: View {
         }
     }
 
+    /// 도감·로그는 창이 준 나머지 높이를 채운다. 고정 minHeight 는 셸 하단 inset 을 창 밖으로 밀어
+    /// 마지막 카드를 자른다 — 스크롤은 캔버스 안에서, 패딩은 창 안에 남긴다.
     var body: some View {
         @Bindable var nav = navigation
         if store.dexEntries.isEmpty {
@@ -910,7 +909,7 @@ struct CollectionView: View {
                 ])
                 if nav.showingCollectionLog { catchLog } else { DexGridView(store: store) }
             }
-            .frame(maxWidth: .infinity, minHeight: Self.contentHeight, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -943,6 +942,7 @@ struct CollectionView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     /// 빈 도감 — 안내 마스코트(피카츄, PokéAPI) + 포켓몬을 모으라는 문구.
@@ -987,9 +987,9 @@ struct RepresentativeFooterButton: View {
 
 /// 도감 — 보유 종만 도감 번호순으로, 4열 연속 스크롤 격자.
 ///
-/// 헤더(필터)와 하단 선택 줄은 고정, 격자만 스크롤한다. 바깥 CollectionView 가 높이 520 으로
-/// 고정돼 있어 팝오버 재오픈 시 ScrollView fitting size 가 줄어드는 기존 결함은 격자가 나머지를
-/// 채우는 것으로 우회한다(포획 로그와 같은 패턴). 미보유 종은 아예 그리지 않는다
+/// 헤더(필터)와 하단 선택 줄은 고정, 격자만 스크롤한다. 바깥 CollectionView 가 창이 준 나머지
+/// 높이를 채우므로 팝오버 재오픈 시 ScrollView fitting size 가 줄어드는 기존 결함은 격자가
+/// 나머지를 채우는 것으로 우회한다(포획 로그와 같은 패턴). 미보유 종은 아예 그리지 않는다
 /// (물음표·실루엣 칸 없음).
 @MainActor
 private struct DexGridView: View {
@@ -1029,6 +1029,7 @@ private struct DexGridView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 이름이 저장돼 있지 않은 구버전 졸업분을 채운다 — 격자는 저장분만 읽으므로 이게 없으면
         // 칸이 `#41` 로 남는다. 저장된 항목은 조회하지 않으므로 채워진 뒤로는 아무 일도 하지 않는다.
         .task { await store.backfillMissingDexNames() }

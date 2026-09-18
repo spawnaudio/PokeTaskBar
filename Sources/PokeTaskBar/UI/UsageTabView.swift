@@ -124,7 +124,7 @@ struct UsageTabView: View {
                     .popoverCard()
             }
         }
-        .frame(minHeight: 420)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var totalsCard: some View {

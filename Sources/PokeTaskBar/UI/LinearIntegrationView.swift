@@ -98,7 +98,9 @@ struct LinearIntegrationView: View {
 
             TahoeTabBar(selection: $selectedRoot, items: [
                 TahoeTabItem(.issues, title: l.linearIssuesTab, symbol: LinearChromeSymbol.issue),
-                TahoeTabItem(.projects, title: l.linearProjectsTab, symbol: LinearChromeSymbol.project),
+                TahoeTabItem(
+                    .projects, title: l.linearProjectsTab, symbol: LinearChromeSymbol.project,
+                    symbolColor: LinearChromeTint.project),
                 TahoeTabItem(.initiatives, title: l.linearInitiativesTab, symbol: LinearChromeSymbol.initiative),
             ])
 
@@ -120,7 +122,9 @@ struct LinearIntegrationView: View {
                     ])
                 } else if selectedRoot == .projects {
                     TahoeTabBar(selection: $selectedProjectsTab, items: [
-                        TahoeTabItem(.inProgress, title: l.linearInProgressTab, symbol: LinearChromeSymbol.project),
+                        TahoeTabItem(
+                            .inProgress, title: l.linearInProgressTab, symbol: LinearChromeSymbol.project,
+                            symbolColor: LinearChromeTint.project),
                         TahoeTabItem(.production, title: l.linearProductionTab, symbol: "cube"),
                     ])
                 } else if selectedRoot == .initiatives {
@@ -193,6 +197,7 @@ struct LinearIntegrationView: View {
                     }
                 }
             }
+            .frame(maxHeight: .infinity)
         }
     }
 
@@ -221,7 +226,7 @@ struct LinearIntegrationView: View {
                                 } else {
                                     VStack(alignment: .leading, spacing: 0) {
                                         ForEach(row.issues) { issue in
-                                            issueCard(issue)
+                                            issueCard(issue, nested: true)
                                             if issue.id != row.issues.last?.id {
                                                 Divider().opacity(0.6)
                                             }
@@ -235,12 +240,13 @@ struct LinearIntegrationView: View {
                         }
                     }
                 }
+                .frame(maxHeight: .infinity)
             }
         }
     }
 
-    private func issueCard(_ issue: LinearIssueSummary) -> some View {
-        LinearIssueEntityRow(issue: issue) {
+    private func issueCard(_ issue: LinearIssueSummary, nested: Bool = false) -> some View {
+        LinearIssueEntityRow(issue: issue, nested: nested) {
             nav.showFocus()
         }
     }
@@ -250,6 +256,7 @@ struct LinearIntegrationView: View {
 @MainActor
 private struct LinearIssueEntityRow: View {
     let issue: LinearIssueSummary
+    var nested: Bool = false
     let onPin: () -> Void
 
     @State private var hovering = false
@@ -265,7 +272,7 @@ private struct LinearIssueEntityRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     LinearStatusDot(type: issue.stateType)
                     Text(issue.title)
-                        .font(.callout.weight(.medium))
+                        .font(nested ? LinearRowTypography.nested : LinearRowTypography.topLevel)
                         .foregroundStyle(.primary)
                         .lineLimit(expanded ? nil : 2)
                         .multilineTextAlignment(.leading)
@@ -334,7 +341,7 @@ private struct LinearIssueEntityRow: View {
     @ViewBuilder
     private var foldedProjectLine: some View {
         if let project = issue.projectName, !project.isEmpty {
-            LinearTagChip(text: project, tint: nil)
+            LinearTagChip(text: project, tint: LinearChromeTint.project)
                 .allowsHitTesting(false)
         }
     }
@@ -380,9 +387,8 @@ private struct LinearContainerRow: Identifiable {
     var targetDate: Date?
     var descriptionText: String?
     var symbol: String
+    var symbolTint: Color
     var issues: [LinearIssueSummary]
-
-    var symbolTint: Color { .secondary }
 
     init(project: LinearProjectSummary) {
         id = project.id
@@ -393,6 +399,7 @@ private struct LinearContainerRow: Identifiable {
         targetDate = project.targetDate
         descriptionText = project.descriptionText
         symbol = LinearChromeSymbol.project
+        symbolTint = LinearChromeTint.project
         issues = project.issues
     }
 
@@ -405,6 +412,7 @@ private struct LinearContainerRow: Identifiable {
         targetDate = initiative.targetDate
         descriptionText = initiative.descriptionText
         symbol = LinearChromeSymbol.initiative
+        symbolTint = .secondary
         issues = initiative.issues
     }
 }
@@ -425,26 +433,21 @@ private struct LinearFoldableRow<Content: View>: View {
                 Button {
                     withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
                 } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Image(systemName: "chevron.right")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.tertiary)
                             .rotationEffect(.degrees(expanded ? 90 : 0))
-                            .frame(width: 10)
+                            .frame(width: 14)
                         Image(systemName: row.symbol)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(row.symbolTint)
-                            .frame(width: 12)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(row.name)
-                                .font(.callout.weight(.medium))
-                                .foregroundStyle(.primary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            if !expanded {
-                                collapsedMeta
-                            }
-                        }
+                            .frame(width: 14)
+                        Text(row.name)
+                            .font(LinearRowTypography.topLevel)
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .contentShape(Rectangle())
                 }
@@ -464,6 +467,10 @@ private struct LinearFoldableRow<Content: View>: View {
                     .controlSize(.mini)
                     .help(openHelp)
                 }
+            }
+
+            if !expanded {
+                collapsedMeta
             }
 
             if expanded {

@@ -63,6 +63,16 @@ struct LinearIssueStatusPicker: View {
     }
 }
 
+/// Top-level Linear titles are `.callout` + 2pt; nested issues step back 2pt.
+enum LinearRowTypography {
+    static let extraPoints: CGFloat = 2
+    static var calloutPoints: CGFloat { NSFont.preferredFont(forTextStyle: .callout).pointSize }
+    static var topLevelPoints: CGFloat { calloutPoints + extraPoints }
+    static var nestedPoints: CGFloat { topLevelPoints - extraPoints }
+    static var topLevel: Font { .system(size: topLevelPoints, weight: .medium) }
+    static var nested: Font { .system(size: nestedPoints, weight: .medium) }
+}
+
 /// Linear workflow tint for the 8pt status dot (popover rows + Today pin list / inspector).
 enum LinearWorkflowTint {
     static func color(for type: String?) -> Color {
@@ -385,11 +395,12 @@ struct LinearPriorityButton: View {
                 }
             }
         } label: {
-            Text(l.linearPriorityChip(issue.priority))
+            TahoeMenuLabel(text: l.linearPriorityChip(issue.priority))
                 .foregroundStyle(tint)
                 .linearChipChrome(tint: tint)
         }
         .menuIndicator(.hidden)
+        .buttonStyle(.plain)
         .controlSize(compact ? .mini : .small)
         .disabled(store.updatingLinearIssueID != nil)
         .help(l.linearPriorityChip(issue.priority))
@@ -414,6 +425,8 @@ struct LinearIssueMetadataList: View {
                         LinearTagChip(
                             text: field.value,
                             tint: LinearTeamTint.color(forKey: issue.teamKey, name: issue.teamName))
+                    } else if field.kind == .project {
+                        LinearTagChip(text: field.value, tint: LinearChromeTint.project)
                     } else {
                         Text(field.value)
                             .font(.caption)
@@ -758,6 +771,7 @@ struct FocusTimerControls: View {
                     .linearChipChrome()
             }
             .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .disabled(!session.canAddRemainingTime)
             Button(l.unfocusAction) { session.requestUnfocus() }
                 .foregroundStyle(.red)
@@ -785,6 +799,7 @@ struct FocusTimerControls: View {
                     .linearChipChrome()
             }
             .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .disabled(!session.canAddRemainingTime)
             .help(l.addTime)
             .accessibilityLabel(l.addTime)

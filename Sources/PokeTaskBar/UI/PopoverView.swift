@@ -125,6 +125,7 @@ struct PopoverView: View {
         GeometryReader { geo in
             let panelPad = PopoverMetrics.padding
             let leadingChrome = detached ? MenuBarPanelMetrics.detachedTrafficLightInset : gap
+            let panelHeight = min(geo.size.height, MenuBarPanelMetrics.maxHeight(detached: detached))
             let contentWidth = max(0, geo.size.width - gap - leadingChrome - panelPad * 2)
             VStack(spacing: 0) {
                 PopoverShellToolbar()
@@ -159,7 +160,7 @@ struct PopoverView: View {
                 .padding(.trailing, gap)
                 .padding(.bottom, gap)
             }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+            .frame(width: geo.size.width, height: panelHeight, alignment: .top)
             .background(Color(nsColor: MenuBarPanelMetrics.shellFill))
             .clipShape(RoundedRectangle(
                 cornerRadius: detached ? 0 : MenuBarPanelMetrics.attachedCornerRadius,
@@ -173,6 +174,7 @@ struct PopoverView: View {
             maxWidth: detached ? MenuBarPanelMetrics.detachedMaxWidth : MenuBarPanelMetrics.attachedMaxWidth,
             minHeight: MenuBarPanelMetrics.minHeight(detached: detached),
             maxHeight: MenuBarPanelMetrics.maxHeight(detached: detached))
+        .fixedSize(horizontal: false, vertical: !detached)
     }
 
     @ViewBuilder

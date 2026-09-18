@@ -82,6 +82,10 @@ final class TahoeButtonStyleTests: XCTestCase {
         XCTAssertFalse(
             popupMenuContainsTahoeButtonStyle(source),
             "TahoePopupMenu must stay a quiet chip, not a glass button")
+        let popup = structSource(source, named: "TahoePopupMenu", until: "TahoeTabItem")
+        XCTAssertTrue(popup.contains(".buttonStyle(.plain)"),
+                      "Menu must drop native popup chrome so the Tahoe chip is the control")
+        XCTAssertTrue(popup.contains(".linearChipChrome(expands: expands, tint: tint)"))
         let chromeStyle = structSource(source, named: "TahoeChromeButtonStyle", until: "LinearSegmentButtonStyle")
         XCTAssertTrue(chromeStyle.contains("configuration.label"))
         XCTAssertTrue(chromeStyle.contains("TahoeCapsuleChrome") || chromeStyle.contains("contentShape"))
@@ -232,6 +236,9 @@ final class TahoeButtonStyleTests: XCTestCase {
         let issueRow = structSource(linear, named: "LinearIssueEntityRow", until: "LinearContainerRow")
         XCTAssertTrue(issueRow.contains("foldedTeamLine"))
         XCTAssertTrue(issueRow.contains("foldedProjectLine"))
+        XCTAssertTrue(issueRow.contains("LinearChromeTint.project"),
+                      "project pills use the Projects-tab hexagon color token")
+        XCTAssertTrue(linear.contains("symbolColor: LinearChromeTint.project"))
         XCTAssertTrue(issueRow.contains("foldedLabelsLine"))
         XCTAssertTrue(issueRow.contains(".background {"))
         XCTAssertTrue(issueRow.contains(".contentShape("))
@@ -248,6 +255,20 @@ final class TahoeButtonStyleTests: XCTestCase {
         XCTAssertFalse(
             issueRow.contains("ScrollView(.horizontal"),
             "folded project and labels must not share a horizontal chip strip with team")
+        XCTAssertTrue(issueRow.contains("LinearRowTypography.topLevel") || issueRow.contains("LinearRowTypography.nested"))
+        XCTAssertTrue(issueRow.contains("padding(.vertical, 8)"))
+        XCTAssertTrue(issueRow.contains("padding(.horizontal, 4)"))
+        XCTAssertTrue(linear.contains("nested: true"), "issues under a project/initiative use the nested title size")
+        let foldable = structSource(linear, named: "LinearFoldableRow", until: "FlexibleChipWrap")
+        XCTAssertTrue(foldable.contains("LinearRowTypography.topLevel"))
+        XCTAssertTrue(foldable.contains("padding(.vertical, 8)"))
+        XCTAssertTrue(foldable.contains("padding(.horizontal, 4)"))
+    }
+
+    func testLinearRowTitlesStepDownByTwoPoints() {
+        XCTAssertEqual(LinearRowTypography.extraPoints, 2)
+        XCTAssertEqual(LinearRowTypography.topLevelPoints, LinearRowTypography.calloutPoints + 2)
+        XCTAssertEqual(LinearRowTypography.nestedPoints, LinearRowTypography.topLevelPoints - 2)
     }
 
     private func structSource(_ source: String, named name: String, until nextName: String) -> String {

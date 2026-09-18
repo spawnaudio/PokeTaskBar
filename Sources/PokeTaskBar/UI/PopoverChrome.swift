@@ -304,6 +304,7 @@ struct TahoePopupMenu<Selection: Hashable, Content: View>: View {
                 .linearChipChrome(expands: expands, tint: tint)
         }
         .menuIndicator(.hidden)
+        .buttonStyle(.plain)
         .controlSize(size)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue(selectionTitle)
@@ -381,6 +382,11 @@ struct TahoeTabBar<Value: Hashable>: View {
             }
         }
     }
+}
+
+/// Linear Projects hexagon — same token `TahoeTabBar` uses when selected (`Color.primary`).
+enum LinearChromeTint {
+    static var project: Color { .primary }
 }
 
 /// 24–28pt metadata pill: quiet border, optional team/status tint.

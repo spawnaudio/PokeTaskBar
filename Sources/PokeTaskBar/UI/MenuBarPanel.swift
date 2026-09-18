@@ -18,9 +18,9 @@ final class MenuBarPanelWindow: NSWindow {
     /// still use `PopoverMetrics.width` (360).
 enum MenuBarPanelMetrics {
     static let defaultWidth: CGFloat = 400
-    static let defaultHeight: CGFloat = 640
+    static let defaultHeight: CGFloat = 240
     static let minWidth: CGFloat = 400
-    static let minHeight: CGFloat = 520
+    static let minHeight: CGFloat = 240
     static let attachedMaxWidth: CGFloat = 500
     static let attachedMaxHeight: CGFloat = 660
     static let detachedMinHeight: CGFloat = 400
@@ -180,6 +180,32 @@ enum MenuBarPanelMetrics {
     }
 }
 
+/// Hairline capsule around the status-item sprite + label.
+enum MenuBarStatusItemChrome {
+    static let borderWidth: CGFloat = 1
+
+    @MainActor
+    static func apply(to button: NSStatusBarButton) {
+        button.wantsLayer = true
+        button.layer?.masksToBounds = true
+        button.layer?.cornerCurve = .continuous
+        button.layer?.borderWidth = borderWidth
+        refresh(button)
+    }
+
+    @MainActor
+    static func refresh(_ button: NSStatusBarButton) {
+        button.effectiveAppearance.performAsCurrentDrawingAppearance {
+            button.layer?.borderColor = MenuBarPanelMetrics.hairline.cgColor
+            button.layer?.backgroundColor = MenuBarPanelMetrics.chipFill.cgColor
+        }
+        let height = button.bounds.height
+        if height > 1 {
+            button.layer?.cornerRadius = height / 2
+        }
+    }
+}
+
 /// Menu-bar panel. Stays open on click-outside and focus loss; hosting is
 /// still torn down on close so a hidden tree cannot idle-relayout (energy).
 @MainActor
@@ -207,6 +233,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         self.navigation = navigation
         super.init()
         observeDetach()
+        observeNavigation()
     }
 
     var isShown: Bool { window?.isVisible == true }
@@ -237,10 +264,14 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         applyTitle()
         applyChrome()
         clampContentSize()
+        hugAttachedContent()
         if let button, MenuBarPanelMetrics.shouldPlaceBelowStatusItem(detached: usage.menuBarPanelDetached) {
             place(below: button)
         }
         window?.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async { [weak self] in
+            self?.hugAttachedContent()
+        }
         onVisibilityChange?()
     }
 
@@ -286,6 +317,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
                 .environment(session)
                 .environment(\.locale, companion.language.displayLocale)
         )
+        view.sizingOptions = [.preferredContentSize]
         MenuBarPanelMetrics.applyAttachedClip(view, detached: usage.menuBarPanelDetached)
         return view
     }
@@ -340,6 +372,40 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
             current, detached: usage.menuBarPanelDetached)
         if clamped != current {
             window.setContentSize(clamped)
+        }
+    }
+
+    /// Attached panel hugs SwiftUI content instead of stretching to a 520pt floor.
+    private func hugAttachedContent() {
+        guard let window, !usage.menuBarPanelDetached else { return }
+        window.layoutIfNeeded()
+        let fitting = window.contentView?.fittingSize
+            ?? window.contentRect(forFrameRect: window.frame).size
+        let preferred = window.contentView?.intrinsicContentSize ?? .zero
+        let height = max(fitting.height, preferred.height)
+        let width = max(fitting.width, preferred.width, MenuBarPanelMetrics.minWidth)
+        let size = MenuBarPanelMetrics.clampedContentSize(
+            NSSize(width: width, height: height), detached: false)
+        if size != window.contentRect(forFrameRect: window.frame).size {
+            window.setContentSize(size)
+        }
+        if let statusButton, MenuBarPanelMetrics.shouldPlaceBelowStatusItem(detached: false) {
+            place(below: statusButton)
+        }
+    }
+
+    private func observeNavigation() {
+        withObservationTracking {
+            _ = navigation.tab
+            _ = navigation.showSettings
+            _ = navigation.collectionSegment
+            _ = navigation.showingCollectionLog
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.hugAttachedContent()
+                self.observeNavigation()
+            }
         }
     }
 

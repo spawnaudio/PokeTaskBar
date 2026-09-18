@@ -356,14 +356,18 @@ final class UsageStore {
     var menuTitle: String { menuLines.joined(separator: " · ") }
 
     /// Compact in-progress / completed-today counts. Nil when the toggle is off or Linear is unset.
-    var menuLinearIssuesLine: String? {
-        MenuBarLines.linearIssuesLine(
+    var menuLinearIssueCounts: (Int, Int)? {
+        MenuBarLines.linearIssueCounts(
             show: showLinearIssuesInMenu,
             integrationEnabled: linearIntegrationEnabled,
             apiKeyConfigured: linearAPIKeyConfigured,
             inProgress: linearInProgressIssues.count,
-            completed: linearCompletedTodayIssues.count,
-            localization: L(localizationLanguage))
+            completed: linearCompletedTodayIssues.count)
+    }
+
+    var menuLinearIssuesLine: String? {
+        guard let counts = menuLinearIssueCounts else { return nil }
+        return L(localizationLanguage).menuBarLinearIssues(counts.0, counts.1)
     }
 
     /// Snapshots that participate in cost aggregates / cost UI.

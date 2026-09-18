@@ -985,24 +985,47 @@ final class FocusSessionTests: XCTestCase {
 
     func testMenuBarPillOmitsDanglingPipeAndPrefersTimer() {
         XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: "12:34"), "Ship login | 12:34")
-        XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: "3 open · 1 done"), "Ship login | 3 open · 1 done")
+        XCTAssertEqual(
+            MenuBarLines.pillText(title: "Ship login", trailing: MenuBarPillTrailing.linearCounts(3, 1).plainFallback),
+            "Ship login | 3 · 1")
         XCTAssertEqual(MenuBarLines.pillText(title: "Ship login", trailing: nil), "Ship login")
         XCTAssertEqual(MenuBarLines.pillText(title: nil, trailing: "12:34"), "12:34")
         XCTAssertEqual(MenuBarLines.pillText(title: "  ", trailing: "  "), "")
         XCTAssertEqual(
-            MenuBarLines.pillTrailing(sessionClock: "12:34", linearIssuesLine: "3 open · 1 done", scoreLine: "9.8M"),
+            MenuBarLines.pillTrailing(sessionClock: "12:34", linearCounts: (3, 1), scoreLine: "9.8M")?.plainFallback,
             "12:34")
         XCTAssertEqual(
-            MenuBarLines.pillTrailing(sessionClock: nil, linearIssuesLine: "3 open · 1 done", scoreLine: "9.8M"),
-            "3 open · 1 done")
+            MenuBarLines.pillTrailing(sessionClock: nil, linearCounts: (3, 1), scoreLine: "9.8M"),
+            .linearCounts(3, 1))
         XCTAssertEqual(
-            MenuBarLines.pillTrailing(sessionClock: nil, linearIssuesLine: nil, scoreLine: "9.8M"),
-            "9.8M")
+            MenuBarLines.pillTrailing(sessionClock: nil, linearCounts: nil, scoreLine: "9.8M"),
+            .score("9.8M"))
         XCTAssertNil(MenuBarLines.focusedIssueTitle(nil))
         XCTAssertEqual(MenuBarLines.focusedIssueTitle(runningSession()), "Ship login")
         var pomo = runningSession()
         pomo.issue = FocusPinnedIssue.pomodoro(title: L(.en).pomoTimer)
         XCTAssertNil(MenuBarLines.focusedIssueTitle(pomo))
+    }
+
+    func testMenuBarLinearCountsUseYellowAndBlueSymbols() {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        let attr = MenuBarLines.attributedTitle(
+            title: "Ship login",
+            trailing: .linearCounts(3, 1),
+            font: font)
+        XCTAssertTrue(attr.string.contains("3"))
+        XCTAssertTrue(attr.string.contains("1"))
+        XCTAssertFalse(attr.string.contains("open"))
+        XCTAssertFalse(attr.string.contains("done"))
+        var attachments = 0
+        attr.enumerateAttribute(.attachment, in: NSRange(location: 0, length: attr.length)) { value, _, _ in
+            if value != nil { attachments += 1 }
+        }
+        XCTAssertEqual(attachments, 2, "in-progress and completed each get an SF Symbol attachment")
+        XCTAssertEqual(MenuBarLinearCountGlyph.inProgressSymbol, "circle.fill")
+        XCTAssertEqual(MenuBarLinearCountGlyph.completedSymbol, "checkmark.circle.fill")
+        XCTAssertEqual(MenuBarLinearCountGlyph.inProgressColor, NSColor.systemYellow)
+        XCTAssertEqual(MenuBarLinearCountGlyph.completedColor, NSColor.systemBlue)
     }
 
     func testMenuBarLinearIssuesLineFollowsVisibilityAndLinearSetup() {

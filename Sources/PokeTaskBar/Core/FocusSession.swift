@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Overlay/desk prompt. Zero-time wins if both would show.
@@ -91,6 +92,26 @@ enum SessionPromptSurface {
     }
 }
 
+enum MenuBarLinearCountGlyph {
+    static let inProgressSymbol = "circle.fill"
+    static let completedSymbol = "checkmark.circle.fill"
+    static var inProgressColor: NSColor { .systemYellow }
+    static var completedColor: NSColor { .systemBlue }
+}
+
+enum MenuBarPillTrailing: Equatable {
+    case clock(String)
+    case linearCounts(Int, Int)
+    case score(String)
+
+    var plainFallback: String {
+        switch self {
+        case .clock(let text), .score(let text): return text
+        case .linearCounts(let open, let done): return "\(open) · \(done)"
+        }
+    }
+}
+
 /// Status-item lines while a focus session is running and the floating pet (overlay clock) is off.
 /// Usage-only `UsageStore.menuLines` stay unchanged; AppDelegate prepends this clock and keeps ≤2 lines.
 enum MenuBarLines {
@@ -130,8 +151,22 @@ enum MenuBarLines {
         completed: Int,
         localization: L
     ) -> String? {
+        guard let counts = linearIssueCounts(
+            show: show, integrationEnabled: integrationEnabled, apiKeyConfigured: apiKeyConfigured,
+            inProgress: inProgress, completed: completed)
+        else { return nil }
+        return localization.menuBarLinearIssues(counts.0, counts.1)
+    }
+
+    static func linearIssueCounts(
+        show: Bool,
+        integrationEnabled: Bool,
+        apiKeyConfigured: Bool,
+        inProgress: Int,
+        completed: Int
+    ) -> (Int, Int)? {
         guard show, integrationEnabled, apiKeyConfigured else { return nil }
-        return localization.menuBarLinearIssues(inProgress, completed)
+        return (inProgress, completed)
     }
 
     /// Linear issue title for the compact menu-bar pill. Pomodoro has no issue name.
@@ -142,10 +177,14 @@ enum MenuBarLines {
     }
 
     /// After the pipe: running timer, else Linear counts, else companion XP.
-    static func pillTrailing(sessionClock: String?, linearIssuesLine: String?, scoreLine: String?) -> String? {
-        if let sessionClock, !sessionClock.isEmpty { return sessionClock }
-        if let linearIssuesLine, !linearIssuesLine.isEmpty { return linearIssuesLine }
-        if let scoreLine, !scoreLine.isEmpty { return scoreLine }
+    static func pillTrailing(
+        sessionClock: String?,
+        linearCounts: (Int, Int)?,
+        scoreLine: String?
+    ) -> MenuBarPillTrailing? {
+        if let sessionClock, !sessionClock.isEmpty { return .clock(sessionClock) }
+        if let linearCounts { return .linearCounts(linearCounts.0, linearCounts.1) }
+        if let scoreLine, !scoreLine.isEmpty { return .score(scoreLine) }
         return nil
     }
 
@@ -159,6 +198,56 @@ enum MenuBarLines {
         case (false, true): return trail
         case (false, false): return ""
         }
+    }
+
+    static func attributedTitle(
+        title: String?,
+        trailing: MenuBarPillTrailing?,
+        font: NSFont
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let lead = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !lead.isEmpty {
+            result.append(NSAttributedString(string: lead, attributes: [.font: font]))
+        }
+        guard let trailing else { return result }
+        if result.length > 0 {
+            result.append(NSAttributedString(string: " | ", attributes: [.font: font]))
+        }
+        switch trailing {
+        case .clock(let text), .score(let text):
+            result.append(NSAttributedString(string: text, attributes: [.font: font]))
+        case .linearCounts(let open, let done):
+            result.append(countRun(open, symbol: MenuBarLinearCountGlyph.inProgressSymbol,
+                                   color: MenuBarLinearCountGlyph.inProgressColor, font: font))
+            result.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+            result.append(countRun(done, symbol: MenuBarLinearCountGlyph.completedSymbol,
+                                   color: MenuBarLinearCountGlyph.completedColor, font: font))
+        }
+        return result
+    }
+
+    private static func countRun(_ value: Int, symbol: String, color: NSColor, font: NSFont) -> NSAttributedString {
+        let run = NSMutableAttributedString()
+        run.append(symbolAttachment(name: symbol, color: color, font: font))
+        run.append(NSAttributedString(string: "\(value)", attributes: [
+            .font: font,
+            .foregroundColor: NSColor.labelColor,
+        ]))
+        return run
+    }
+
+    private static func symbolAttachment(name: String, color: NSColor, font: NSFont) -> NSAttributedString {
+        let config = NSImage.SymbolConfiguration(pointSize: font.pointSize, weight: .semibold)
+            .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) ?? NSImage()
+        image.isTemplate = false
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        let y = (font.capHeight - image.size.height) / 2
+        attachment.bounds = CGRect(x: 0, y: y, width: image.size.width, height: image.size.height)
+        return NSAttributedString(attachment: attachment)
     }
 
     static func toolTip(identifier: String?, sessionClock: String?) -> String? {

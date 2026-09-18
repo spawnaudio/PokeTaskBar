@@ -427,6 +427,8 @@ struct TodayDeskView: View {
                     LinearTagChip(
                         text: field.value,
                         tint: LinearTeamTint.color(forKey: issue.teamKey, name: issue.teamName))
+                } else if field.kind == .project {
+                    LinearTagChip(text: field.value, tint: LinearChromeTint.project)
                 } else {
                     Text(field.value)
                         .font(.callout)
