@@ -28,6 +28,9 @@ final class CompanionStore {
     /// Floating-pet speech bubble (evolve / graduate). Wired from AppDelegate to UsageStore.
     var onPetBubble: ((String, String) -> Void)?
 
+    /// Emitted only after a real award, including Mint's multiplier and daily caps.
+    var onXPEarned: ((XPReward) -> Void)?
+
     /// 사탕 사용 시 "+XP" 순간 표시 — 진화 없이 부분 진행일 때도 피드백. seq 증가로 CompanionHeader 감지.
     private(set) var candyFeedbackSeq = 0
     private(set) var candyFeedbackAmount = 0
@@ -789,6 +792,7 @@ final class CompanionStore {
         candyFeedbackAmount = RareCandy.xp
         candyFeedbackSeq += 1
         applyUsage(RareCandy.xp)   // 내부에서 save() 수행(인벤토리 감소 포함 영속)
+        onXPEarned?(XPReward(amount: RareCandy.xp, source: .candy))
         if state.active == nil { return .graduated }
         if state.active!.stageIndex > beforeStage { return .evolved }
         return .progressed
@@ -830,7 +834,7 @@ final class CompanionStore {
 
     /// Token usage is 1:1 XP. Linear / time-open / projects add bonus XP. Mint doubles
     /// incoming XP for the window without rewriting token stats.
-    func creditEarnedXP(_ delta: Int, fromTokens: Bool) {
+    func creditEarnedXP(_ delta: Int, fromTokens: Bool, source: XPReward.Source? = nil) {
         guard delta > 0 else { return }
         let xp = mintScaled(delta)
         if fromTokens {
@@ -840,6 +844,7 @@ final class CompanionStore {
             state.bonusXP += xp
         }
         applyGrowth(xp)
+        onXPEarned?(XPReward(amount: xp, source: source ?? (fromTokens ? .tokens : .timeOpen)))
     }
 
     var lifetimeXP: Int { max(0, state.usedSinceInstall + state.bonusXP) }
@@ -1081,7 +1086,7 @@ final class CompanionStore {
         let grant = min(delta, room)
         guard grant > 0 else { return 0 }
         state.timeOpenAwardedToday += grant
-        applyProgressXP(grant)
+        applyProgressXP(grant, source: .focus)
         save()
         return grant
     }
@@ -1115,8 +1120,8 @@ final class CompanionStore {
     }
 
     /// Growth XP from Linear / time-open / sessions. Counts as shop XP (Coins).
-    func applyProgressXP(_ delta: Int) {
-        creditEarnedXP(delta, fromTokens: false)
+    func applyProgressXP(_ delta: Int, source: XPReward.Source = .timeOpen) {
+        creditEarnedXP(delta, fromTokens: false, source: source)
     }
 
     /// Credit XP for newly completed Linear issues. Seed poll records IDs with 0 XP.
@@ -1132,7 +1137,7 @@ final class CompanionStore {
             existing: state.linearIssueXP,
             newlyCredited: outcome.newlyCredited)
         if outcome.xp > 0 {
-            applyProgressXP(outcome.xp)
+            applyProgressXP(outcome.xp, source: .issue)
         }
         save()
         return outcome
@@ -1148,7 +1153,7 @@ final class CompanionStore {
         state.linearCreditedProjectIDs = outcome.creditedIDs
         state.linearProjectSeeded = outcome.seeded
         if outcome.xp > 0 {
-            applyProgressXP(outcome.xp)
+            applyProgressXP(outcome.xp, source: .project)
         }
         save()
         return outcome

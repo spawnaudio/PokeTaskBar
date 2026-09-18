@@ -11,8 +11,8 @@ final class TodayDeskLayoutTests: XCTestCase {
     }
 
     func testDefaultSizeIsWideEnoughForDualSidebars() {
-        XCTAssertEqual(TodayDeskMetrics.defaultWidth, 920)
-        XCTAssertEqual(TodayDeskMetrics.defaultHeight, 680)
+        XCTAssertEqual(TodayDeskMetrics.defaultWidth, 1280)
+        XCTAssertEqual(TodayDeskMetrics.defaultHeight, 860)
         XCTAssertGreaterThanOrEqual(TodayDeskMetrics.leftSidebarWidth, 200)
         XCTAssertLessThanOrEqual(TodayDeskMetrics.leftSidebarWidth, 220)
         XCTAssertGreaterThanOrEqual(TodayDeskMetrics.rightSidebarWidth, 220)

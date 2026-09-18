@@ -1,0 +1,220 @@
+{
+  "page": "Collection \u2014 Catch log",
+  "status": "Option 3 approved and added to UI Overhaul v2",
+  "generatedWith": "Built-in image_gen",
+  "selectedOption": 3,
+  "nextPageAfterApproval": "Collection \u2014 Shop",
+  "remainingPageSequence": [
+    "Collection \u2014 Catch log",
+    "Collection \u2014 Shop",
+    "Collection \u2014 full Pok\u00e9mon details"
+  ],
+  "approvalWorkflow": "On selection, read the current PokeTasks feature document, add only missing design decisions and the exact selected image, verify, then immediately generate the next page mockups. Use linear-document-map.json for document routing.",
+  "approvedPrecedents": {
+    "focus": 1,
+    "issues": 2,
+    "projects": {
+      "default": 1,
+      "alternate": 3,
+      "control": "List / Grid"
+    },
+    "initiatives": {
+      "default": 2,
+      "alternate": 3,
+      "control": "Expanded / Overview"
+    },
+    "collection": 3,
+    "usage": {
+      "default": 1,
+      "alternates": [
+        2,
+        3
+      ],
+      "control": "Overview / Provider / Limits"
+    },
+    "settings": 3,
+    "bag": {
+      "selectedOption": 3,
+      "refinement": "Current Pok\u00e9mon hero, item secondary"
+    },
+    "storage": {
+      "selectedOption": 3,
+      "selectionMapping": "User selected 4, the last image after the revised Bag image."
+    }
+  },
+  "referenceImages": [
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/collection-approved.png",
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-approved.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/92-s.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/93-s.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/94-s.png"
+  ],
+  "displayOrder": [
+    {
+      "option": 1,
+      "name": "Dated Journal",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-ba5e8acc-4a68-4e6f-9997-9d28c41161a1.png",
+      "prompt": "Usecase:ui-mockup. Create a realistic production-quality PokeTaskBar macOS main-window COLLECTION \u2192 POK\u00c9DEX \u2192 CATCH LOG page.\nAttachedimage1 is the approved Collection Pok\u00e9dex, image2 the approved Storage preview, images3\u20135the actual Gastly,Haunter,Gengar sprites. Match the established visual language and recognisable crisp proportional pixel sprites. No smooth3Dcharacters.\nTarget1488\u00d71056landscape,straight-on complete nativewindow. CurrentdateFriday18September2026,Australia/Perth. All sampledatesbelowrelative tothisdate;norecordsinfuture. No externalbrowser,poster,presentationtitles,optionnumbers,annotationsormultipleframes.\nPreserve expanded240pxmainleftnavigation:PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collectionselected,Usage,Settingsbottom. Native trafficlights,back/forward,compactCollectionpagetab,collapse/reopencontrols.\nMainheadingCollection, approved localBag / Storage / Pok\u00e9dex / Shop navigation with POK\u00c9DEXselected. Belowkeepsecondary Pok\u00e9dex / Catch log selector with CATCH LOGselected. Catchlog is an inner view ofPok\u00e9dex, not a newroottab.\nUsecontinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,#FFFFFFmeaningfullygroupedsurfaces,ink#242528,metadata#73757B,restrainedsmallblueaccentsandneutralrowselection. SFPro-like14\u201316ptbody,28\u201332ptheading. NO permanent sidebar separator strokes, fullheightlines, edge-to-edgesectionrules or restingresizegrips. Use whitespace and tonalpanels. No decorativegradient/glow/glass,battlestats,goalmetrics,marketingcards.\nPurpose: review records of INDIVIDUAL Pok\u00e9mon: pin the currently raising entry first, then show historical entries newest first. Two Lapras records are two different individuals and mustremainseparate, unlike species-onlyPok\u00e9dex. Catchlog is a historybrowser,notatraining,releaseoritem-usepage.\nShow 'Catch log' and quiet '6 catches'. Retain simple rarity and shinyfilterchoices withcounts, notbigmetriccards. Suggestedcompactfilterrow 'All 6' selected, 'Rare 3', 'Common 3', 'Shiny 1'. Zero-count Uncommon/Legendary mayremaininraritycontrolwithouttakingprominence. Countsrefertoindividuals,notuniquespecies. Shinyoverlapsraritycounts.\nUse EXACTLYthese sixillustrativerecords,currentraisingfirstthenhistorynewestfirst:\nLapras,18Sep2026 09:20,Rare,Raising,Calmnature,notshiny,evolutionlineLapras.\nGengar,17Sep2026 18:10,Common,Trophy,Timidnature,notshiny,lineGastly\u2192Haunter\u2192Gengar.\nPikachu,17Sep2026 08:45,Common,Released,Jollynature,SHINY,linePichu\u2192Pikachu. A small labelledShiny marker; do notinventasuccessbadge.\nLapras,16Sep2026 15:30,Rare,Trophy,Boldnature,notshiny,lineLapras.\nMagikarp,15Sep2026 14:15,Common,Released,Quietnature,notshiny,lineMagikarp.\nVaporeon,14Sep2026 11:00,Rare,Trophy,Modestnature,notshiny,lineEevee\u2192Vaporeon.\nTheseare mockgame-record values,notnewPok\u00e9monrules. Preserve exactorder,all6entriesanddistinctLaprasdates/states. Rarityisrecord-level; no inferredextra badges. Released is historicalstate,notanavailableaction.\nEachrecordexposesitsidentity,acquisitiondate,rarity,nature,stateandevolutionline, eitherinlineorviaanexpandedselection. CurrentraisingLaprasisoneofrecords; nevertagGengarasraising. SelectedrecordcanbeGengarwhereapreviewisneeded.\nUse only a quiet Viewdetailslink to existingindividualdetails ifhelpful; noTrain,Useitem,Release,Trade,Delete,Exportornewloggingbutton. Recordselectiononlychangesbrowsing. Keepfiltersandessentialrecorddetailavailablewhenrightextrashide. Respectindependentlyresizable/collapsiblesidebarswithoutrestingguides.\nDateheadings,smalltimelabelsandreadabletypeconveychronology. Avoidpagewidescoring/charts,calendarpicker,streaks,decorativetimelinerulesandsearch/sorttoolbarsforsixentries. Generouswhitespace,strongusefulhierarchy,modestmeaningfulstatecolour.\nDirection: Dated Journal.\nOptionalrightextrascollapsed. Maincanvaswide, with approvedcollectionnavigationandCatchlogselected.\nBelowCatchlogheading andquiet6catchescount, showthecompactcountfilterrow. Then a calm singlecolumnchronologicaljournal groupedbysmallmuteddateheadings:Today\u00b718Sep; Yesterday\u00b717Sep;16Sep;15Sep;14Sep. No verticaltimelineconnector, no horizontalrules.\nKeepall6recordsvisible. Each compactrecord has a40pxsprite, readable name,statebadge,nature,rarity andtime. The firstLaprasrowshowsRaising/Calm/Rare09:20. Thetwo17SeprowsareGengar18:10andshinyPikachu08:45; thenLapras15:30,Magikarp14:15,Vaporeon11:00underrespectivedates.\nGengar is the ONLY expandedrecord, in a softlywhiteroundedregion about140pxhigh. Its top-rowname,Common,Trophy,Timid,time18:10 stayreadable. BeneathputGastly\u2192Haunter\u2192Gengar withthree36pxpixelartthumbsandnames, plusquietViewdetailslinkatright. Otherrecordsremaincompactflatrows, withtheirshort evolutionline shownasmutedtextifitfits; noextracards.\nKeepallcontentabovebottomgutter, no gianthero. This direction reads like a calm personalcollectionjournal, with inlineevolutiondetail and clear dates. Use minimalrowspacingwithoutcrowding, one meaningfulexpandedpanelonly.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/catch-log-exploration-1.png",
+      "status": "not selected",
+      "sha256": "50347761b0ca649a48a4ecdfbe73cbac661700c36a5efade25f66a84cac8e45a",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 2,
+      "name": "Record List",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-9d371f6d-645d-4da4-8894-cfdb5458f636.png",
+      "prompt": "Usecase:ui-mockup. Create a realistic production-quality PokeTaskBar macOS main-window COLLECTION \u2192 POK\u00c9DEX \u2192 CATCH LOG page.\nAttachedimage1 is the approved Collection Pok\u00e9dex, image2 the approved Storage preview, images3\u20135the actual Gastly,Haunter,Gengar sprites. Match the established visual language and recognisable crisp proportional pixel sprites. No smooth3Dcharacters.\nTarget1488\u00d71056landscape,straight-on complete nativewindow. CurrentdateFriday18September2026,Australia/Perth. All sampledatesbelowrelative tothisdate;norecordsinfuture. No externalbrowser,poster,presentationtitles,optionnumbers,annotationsormultipleframes.\nPreserve expanded240pxmainleftnavigation:PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collectionselected,Usage,Settingsbottom. Native trafficlights,back/forward,compactCollectionpagetab,collapse/reopencontrols.\nMainheadingCollection, approved localBag / Storage / Pok\u00e9dex / Shop navigation with POK\u00c9DEXselected. Belowkeepsecondary Pok\u00e9dex / Catch log selector with CATCH LOGselected. Catchlog is an inner view ofPok\u00e9dex, not a newroottab.\nUsecontinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,#FFFFFFmeaningfullygroupedsurfaces,ink#242528,metadata#73757B,restrainedsmallblueaccentsandneutralrowselection. SFPro-like14\u201316ptbody,28\u201332ptheading. NO permanent sidebar separator strokes, fullheightlines, edge-to-edgesectionrules or restingresizegrips. Use whitespace and tonalpanels. No decorativegradient/glow/glass,battlestats,goalmetrics,marketingcards.\nPurpose: review records of INDIVIDUAL Pok\u00e9mon: pin the currently raising entry first, then show historical entries newest first. Two Lapras records are two different individuals and mustremainseparate, unlike species-onlyPok\u00e9dex. Catchlog is a historybrowser,notatraining,releaseoritem-usepage.\nShow 'Catch log' and quiet '6 catches'. Retain simple rarity and shinyfilterchoices withcounts, notbigmetriccards. Suggestedcompactfilterrow 'All 6' selected, 'Rare 3', 'Common 3', 'Shiny 1'. Zero-count Uncommon/Legendary mayremaininraritycontrolwithouttakingprominence. Countsrefertoindividuals,notuniquespecies. Shinyoverlapsraritycounts.\nUse EXACTLYthese sixillustrativerecords,currentraisingfirstthenhistorynewestfirst:\nLapras,18Sep2026 09:20,Rare,Raising,Calmnature,notshiny,evolutionlineLapras.\nGengar,17Sep2026 18:10,Common,Trophy,Timidnature,notshiny,lineGastly\u2192Haunter\u2192Gengar.\nPikachu,17Sep2026 08:45,Common,Released,Jollynature,SHINY,linePichu\u2192Pikachu. A small labelledShiny marker; do notinventasuccessbadge.\nLapras,16Sep2026 15:30,Rare,Trophy,Boldnature,notshiny,lineLapras.\nMagikarp,15Sep2026 14:15,Common,Released,Quietnature,notshiny,lineMagikarp.\nVaporeon,14Sep2026 11:00,Rare,Trophy,Modestnature,notshiny,lineEevee\u2192Vaporeon.\nTheseare mockgame-record values,notnewPok\u00e9monrules. Preserve exactorder,all6entriesanddistinctLaprasdates/states. Rarityisrecord-level; no inferredextra badges. Released is historicalstate,notanavailableaction.\nEachrecordexposesitsidentity,acquisitiondate,rarity,nature,stateandevolutionline, eitherinlineorviaanexpandedselection. CurrentraisingLaprasisoneofrecords; nevertagGengarasraising. SelectedrecordcanbeGengarwhereapreviewisneeded.\nUse only a quiet Viewdetailslink to existingindividualdetails ifhelpful; noTrain,Useitem,Release,Trade,Delete,Exportornewloggingbutton. Recordselectiononlychangesbrowsing. Keepfiltersandessentialrecorddetailavailablewhenrightextrashide. Respectindependentlyresizable/collapsiblesidebarswithoutrestingguides.\nDateheadings,smalltimelabelsandreadabletypeconveychronology. Avoidpagewidescoring/charts,calendarpicker,streaks,decorativetimelinerulesandsearch/sorttoolbarsforsixentries. Generouswhitespace,strongusefulhierarchy,modestmeaningfulstatecolour.\nDirection: Record List.\nExpandedmainnav, maininsetcanvasabout880pxwide andoptionalrightextrasrailabout280px. CollectionnavigationwithPok\u00e9dexselectedandCatchlogsecondarytabselected.\nCatchlogtitleand6catches, then exactlyONE compactfilterrow:All6,Rare3,Common3,Shiny1. Do notduplicatefiltercontrolswithadditionalRarity/Shinydropdowns.\nMaincontentis a compact readabletable/list withquietcolumnheaders 'Pok\u00e9mon', 'State', 'Nature', 'Date'. NO gridlines,NO verticalcolumnrules,NOhorizontalrowseparators. Six generousrowsaround60pxhigh; eachPok\u00e9monnamehas32pxspriteand tinyRareorCommonlabelbeneath. Showfull datescompactlyas18Sep09:20,etc. LaprasRaisingfirst, GengarTrophyTimid17Sep18:10selectedlightneutral, shinyPikachuReleasedJolly,secondLaprasTrophyBold,MagikarpReleasedQuiet,VaporeonTrophyModest. Keepall6visible. PikachuhasalabelledShinymarker;avoidbadgesoverloadingtext.\nBelowtableinsideMAINcanvas, a compactselectedrecordsurface with heading 'Gengar \u00b7 Evolution history', Gastly\u2192Haunter\u2192Gengar withthree48pxspritesandnames, and quietViewdetailslink. Thisdetailremainswhenextrascollapse.\nOptionalrightrailhasjustonewhitepreviewpanelwith Gengar140pxsprite, Gengar title, smallCommon/Trophylabels, 'Timid nature', '17 Sep 2026 \u00b7 18:10'. Itcontainsnoexclusiveactions. Leaveextrasspacebelowempty.\nKeepdatadensitymoderateandprecise,rowshavesufficientspace, nohistogram,calendar,trainingbuttons ormajordividerlines. Thisdirectionprivilegescomparablerecordswithquietartwork.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/catch-log-exploration-2.png",
+      "status": "not selected",
+      "sha256": "eb587cb6733954f75e85ec4ead31446457b8f1d8a1c5dc63ebba5708ccfced09",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 3,
+      "name": "Individual History Workspace",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-7c62688b-d621-4278-9e76-341218f6bff0.png",
+      "prompt": "Usecase:ui-mockup. Create a realistic production-quality PokeTaskBar macOS main-window COLLECTION \u2192 POK\u00c9DEX \u2192 CATCH LOG page.\nAttachedimage1 is the approved Collection Pok\u00e9dex, image2 the approved Storage preview, images3\u20135the actual Gastly,Haunter,Gengar sprites. Match the established visual language and recognisable crisp proportional pixel sprites. No smooth3Dcharacters.\nTarget1488\u00d71056landscape,straight-on complete nativewindow. CurrentdateFriday18September2026,Australia/Perth. All sampledatesbelowrelative tothisdate;norecordsinfuture. No externalbrowser,poster,presentationtitles,optionnumbers,annotationsormultipleframes.\nPreserve expanded240pxmainleftnavigation:PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collectionselected,Usage,Settingsbottom. Native trafficlights,back/forward,compactCollectionpagetab,collapse/reopencontrols.\nMainheadingCollection, approved localBag / Storage / Pok\u00e9dex / Shop navigation with POK\u00c9DEXselected. Belowkeepsecondary Pok\u00e9dex / Catch log selector with CATCH LOGselected. Catchlog is an inner view ofPok\u00e9dex, not a newroottab.\nUsecontinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,#FFFFFFmeaningfullygroupedsurfaces,ink#242528,metadata#73757B,restrainedsmallblueaccentsandneutralrowselection. SFPro-like14\u201316ptbody,28\u201332ptheading. NO permanent sidebar separator strokes, fullheightlines, edge-to-edgesectionrules or restingresizegrips. Use whitespace and tonalpanels. No decorativegradient/glow/glass,battlestats,goalmetrics,marketingcards.\nPurpose: review records of INDIVIDUAL Pok\u00e9mon: pin the currently raising entry first, then show historical entries newest first. Two Lapras records are two different individuals and mustremainseparate, unlike species-onlyPok\u00e9dex. Catchlog is a historybrowser,notatraining,releaseoritem-usepage.\nShow 'Catch log' and quiet '6 catches'. Retain simple rarity and shinyfilterchoices withcounts, notbigmetriccards. Suggestedcompactfilterrow 'All 6' selected, 'Rare 3', 'Common 3', 'Shiny 1'. Zero-count Uncommon/Legendary mayremaininraritycontrolwithouttakingprominence. Countsrefertoindividuals,notuniquespecies. Shinyoverlapsraritycounts.\nUse EXACTLYthese sixillustrativerecords,currentraisingfirstthenhistorynewestfirst:\nLapras,18Sep2026 09:20,Rare,Raising,Calmnature,notshiny,evolutionlineLapras.\nGengar,17Sep2026 18:10,Common,Trophy,Timidnature,notshiny,lineGastly\u2192Haunter\u2192Gengar.\nPikachu,17Sep2026 08:45,Common,Released,Jollynature,SHINY,linePichu\u2192Pikachu. A small labelledShiny marker; do notinventasuccessbadge.\nLapras,16Sep2026 15:30,Rare,Trophy,Boldnature,notshiny,lineLapras.\nMagikarp,15Sep2026 14:15,Common,Released,Quietnature,notshiny,lineMagikarp.\nVaporeon,14Sep2026 11:00,Rare,Trophy,Modestnature,notshiny,lineEevee\u2192Vaporeon.\nTheseare mockgame-record values,notnewPok\u00e9monrules. Preserve exactorder,all6entriesanddistinctLaprasdates/states. Rarityisrecord-level; no inferredextra badges. Released is historicalstate,notanavailableaction.\nEachrecordexposesitsidentity,acquisitiondate,rarity,nature,stateandevolutionline, eitherinlineorviaanexpandedselection. CurrentraisingLaprasisoneofrecords; nevertagGengarasraising. SelectedrecordcanbeGengarwhereapreviewisneeded.\nUse only a quiet Viewdetailslink to existingindividualdetails ifhelpful; noTrain,Useitem,Release,Trade,Delete,Exportornewloggingbutton. Recordselectiononlychangesbrowsing. Keepfiltersandessentialrecorddetailavailablewhenrightextrashide. Respectindependentlyresizable/collapsiblesidebarswithoutrestingguides.\nDateheadings,smalltimelabelsandreadabletypeconveychronology. Avoidpagewidescoring/charts,calendarpicker,streaks,decorativetimelinerulesandsearch/sorttoolbarsforsixentries. Generouswhitespace,strongusefulhierarchy,modestmeaningfulstatecolour.\nDirection: Individual History Workspace.\nRightextrascollapsed; wideinsetmaincanvas, followingapprovedCollectionandStoragepreviewlayout.\nCollectiontitle,localPok\u00e9dexselected,secondaryCatchlogselected. Catchlogheadingwith6catches, thenexactlyONEcompactfilterrowAll6/Rare3/Common3/Shiny1. Noadditionalduplicatefilterdropdowns.\nBeneath, maincanvasdividesbyopengutter into350pxindividualrecordbrowserandwiderpreview. Browserhasallsixchronologicalrowswith36pxsprite, name, fullcompactdate+time andsmallstate:Lapras18Sep09:20Raising;Gengar17Sep18:10Trophyselected;Pikachu17Sep08:45ReleasedplusShinymarker;Lapras16Sep15:30Trophy;Magikarp15Sep14:15Released;Vaporeon14Sep11:00Trophy. Quietselectedrowfill, nounique-speciesmerging,noseparatorstroke. DuplicateLaprasrecordsremainvisiblydifferent.\nThepreview'sheroistheSELECTEDindividualGengar,notcurrentLapras. GengarheadingwithsmallCommonandTrophylabels, crispGengarspritearound190pxhigh centredinupperarea. Belowart, a tidyUNBOXEDtwo-columnmetadata arrangement shows 'Nature \u00b7 Timid' and 'Caught \u00b717Sep2026,18:10'. Keepallnumbersreadable.\nNextasmallevolutionhistoryrowGastly\u2192Haunter\u2192Gengar withthree32pxspritesandnames, thenquietViewdetailslink. Use no TrainorUseitembutton. This ishistorybrowsing. No newstats,XPgraph,profilechart,individualIDgibberish orachievements.\nAllimportantselected-recordmetadataandevolutionhistoryintheMAINcanvas; optionalextrashidden. One softlywhitepreviewregionisallowed,butnocardsinsidecards. MoreopenwhitespaceandstrongerPok\u00e9monfocus than thetableconcept. Preservebottomcornersandcompletereadablebrowser,withuniformspriteproportionsandnopermajordividerlines.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/catch-log-exploration-3.png",
+      "status": "approved",
+      "sha256": "0c90d49ce30ec1d3bc1f9b188920cd6ccf08cb21fe9070564874f0ed4eaafede",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    }
+  ],
+  "mockData": {
+    "date": "2026-09-18",
+    "timezone": "Australia/Perth",
+    "totalIndividuals": 6,
+    "rarityCounts": {
+      "rare": 3,
+      "common": 3,
+      "uncommon": 0,
+      "legendary": 0
+    },
+    "shinyCount": 1,
+    "entries": [
+      {
+        "id": "lapras-current",
+        "species": "Lapras",
+        "chain": [
+          "Lapras"
+        ],
+        "status": "Raising",
+        "rarity": "Rare",
+        "nature": "Calm",
+        "date": "2026-09-18",
+        "time": "09:20",
+        "shiny": false
+      },
+      {
+        "id": "gengar-trophy",
+        "species": "Gengar",
+        "chain": [
+          "Gastly",
+          "Haunter",
+          "Gengar"
+        ],
+        "status": "Trophy",
+        "rarity": "Common",
+        "nature": "Timid",
+        "date": "2026-09-17",
+        "time": "18:10",
+        "shiny": false
+      },
+      {
+        "id": "pikachu-released",
+        "species": "Pikachu",
+        "chain": [
+          "Pichu",
+          "Pikachu"
+        ],
+        "status": "Released",
+        "rarity": "Common",
+        "nature": "Jolly",
+        "date": "2026-09-17",
+        "time": "08:45",
+        "shiny": true
+      },
+      {
+        "id": "lapras-trophy",
+        "species": "Lapras",
+        "chain": [
+          "Lapras"
+        ],
+        "status": "Trophy",
+        "rarity": "Rare",
+        "nature": "Bold",
+        "date": "2026-09-16",
+        "time": "15:30",
+        "shiny": false
+      },
+      {
+        "id": "magikarp-released",
+        "species": "Magikarp",
+        "chain": [
+          "Magikarp"
+        ],
+        "status": "Released",
+        "rarity": "Common",
+        "nature": "Quiet",
+        "date": "2026-09-15",
+        "time": "14:15",
+        "shiny": false
+      },
+      {
+        "id": "vaporeon-trophy",
+        "species": "Vaporeon",
+        "chain": [
+          "Eevee",
+          "Vaporeon"
+        ],
+        "status": "Trophy",
+        "rarity": "Rare",
+        "nature": "Modest",
+        "date": "2026-09-14",
+        "time": "11:00",
+        "shiny": false
+      }
+    ]
+  },
+  "existingSourceFiles": [
+    "Sources/PokeTaskBar/UI/CompanionView.swift",
+    "Sources/PokeTaskBar/Core/CompanionStore.swift",
+    "Sources/PokeTaskBar/Core/CompanionModel.swift"
+  ],
+  "implementationNotes": [
+    "Catch log remains the inner Collection > Pok\u00e9dex > Catch log destination, not a new root page.",
+    "Rows represent individual records, preserving duplicate species and stable entry IDs. Counts and filters measure individuals, while the Pok\u00e9dex measures species.",
+    "Match the existing ordering: pin the active raising record first; sort historical entries by recorded time newest first. Unknown legacy dates remain unknown, never invented, and follow dated history.",
+    "Keep rarity and shiny filters available while the list scrolls. Preserve Uncommon and Legendary choices even though this illustrative set has zero of each.",
+    "Use one filter interface: do not copy the first generated image's redundant Rarity/Shiny dropdowns alongside the count chips.",
+    "Rarity, nature, recorded time, raising/trophy/released state and evolution order come from actual entry data. Mock fixture values are illustrative.",
+    "Released is a historical state, not a new Release action. This page introduces no training, item use, trading, deletion, export or manual logging controls.",
+    "Selecting a record updates its preview only. View details must open the existing detail experience for that exact individual, not just the first matching species.",
+    "Correct shiny sprites and accessible Shiny labels must use the entry's isShiny data; incidental generated sprite colours are not the implementation target.",
+    "All essential record data and navigation remain available with optional extras hidden.",
+    "Preserve existing empty collection and zero-filter-result states, stable scroll behaviour and loading/unknown metadata handling.",
+    "Keep approved sidebar/major section boundaries line-free, regardless of incidental local strokes in generated references."
+  ],
+  "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/catch-log-approved.png",
+  "activeLinearProject": {
+    "id": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+    "name": "PokeTasks",
+    "url": "https://linear.app/spawn-audio/project/poketasks-cedf1ccdaeb7/overview"
+  },
+  "approvalDestination": {
+    "id": "2a850889-2316-45c1-ba25-74df3164731f",
+    "title": "UI Overhaul v2 - Collection: Pok\u00e9dex & Bag",
+    "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-collection-pokedex-and-bag-20fb94c02bdb"
+  },
+  "approvedInCurrentProject": true
+}

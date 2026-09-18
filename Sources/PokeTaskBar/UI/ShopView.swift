@@ -11,7 +11,7 @@ struct ShopView: View {
     var body: some View {
         let l = store.l
         // 최소 높이 — 컬렉션/가방과 동일. 창이 커지면 스크롤 영역이 나머지를 채운다.
-        ScrollView {
+        ContentFittingScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 walletHeader(l)
                 // shopEntries = 판매 아이템 + 알 3종(보증 없음·고급 이상·희귀 이상)을 가격 오름차순으로
@@ -49,16 +49,37 @@ struct ShopView: View {
 /// 상점 아이템 1장 — 아이콘·이름·설명(사탕 XP / 민트 "성격 랜덤 변경")·보유수 + 가격/구매(인라인 확인).
 /// kind 별 store.canBuy(kind)/buy(kind) 로 일반화 — 판매 목록은 store.purchasableItems.
 @MainActor
-private struct ShopItemCard: View {
+struct ShopItemCard: View {
     let store: CompanionStore
     let kind: ItemKind
+    @Environment(\.mainWindowChrome) private var mainWindowChrome
     @State private var confirming = false
 
     private var price: Int { store.price(of: kind) ?? 0 }
 
     var body: some View {
+        if mainWindowChrome { desktopCard } else { compactCard }
+    }
+
+    private var desktopCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                ItemIconView(kind: kind, size: 48)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(store.l.itemName(kind)).font(.system(size: 16, weight: .semibold))
+                    if !kind.isPassive { Text(store.l.ownedCount(store.itemCount(kind))).foregroundStyle(.secondary) }
+                }
+            }
+            Text(store.l.itemDescription(kind)).font(.system(size: 13)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            buyControls(store.l)
+        }
+    }
+
+    private var compactCard: some View {
         let l = store.l
-        VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 ItemIconView(kind: kind, size: 30)
                 VStack(alignment: .leading, spacing: 2) {
@@ -95,7 +116,7 @@ private struct ShopItemCard: View {
         } else if confirming {
             HStack(spacing: 8) {
                 Text(l.buyConfirm(l.itemName(kind)))
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    .font(mainWindowChrome ? .system(size: 13) : .caption2).foregroundStyle(.secondary).lineLimit(mainWindowChrome ? 2 : 1)
                 Spacer()
                 Button(l.buy) { buyNow() }
                     .tahoeButtonStyle(.prominent).controlSize(.small)
@@ -105,14 +126,14 @@ private struct ShopItemCard: View {
         } else {
             HStack {
                 Text(l.requiresCoins(TokenFormatter.compact(price)))
-                    .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                    .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary).monospacedDigit()
                 Spacer()
                 if store.canBuy(kind) {
                     Button(l.buy) { confirming = true }
                         .tahoeButtonStyle(.regular).controlSize(.small)
                 } else {
                     Text(l.notEnoughCoins)
-                        .font(.caption2).foregroundStyle(.tertiary)
+                        .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary)
                 }
             }
         }
@@ -131,18 +152,40 @@ private struct ShopItemCard: View {
 /// 등급 알의 시각 구분은 **카드의 등급 배지**로만 한다 — 알 스프라이트는 한 장뿐이고, 메뉴바·플로팅 펫은
 /// 기존 알 그대로 둔다(새 에셋 없이 구분이 서는 최소 범위).
 @MainActor
-private struct EggCard: View {
+struct EggCard: View {
     let store: CompanionStore
     let nav: PopoverNavigation
     let tier: Rarity?
+    @Environment(\.mainWindowChrome) private var mainWindowChrome
     @State private var stage: Stage = .idle
     private enum Stage { case idle, confirm, shinyConfirm }
 
     private var price: Int { store.price(of: .egg(tier)) }
 
     var body: some View {
+        if mainWindowChrome { desktopCard } else { compactCard }
+    }
+
+    private var desktopCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                SpriteView(speciesID: nil, size: 48, cropToContent: true)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(store.l.eggName(tier)).font(.system(size: 16, weight: .semibold))
+                    if let tier { Text(store.l.rarityLabel(tier)).font(.system(size: 12))
+                        .foregroundStyle(rarityColor(tier)) }
+                }
+            }
+            Text(store.l.eggDescription(tier)).font(.system(size: 13)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            controls(store.l)
+        }
+    }
+
+    private var compactCard: some View {
         let l = store.l
-        VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 // 크롭+정사각 보정한 알. 레이아웃은 30(다른 아이템 아이콘과 정렬 일치)으로 두되 알 자체는 26으로
                 // 살짝 작게 — 프레임에 여백이 생겨 꽉 찬 "뚱뚱" 느낌이 줄고 크기도 약간 작아진다.
@@ -178,19 +221,19 @@ private struct EggCard: View {
         case .idle:
             HStack {
                 Text(l.requiresCoins(TokenFormatter.compact(price)))
-                    .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                    .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary).monospacedDigit()
                 Spacer()
                 if store.canBuyEgg(tier) {
                     Button(l.buy) { stage = .confirm }
                         .tahoeButtonStyle(.regular).controlSize(.small)
                 } else {
-                    Text(l.notEnoughCoins).font(.caption2).foregroundStyle(.tertiary)
+                    Text(l.notEnoughCoins).font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary)
                 }
             }
         case .confirm:
             HStack(spacing: 8) {
                 Text(l.eggStorageConfirm(l.eggName(tier)))
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                    .font(mainWindowChrome ? .system(size: 13) : .caption2).foregroundStyle(.secondary).lineLimit(2)
                 Spacer()
                 Button(l.buy) { commit() }
                     .tahoeButtonStyle(.prominent).controlSize(.small)

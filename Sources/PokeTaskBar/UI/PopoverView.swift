@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum PopoverTab: Hashable, CaseIterable {
-    case focus, linear, collection, usage
+    case focus, linear, usage, collection
 
     var symbol: String {
         switch self {
@@ -87,8 +87,8 @@ final class PopoverNavigation {
     }
 
     /// Linear pin: start (or switch) the session and reveal Focus. Does not open Today.
-    func pinIssueFromLinear(_ issue: LinearIssueSummary, session: FocusSessionStore) {
-        session.pin(issue, openDesk: false)
+    func pinIssueFromLinear(_ issue: LinearIssueSummary, session: FocusSessionStore, minutes: Int) {
+        session.pin(issue, openDesk: false, minutes: minutes)
         showFocus()
     }
 
@@ -109,6 +109,8 @@ final class PopoverNavigation {
 
 @MainActor
 struct PopoverView: View {
+    var onPreferredHeightChange: ((CGFloat) -> Void)? = nil
+    @Environment(\.colorScheme) private var scheme
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(UpdateChecker.self) private var updater
@@ -122,17 +124,17 @@ struct PopoverView: View {
         @Bindable var nav = nav
         let detached = store.menuBarPanelDetached
         let gap = MenuBarPanelMetrics.shellGap
+        let theme = MenuBarTheme(scheme: scheme)
         GeometryReader { geo in
             let panelPad = PopoverMetrics.padding
-            let leadingChrome = detached ? MenuBarPanelMetrics.detachedTrafficLightInset : gap
-            let panelHeight = min(geo.size.height, MenuBarPanelMetrics.maxHeight(detached: detached))
-            let contentWidth = max(0, geo.size.width - gap - leadingChrome - panelPad * 2)
+            let contentWidth = max(0, geo.size.width - gap * 2 - panelPad * 2)
             VStack(spacing: 0) {
                 PopoverShellToolbar()
-                    .padding(.leading, leadingChrome)
+                    .padding(.leading, gap)
                     .padding(.trailing, gap)
                     .padding(.top, detached ? 2 : 6)
                     .padding(.bottom, 4)
+                    .measureMenuBarContent(.toolbar)
                 VStack(alignment: .leading, spacing: 10) {
                     if nav.showSettings {
                         SettingsView(
@@ -149,32 +151,47 @@ struct PopoverView: View {
                     }
                 }
                 .padding(panelPad)
+                .measureMenuBarContent(.canvas)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background {
                     TahoeStrokedFill(
                         shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
-                        fill: Color(nsColor: MenuBarPanelMetrics.canvasFill),
+                        fill: theme.canvas,
+                        stroke: theme.divider,
                         lineWidth: 1)
                 }
-                .padding(.leading, leadingChrome)
+                .padding(.leading, gap)
                 .padding(.trailing, gap)
                 .padding(.bottom, gap)
+                if !nav.showSettings {
+                    PopoverFooter()
+                        .padding(.horizontal, gap + panelPad)
+                        .padding(.bottom, 10)
+                        .measureMenuBarContent(.footer)
+                }
             }
-            .frame(width: geo.size.width, height: panelHeight, alignment: .top)
-            .background(Color(nsColor: MenuBarPanelMetrics.shellFill))
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+            .background(theme.shell)
+            .foregroundStyle(theme.text)
+            .tint(theme.accent)
             .clipShape(RoundedRectangle(
                 cornerRadius: detached ? 0 : MenuBarPanelMetrics.attachedCornerRadius,
                 style: .continuous))
             .ignoresSafeArea(.container, edges: detached ? .top : [])
             .environment(\.locale, companion.language.displayLocale)
             .environment(\.popoverContentWidth, contentWidth)
+            .environment(\.menuBarChrome, true)
+            .environment(\.menuBarContentFitting, !detached)
+        }
+        .onPreferenceChange(MenuBarContentMeasurementsKey.self) { measurements in
+            guard !store.menuBarPanelDetached, let height = measurements.preferredHeight else { return }
+            onPreferredHeightChange?(height)
         }
         .frame(
             minWidth: MenuBarPanelMetrics.minWidth,
             maxWidth: detached ? MenuBarPanelMetrics.detachedMaxWidth : MenuBarPanelMetrics.attachedMaxWidth,
             minHeight: MenuBarPanelMetrics.minHeight(detached: detached),
             maxHeight: MenuBarPanelMetrics.maxHeight(detached: detached))
-        .fixedSize(horizontal: false, vertical: !detached)
     }
 
     @ViewBuilder
@@ -214,7 +231,6 @@ struct PopoverView: View {
                 CollectionTabView(store: companion, navigation: nav)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }
-

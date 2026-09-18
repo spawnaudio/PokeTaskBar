@@ -459,8 +459,12 @@ struct EvoLineView: View {
 struct CompanionHeader: View {
     let store: CompanionStore
     static let spriteSize: CGFloat = 120
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.colorScheme) private var scheme
+    private var displayedSpriteSize: CGFloat { menuBarChrome ? 76 : Self.spriteSize }
     @Environment(\.popoverContentWidth) private var popoverContentWidth
     @State private var showStorageNeedsEgg = false
+    @State private var showCompanionDetails = false
     // 연출 상태 — 부화/진화 순간 흰 플래시 + 스프링 스케일(본가 진화 신 오마주)
     @State private var flashOpacity: Double = 0
     @State private var celebScale: CGFloat = 1
@@ -482,9 +486,9 @@ struct CompanionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 12) {
-                SpriteView(speciesID: store.currentSpeciesID, size: CompanionHeader.spriteSize, bob: true, animated: true,
+                SpriteView(speciesID: store.currentSpeciesID, size: displayedSpriteSize, bob: true, animated: true,
                            shiny: store.currentIsShiny)
-                    .frame(width: CompanionHeader.spriteSize, height: CompanionHeader.spriteSize)
+                    .frame(width: displayedSpriteSize, height: displayedSpriteSize)
                     .rotationEffect(.degrees(eggImminent && eggWiggle ? 5 : (eggImminent ? -5 : 0)))
                     .scaleEffect(celebScale)
                     .overlay(RoundedRectangle(cornerRadius: 12).fill(.white).opacity(flashOpacity))
@@ -536,6 +540,31 @@ struct CompanionHeader: View {
                                 .background(rarityColor(r)).foregroundStyle(.white)
                                 .clipShape(Capsule())
                         }
+                        if menuBarChrome {
+                            Spacer(minLength: 4)
+                            Button { showCompanionDetails.toggle() } label: {
+                                Image(systemName: "ellipsis")
+                                    .frame(width: 24, height: 20)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(store.l.companionDetails)
+                            .help(store.l.companionDetails)
+                            .popover(isPresented: $showCompanionDetails) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(store.displayName).font(.headline)
+                                    Text(statusLine).font(.caption).foregroundStyle(.secondary)
+                                    if !store.lineNodes.isEmpty {
+                                        EvoLineView(nodes: store.lineNodes, mysteryLabel: store.l.unknownNextEvolution,
+                                                    language: store.language, shiny: store.currentIsShiny, maxWidth: 250)
+                                    }
+                                    if store.hasActive { storePartnerButton }
+                                }
+                                .padding(16)
+                                .frame(width: 280, alignment: .leading)
+                            }
+                        }
                     }
                     if store.hasActive {
                         // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
@@ -551,11 +580,13 @@ struct CompanionHeader: View {
                                     .fixedSize()
                             }
                         }
-                        ProgressView(value: store.progress).controlSize(.small).tint(.orange)
+                        ProgressView(value: store.progress).controlSize(.small)
+                            .progressViewStyle(MenuBarProgressStyle())
+                            .tint(menuBarChrome ? MenuBarTheme(scheme: scheme).accent : .orange)
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
-                                .font(.caption2).foregroundStyle(.tertiary)
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
                     } else if store.isEgg {
                         // 알 인큐베이션 — 부화까지 진행 (임박 시 문구·색 전환)
@@ -572,7 +603,9 @@ struct CompanionHeader: View {
                                     .clipShape(Capsule())
                             }
                         }
-                        ProgressView(value: store.eggProgress).controlSize(.small).tint(.orange)
+                        ProgressView(value: store.eggProgress).controlSize(.small)
+                            .progressViewStyle(MenuBarProgressStyle())
+                            .tint(menuBarChrome ? MenuBarTheme(scheme: scheme).accent : .orange)
                         Text(store.l.eggToHatch(TokenFormatter.compact(store.eggTokensToHatch)))
                             .font(.caption2).foregroundStyle(.tertiary)
                         // 첫 실행(적립 0) — 정적 알 앞에서 "고장났나" 오해 방지용 한 줄 안내
@@ -588,8 +621,10 @@ struct CompanionHeader: View {
                             .font(.caption2).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(statusLine).font(.caption2).foregroundStyle(.secondary)
-                    if store.hasActive {
+                    if !menuBarChrome {
+                        Text(statusLine).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if store.hasActive && !menuBarChrome {
                         HStack(alignment: .center, spacing: 8) {
                             if !store.lineNodes.isEmpty {
                                 EvoLineView(
@@ -625,7 +660,7 @@ struct CompanionHeader: View {
 
     /// Right-column budget minus the Store chip, so long lines scroll instead of stretching the header.
     private var evoLineMaxWidth: CGFloat {
-        let column = popoverContentWidth - CompanionHeader.spriteSize - 12
+        let column = popoverContentWidth - displayedSpriteSize - 12
         return max(72, column - 132)
     }
 
@@ -925,7 +960,7 @@ struct CollectionView: View {
             // maxHeight 는 팝오버 재오픈 시 ScrollView fitting size 가 작게 잡혀 크기가 줄어드는
             // 문제가 있어, 바깥 VStack 을 height 로 고정해 스크롤 영역이 나머지를 채우게 한다.
             ScrollViewReader { proxy in
-                ScrollView {
+                ContentFittingScrollView(fillsViewport: visibleEntries.count > 6) {
                     // 로그는 계속 쌓인다. 화면 밖 행까지 생성하면 진화 라인의 스프라이트 로딩과
                     // 레이아웃도 전부 진입 시 실행되므로, 보이는 행부터 생성한다.
                     LazyVStack(alignment: .leading, spacing: 8) {
@@ -1062,7 +1097,7 @@ private struct DexGridView: View {
     /// Tap opens the upstream Pokédex detail page without reverting to a paged 24-cell grid.
     private func grid(_ visible: [CompanionStore.DexSpecies]) -> some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ContentFittingScrollView(fillsViewport: visible.count > 24) {
                 LazyVGrid(columns: Self.gridColumns, spacing: Self.spacing) {
                     ForEach(visible) { sp in
                         DexSpeciesCell(store: store, species: sp,
@@ -1107,9 +1142,10 @@ private struct DexGridView: View {
 /// Scrollable species + individual page. A Pokédex species may aggregate several catches, so the
 /// picker selects the exact persisted profile while the immutable PokéAPI section stays shared.
 @MainActor
-private struct PokemonDetailView: View {
+struct PokemonDetailView: View {
     let store: CompanionStore
     let species: CompanionStore.DexSpecies
+    var initialInstanceID: String? = nil
     let onBack: () -> Void
     @State private var selectedInstanceID = ""
 
@@ -1128,7 +1164,7 @@ private struct PokemonDetailView: View {
                 Spacer()
                 Text("#\(species.id)").font(.caption).foregroundStyle(.secondary)
             }
-            ScrollView {
+            ContentFittingScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     identityHeader
                     if individuals.count > 1 { individualPicker }
@@ -1157,7 +1193,7 @@ private struct PokemonDetailView: View {
             }
         }
         .task {
-            if selectedInstanceID.isEmpty { selectedInstanceID = individuals.first?.id ?? "" }
+            if selectedInstanceID.isEmpty { selectedInstanceID = initialInstanceID ?? individuals.first?.id ?? "" }
             await store.loadPokemonDetails(speciesID: species.id)
         }
     }

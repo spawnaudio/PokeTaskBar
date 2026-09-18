@@ -78,6 +78,7 @@ struct LinearIssueComposerView: View {
     @Environment(CompanionStore.self) private var companion
     @Environment(FocusSessionStore.self) private var session
 
+    @State private var choosingDuration = false
     @State private var title = ""
     @State private var description = ""
     @State private var teamID = ""
@@ -208,10 +209,17 @@ struct LinearIssueComposerView: View {
                 .tahoeButtonStyle(.regular)
                 .disabled(!canSubmit)
                 Button(l.createAndFocusLinearIssue) {
-                    Task { await submit(focus: true) }
+                    choosingDuration = true
                 }
                 .tahoeButtonStyle(.prominent)
                 .disabled(!canSubmit)
+                .popover(isPresented: $choosingDuration, arrowEdge: .top) {
+                    FocusDurationPicker(issueTitle: trimmedTitle, initialMinutes: session.plannedMinutes) { minutes in
+                        choosingDuration = false
+                        Task { await submit(focus: true, minutes: minutes) }
+                    }
+                    .environment(companion)
+                }
             }
         }
         .padding(18)
@@ -248,17 +256,18 @@ struct LinearIssueComposerView: View {
             labelIds: Array(selectedLabelIDs).sorted())
     }
 
-    private func submit(focus: Bool) async {
+    private func submit(focus: Bool, minutes: Int? = nil) async {
         store.clearLinearCreateError()
         let payload = draft()
         if focus {
+            guard let minutes else { return }
             if session.isActive {
                 waitingForForfeit = true
                 pinnedIDAtSubmit = session.session?.issue.id
-                await session.createAndFocus(payload)
+                await session.createAndFocus(payload, minutes: minutes)
                 return
             }
-            await session.createAndFocus(payload)
+            await session.createAndFocus(payload, minutes: minutes)
             if session.session != nil { onClose() }
             return
         }

@@ -605,19 +605,33 @@ struct LinearFocusButton: View {
     @Environment(FocusSessionStore.self) private var session
     @Environment(CompanionStore.self) private var companion
 
+    @State private var choosingDuration = false
+
     private var l: L { companion.l }
     private var isPinned: Bool { session.session?.issue.id == issue.id }
 
     var body: some View {
         Button {
-            session.pin(issue, openDesk: openDeskOnPin)
-            onPinned?()
+            if isPinned {
+                if openDeskOnPin { session.openDesk() }
+                onPinned?()
+            } else {
+                choosingDuration = true
+            }
         } label: {
             Text(isPinned ? l.focusingNow : l.focusAction)
                 .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
         }
         .tahoeButtonStyle(.regular)
         .controlSize(compact ? .mini : .small)
+        .popover(isPresented: $choosingDuration, arrowEdge: .bottom) {
+            FocusDurationPicker(issueTitle: issue.title, initialMinutes: session.plannedMinutes) { minutes in
+                choosingDuration = false
+                session.pin(issue, openDesk: openDeskOnPin, minutes: minutes)
+                onPinned?()
+            }
+            .environment(companion)
+        }
     }
 }
 
@@ -739,6 +753,7 @@ struct FocusResetConfirmCard: View {
 @MainActor
 struct FocusTimerControls: View {
     var compact: Bool = true
+    var menuBarLayout: Bool = false
 
     @Environment(FocusSessionStore.self) private var session
     @Environment(CompanionStore.self) private var companion
@@ -747,12 +762,42 @@ struct FocusTimerControls: View {
     private let presets = [5, 10, 15, 30]
 
     var body: some View {
+        if menuBarLayout {
+            HStack(spacing: 12) {
+                Menu {
+                    ForEach(presets, id: \.self) { minutes in
+                        Button(l.addTimeMinutes(minutes)) { session.addRemainingMinutes(minutes) }
+                    }
+                } label: {
+                    Label(l.addTime, systemImage: "plus.circle")
+                }
+                .menuIndicator(.hidden)
+                .disabled(!session.canAddRemainingTime)
+                Button { session.requestReset() } label: {
+                    Label(l.resetTimer, systemImage: "arrow.counterclockwise")
+                }
+                .disabled(!session.canResetClock)
+                Spacer(minLength: 0)
+                Menu {
+                    Button(l.unfocusAction, role: .destructive) { session.requestUnfocus() }
+                } label: {
+                    Image(systemName: "ellipsis").frame(width: 24, height: 24)
+                }
+                .menuIndicator(.hidden)
+                .accessibilityLabel(l.unfocusAction)
+                .help(l.unfocusAction)
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+        } else {
         ViewThatFits(in: .horizontal) {
             labeledControls
                 .fixedSize(horizontal: true, vertical: false)
             iconControls
         }
         .controlSize(compact ? .mini : .small)
+        }
     }
 
     private var labeledControls: some View {

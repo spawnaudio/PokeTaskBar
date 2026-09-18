@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="1.0.0"
+VERSION="${PTB_VERSION:-1.0.0}"
 PRODUCT_BIN="PokeTaskBar"
 APP_NAME="${PTB_APP_NAME:-PokeTaskBar v1}"
 BUNDLE_ID="${PTB_BUNDLE_ID:-io.github.spawnaudio.poketaskbar.v1}"
@@ -13,7 +13,7 @@ BUILD_DIR="build"
 APP="$BUILD_DIR/$APP_NAME.app"
 
 echo "==> swift build -c release"
-swift build -c release
+swift build -c release --build-system native --disable-sandbox
 
 echo "==> $APP 조립"
 rm -rf "$APP"
@@ -39,6 +39,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>PTBOpenMainWindowOnLaunch</key><string>${PTB_OPEN_MAIN_WINDOW:-0}</string>
 </dict>
 </plist>
 PLIST
@@ -86,6 +87,11 @@ else
     echo "   ('$SIGN_IDENTITY' 유효 codesigning identity 없음 → ad-hoc 서명 — 로컬 개발용)"
     echo "   반복 Keychain 허용 프롬프트를 줄이려면 ./scripts/create-signing-cert.sh 실행 후 다시 빌드하세요."
     codesign --force -s - "$APP"
+fi
+
+if [[ "${PTB_SKIP_INSTALL:-0}" == "1" ]]; then
+    echo "Built: $APP"
+    exit 0
 fi
 
 echo "==> 기존 인스턴스 종료 + /Applications 설치"

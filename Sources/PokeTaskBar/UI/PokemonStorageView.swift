@@ -11,7 +11,7 @@ struct PokemonStorageView: View {
         if store.storedCompanions.isEmpty {
             emptyState
         } else {
-            ScrollView {
+            ContentFittingScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(l.pokemonStorageHint)
                         .font(.caption)

@@ -166,6 +166,14 @@ final class UsageStore {
     var floatingPetIslandFolded: Bool {
         didSet { defaults.set(floatingPetIslandFolded, forKey: "floatingPetIslandFolded") }
     }
+    /// Preferred expanded timer width. The controller additionally fits it to the screen.
+    var floatingTimerWidth: Double {
+        didSet {
+            let clamped = Double(FloatingTimerMetrics.width(CGFloat(floatingTimerWidth)))
+            if floatingTimerWidth != clamped { floatingTimerWidth = clamped }
+            defaults.set(floatingTimerWidth, forKey: FloatingTimerMetrics.widthKey)
+        }
+    }
     /// Menu-bar panel detached from the status item. Default attached (not draggable).
     /// Only the in-panel button detaches or snaps it back — dragging does not.
     var menuBarPanelDetached: Bool {
@@ -672,6 +680,8 @@ final class UsageStore {
         floatingPetSize = d.object(forKey: "floatingPetSize") as? Double ?? 96
         floatingPetBubbleAlerts = d.object(forKey: "floatingPetBubbleAlerts") as? Bool ?? true
         floatingPetIslandFolded = d.object(forKey: "floatingPetIslandFolded") as? Bool ?? false
+        floatingTimerWidth = Double(FloatingTimerMetrics.width(
+            CGFloat(d.object(forKey: FloatingTimerMetrics.widthKey) as? Double ?? Double(FloatingTimerMetrics.defaultWidth))))
         menuBarPanelDetached = d.object(forKey: MenuBarPanelMetrics.detachedKey) as? Bool ?? false
         let desk = TodayDeskLayout.load(from: d)
         todayDeskLeftWidth = Double(desk.leftWidth)

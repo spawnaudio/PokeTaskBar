@@ -14,6 +14,42 @@ read_when:
 `CLAUDE.md` §결함 대응 프로토콜의 4단계(근본원인 → 부류 스윕 → 회귀 테스트 → 영구 캡처)를 거쳐
 남은 규칙들이다. 각 항목은 실제로 겪은 회귀에 묶여 있다.
 
+## Attached panel sizing
+
+- **Validate each floating-overlay mode through its actual view.** The first Linear-style
+  overlay pass rendered only `FloatingTimerStrip`, leaving the folded clock and pet-only
+  toggle on their old styling despite a three-state concept. `FloatingCompactTimer` now
+  groups the clock, pause/resume and expand buttons; the idle toggle uses the matching
+  rounded timer control. `FloatingTimerOverlayTests` mounts `FloatingPetView` in its real
+  hosting view, checks compact/idle geometry in both appearances and seven languages,
+  and sends native mouse events to pause, resume, expand and open timer setup. A strip-only
+  snapshot cannot validate these branches. Keep the combined compact width and pet anchor
+  stable when changing their chrome.
+
+- **Include the pre-start timer in the expanded-overlay contract.** The running strip
+  was present, but opening a timer without a session still entered the old 132 pt setup
+  panel with a roughly 7% opaque fill and no drag handles. Earlier tests checked that
+  setup opened and that the panel fit; they never checked its rendered surface or the
+  full open/start/fold/expand flow. Setup now uses the same opaque 48 pt strip, saved width
+  and native movement/resize handles as the running timer. The resize path must accept
+  setup alone (no active session). The native controller regression verifies both handles,
+  drawn surface opacity, first-click Start/Pause, resizing before Start, and the pet anchor
+  through fold/expand in light and dark. It fails on the old setup implementation.
+
+- **Attached window height must measure page content, not the current scroll viewport.**
+  The fixed 640 pt shell and 520 pt minimum left short pages mostly blank. Previous
+  tests explicitly asserted a stable window size and never compared short and long
+  native pages. `MenuBarContentMeasurements` now combines measured shell sections
+  with each mounted scroll area's content-minus-viewport adjustment; measuring a
+  second hidden tree would duplicate tasks and measuring the viewport alone would
+  preserve the original bug. Large lazy collections remain capped without loading
+  all rows. `AdaptiveMenuBarSizingTests` exercises native pages, empty/populated
+  lists, all Collection segments, session changes, seven languages, width changes,
+  and the real window controller. Keep the anchor fixed, scroll after the screen
+  cap, respect Reduce Motion, and leave detached windows manually sized. The real
+  controller test requires a macOS display server; a sandbox with no `NSScreen`
+  cannot validate native window placement and must not be reported as passing it.
+
 ## 스프라이트 전환
 
 - **움직이는 상세 화면은 첫 렌더부터 캐시된 GIF 프레임을 사용한다.** 정적 PNG는 96px 투명
@@ -723,7 +759,7 @@ read_when:
   all-spaces/`.floating` 펫이 실제로 거의 안 가려져 메뉴바와 동일 수확체감으로 미도입. (#102 리뷰 지적 반영, 2026-07-22.)
 - **`.nonactivatingPanel` 은 키 윈도우가 될 수 없다.** 플로팅 펫은 클릭이 다른 앱을 안 뺏게 `.nonactivatingPanel` 이고, 앱은 LSUIElement(`.accessory`)다. 그 조합에서 SwiftUI `TextField`(세션 메모·체크인)를 올려도 패널이 `canBecomeKey == false` 라 키 입력이 앞 앱으로 새어 나간다. 높이만 커지는 레이아웃 테스트는 통과한다. 가드: 펫 패널 서브클래스가 `canBecomeKey` 이고 스톡 nonactivating 은 거짓(`testFloatingPetPanelCanBecomeKeyUnlikeStockNonactivatingPanel`) + 텍스트 필드가 있을 때만 키 윈도우를 연다(`overlayNeedsKeyWindow` — 메모 작성·체크인; 0:00 프롬프트는 버튼만). 텍스트가 열릴 때 `activate(ignoringOtherApps:)` + `makeKeyAndOrderFront`(팝오버와 동일 함정, SettingsView 주석). 토큰/버블 `sync` 마다 재활성화하면 타이핑 중 포커스가 튕기므로 rising-edge 만.
 - **Borderless attached menu-bar windows have the same `canBecomeKey == false` trap.** Stock `NSWindow` with `[.borderless, .resizable]` never becomes key, so Settings `SecureField` (Linear API key) drops typing and paste. Subclass (`MenuBarPanelWindow`) must override `canBecomeKey` / `canBecomeMain`. Linear keys must also strip paste noise (`Bearer ` / quotes / `Authorization:`) and live in visible General settings, not collapsed Advanced; a successful save turns integration on. Guards: `testAttachedMenuBarWindowCanBecomeKeyForSecureFields`, `testNormalizeStripsPasteNoise`, `testSavingLinearAPIKeyEnablesIntegration`, `testLinearAPIKeyLivesInVisibleGeneralSettings`, `testLightAndDarkShellMatchLinearSurfaces`.
-- **Light chrome is Linear surfaces, not system greys.** `controlBackgroundColor` / `underPageBackgroundColor` wash out Linear light (`#F3F4F6` sidebar, white page). Port `MenuBarPanelMetrics` dynamic fills (shell / canvas / card / chip / selected / hairline) and resolve them through `NSAppearance`. Do not restyle Collection content as Linear except shared pills.
+- **Light chrome is Linear surfaces, not system greys.** `controlBackgroundColor` / `underPageBackgroundColor` wash out Linear light (`#F3F4F6` sidebar, white page). Use the scoped `MenuBarTheme` for the menu-bar window and `MenuBarPanelMetrics` dynamic fills for existing native surfaces. Do not restyle Collection content as Linear except shared pills. A cyan that passes on dark canvas can fail on a light selected surface: `MenuBarOverhaulTests.testTextAndAccentContrastInBothAppearances` checks text, secondary text, and accent against every main surface at 4.5:1. Inspect native renders too: macOS linear progress indicators can ignore tint, so the menu-bar indicators draw their own track through `MenuBarProgressStyle`. The opt-in native screenshot test covers both appearances, timer states, minimum attached height, other tabs, Settings, and detached layout. Header sizing is checked in all seven languages.
 - **Graduation must leave a free un-guaranteed egg in training.** `graduate()` used to set `trainingEmpty = true`, so later token XP never incremented `eggUsage` (`applyGrowth` and `hatchIfNeeded` both no-op on an empty slot). Tests asserted `eggUsage == 0` and `eggTier == nil` after graduation — both true with *no egg* — so buying a shop egg and swapping it in looked like the only way to hatch again. Place a `eggTier == nil` egg in the slot (rarity rolls at hatch like a shop fresh egg). Guards: `testNewEggAfterGraduationReincubates`, `testGuaranteeDoesNotSurviveIntoTheNextEgg`, `testUseGraduatesFinalStage`.
 - **Open-panel snappiness is a different hitch than idle GIF wakeup.** Closed hosting teardown (`contentView=nil`) already stops relative-`Text` layout when hidden. With the panel **open**, three cheaper bugs still janked the main thread: ① focus `tick()` atomically encoded+wrote the session JSON every second; persist on phase/XP/check-in or a 10s cadence instead (`FocusSessionStore.tickPersistInterval`, `testAccrualTicksDoNotRewriteSessionFileEverySecond`). ② usage `refresh` assigned a new `snapshots` array (`fetchedAt: Date()`) even when daily/week/month payloads were identical, so every `@Observable` consumer rebuilt; skip with `ProviderSnapshot.payloadEquals` (`testIdenticalRefreshKeepsSnapshotPayloadIdentity`). ③ the floating pet observed `todayTotalTokens` and called `setFrame(display: true)` + `orderFrontRegardless` on every poll — split tooltip observation and skip the frame commit when the rect is unchanged (`shouldApplyPanelFrame`, `testVisiblePetSkipsRedundantFrameCommits`). Open Usage/Linear `Text(_, style: .relative)` still self-invalidates ~1Hz; those labels are `RelativeTimestampText` (15s `TimelineView`). Linear issue/project `ScrollView` lists are `LazyVStack` so off-screen foldable rows are not built on tab entry. Do **not** drop always-on GIF `frameFloor > 0`. Guards: `RefreshPublishPerformanceTests`, `RelativeTimestampPerformanceTests`, `FloatingPetEnergyTests.testVisiblePetSkipsRedundantFrameCommits`, Focus persist cadence tests.
 

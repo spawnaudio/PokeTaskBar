@@ -7,8 +7,8 @@ import Foundation
 /// / `UsageStore` — layout clamps to the current frame at display time and does not
 /// rewrite those keys, so autosave cannot fight persisted sidebar prefs.
 enum TodayDeskMetrics {
-    static let defaultWidth: CGFloat = 920
-    static let defaultHeight: CGFloat = 680
+    static let defaultWidth: CGFloat = 1280
+    static let defaultHeight: CGFloat = 860
     static let minHeight: CGFloat = 560
     static let leftSidebarWidth: CGFloat = 212
     static let rightSidebarWidth: CGFloat = 232

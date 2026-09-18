@@ -58,8 +58,8 @@ final class FocusSessionStore {
     private enum PendingAfterForfeit: Equatable {
         case none
         case idle
-        case pin(LinearIssueSummary, openDesk: Bool)
-        case createAndFocus(LinearIssueDraft)
+        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int)
+        case createAndFocus(LinearIssueDraft, minutes: Int)
     }
 
     init(
@@ -106,6 +106,12 @@ final class FocusSessionStore {
         return session?.clockDisplay(at: now ?? clock()) ?? (FocusClock.format(0), false)
     }
 
+    /// Uses the same clock and pause/sleep accounting as the visible countdown.
+    var plannedProgress: Double {
+        guard let session, session.plannedSeconds > 0 else { return 0 }
+        return min(1, max(0, session.displayedSeconds(at: clock()) / session.plannedSeconds))
+    }
+
     func openDesk() { onOpenDesk?() }
 
     func openComposer() { onOpenComposer?() }
@@ -120,17 +126,18 @@ final class FocusSessionStore {
         return FocusTick.addRemaining(session, minutes: 5, now: clock()) != nil
     }
 
-    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true) {
+    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int) {
+        guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
         pomodoroSetupOpen = false
         if let current = session, current.issue.id == issue.id {
             if openDesk { self.openDesk() }
             return
         }
         if session != nil {
-            presentForfeit(pending: .pin(issue, openDesk: openDesk))
+            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes))
             return
         }
-        start(issue)
+        start(issue, minutes: minutes)
         if openDesk { self.openDesk() }
     }
 
@@ -175,12 +182,12 @@ final class FocusSessionStore {
         switch pending {
         case .none, .idle:
             break
-        case .pin(let issue, let openDesk):
-            start(issue)
+        case .pin(let issue, let openDesk, let minutes):
+            start(issue, minutes: minutes)
             if openDesk { self.openDesk() }
-        case .createAndFocus(let draft):
+        case .createAndFocus(let draft, let minutes):
             if let created = await performCreate(draft) {
-                start(created)
+                start(created, minutes: minutes)
                 openDesk()
             }
         }
@@ -190,13 +197,14 @@ final class FocusSessionStore {
         await performCreate(draft)
     }
 
-    func createAndFocus(_ draft: LinearIssueDraft) async {
+    func createAndFocus(_ draft: LinearIssueDraft, minutes: Int) async {
+        guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
         if session != nil {
-            presentForfeit(pending: .createAndFocus(draft))
+            presentForfeit(pending: .createAndFocus(draft, minutes: minutes))
             return
         }
         guard let created = await performCreate(draft) else { return }
-        start(created)
+        start(created, minutes: minutes)
         openDesk()
     }
 
@@ -226,6 +234,34 @@ final class FocusSessionStore {
         self.session = next
         persist()
         syncTimer()
+    }
+
+    var editableTimerMinuteRange: ClosedRange<Int>? {
+        guard let session else { return SessionXP.minMinutes...SessionXP.maxMinutes }
+        let available = TimeInterval(SessionXP.maxMinutes * 60) - FocusTick.elapsedSeconds(session, now: clock())
+        let maximum = Int(floor(available / 60))
+        guard maximum >= 1 else { return nil }
+        return 1...maximum
+    }
+
+    var timerEditorMinutes: Int {
+        guard let session else { return plannedMinutes }
+        let remaining = session.plannedSeconds - FocusTick.elapsedSeconds(session, now: clock())
+        return max(1, Int(ceil(remaining / 60)))
+    }
+
+    @discardableResult
+    func setTimerMinutes(_ minutes: Int) -> Bool {
+        if let session {
+            guard let next = FocusTick.setRemaining(session, minutes: minutes, now: clock()) else { return false }
+            self.session = next
+            persist()
+            syncTimer()
+        } else {
+            guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return false }
+            plannedMinutes = minutes
+        }
+        return true
     }
 
     func togglePause() {
@@ -449,7 +485,8 @@ final class FocusSessionStore {
         grantSessionXP(marked.topUpXP)
     }
 
-    private func start(_ issue: LinearIssueSummary) {
+    private func start(_ issue: LinearIssueSummary, minutes: Int) {
+        plannedMinutes = minutes
         startPinned(FocusPinnedIssue(issue))
     }
 

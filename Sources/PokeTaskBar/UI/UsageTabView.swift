@@ -108,11 +108,55 @@ struct UsageTabView: View {
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(PopoverNavigation.self) private var nav
+    @Environment(\.mainWindowChrome) private var mainWindowChrome
+    @AppStorage("mainWindowUsagePresentation") private var presentation = "Overview"
 
     private var l: L { companion.l }
 
     var body: some View {
-        ScrollView {
+        if mainWindowChrome { desktopBody } else { compactBody }
+    }
+
+    private var desktopBody: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Picker("Usage view", selection: $presentation) {
+                    ForEach(["Overview", "Provider", "Limits"], id: \.self) { Text($0).tag($0) }
+                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 310)
+                Spacer()
+                Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.plain).help(l.refreshNow)
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if presentation == "Overview" { totalsCard }
+                    else {
+                        ProviderTabBar(snapshots: store.snapshots, selectedID: selectedSnapshot?.providerID,
+                                       onSelect: { nav.providerID = $0 })
+                        if presentation == "Provider" {
+                            if let snapshot = selectedSnapshot, let today = snapshot.today {
+                                VStack(alignment: .leading, spacing: 20) {
+                                    Text(snapshot.displayName).font(.system(size: 24, weight: .semibold))
+                                    Text(TokenFormatter.compact(today.totalTokens)).font(.system(size: 40, weight: .semibold))
+                                    Text("Locally counted tokens today").foregroundStyle(.secondary)
+                                    providerRow(snapshot: snapshot, today: today)
+                                }.frame(maxWidth: .infinity, alignment: .leading).mainWindowCard()
+                            } else { Text("No provider usage is available yet.").foregroundStyle(.secondary) }
+                        }
+                    }
+                    providerStatusBanner
+                    if selectedProviderHasLimits { limitsSection.mainWindowCard() }
+                    else if presentation == "Limits" {
+                        Text("Official limits are unavailable for this provider.").foregroundStyle(.secondary).mainWindowCard()
+                    }
+                    TimeXPView(store: store, companion: companion, compact: true).mainWindowCard()
+                }
+            }.scrollIndicators(.hidden)
+        }
+    }
+
+    private var compactBody: some View {
+        ContentFittingScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 totalsCard
                 providerStatusBanner

@@ -3,6 +3,7 @@ import SwiftUI
 /// Pet + island while a session is running. Prompts sit above the island.
 @MainActor
 struct SessionIslandView: View {
+    var onResizeTimer: (CGFloat, NSPoint) -> Void = { _, _ in }
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(FocusSessionStore.self) private var session
@@ -11,120 +12,106 @@ struct SessionIslandView: View {
 
     var body: some View {
         if session.pomodoroSetupOpen, session.session == nil {
-            PomodoroSetupIsland()
+            PomodoroSetupIsland(onResizeTimer: onResizeTimer)
         } else if let current = session.session {
-            let issue = store.linearIssue(id: current.issue.id) ?? current.issue.summary
-            let clock = session.clockDisplay()
+            let width = store.floatingPetIslandFolded ? FloatingPetController.islandWidth : CGFloat(store.floatingTimerWidth)
             VStack(alignment: .leading, spacing: 6) {
                 if let warning = session.forfeitPrompt {
                     FocusForfeitWarningCard(warning: warning)
-                        .frame(width: FloatingPetController.islandWidth)
+                        .frame(width: width)
                 } else if session.resetPrompt {
                     FocusResetConfirmCard()
-                        .frame(width: FloatingPetController.islandWidth)
+                        .frame(width: width)
                 } else if SessionPromptSurface.showsOnOverlay(floatingPetEnabled: store.floatingPetEnabled) {
                     SessionPromptCard()
-                        .frame(width: FloatingPetController.islandWidth)
+                        .frame(width: width)
                 }
 
-                if !store.floatingPetIslandFolded {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            if !current.issue.isPomodoro {
-                                LinearIssueIDButton(identifier: current.issue.identifier, url: current.issue.url)
-                            }
-                            Text(current.issue.title)
-                                .font(.caption)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Spacer(minLength: 0)
-                            if !current.issue.isPomodoro {
-                                NewLinearIssueButton()
-                                SessionNoteButton()
-                            }
-                        }
-                        HStack(spacing: 6) {
-                            Text(clock.text)
-                                .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                            if clock.overtime {
-                                Text(l.overtimeAbbrev)
-                                    .font(.system(size: 9, weight: .bold))
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 1)
-                                    .background(Color.orange.opacity(0.2))
-                                    .foregroundStyle(.orange)
-                                    .clipShape(Capsule())
-                            }
-                            Spacer(minLength: 0)
-                            Button {
-                                session.togglePause()
-                            } label: {
-                                Image(systemName: current.userPaused || current.phase == .paused
-                                      ? "play.fill" : "pause.fill")
-                            }
-                            .tahoeButtonStyle(.accessory)
-                            .buttonBorderShape(.circle)
-                            .disabled(current.phase == .awaitingChoice)
-                            .help(current.userPaused || current.phase == .paused ? l.resumeTimer : l.pauseTimer)
-                            if !current.issue.isPomodoro {
-                                LinearIssueStatusPicker(issue: issue)
-                            }
-                        }
-                        FocusTimerControls()
-                        if session.isComposingNote, !current.issue.isPomodoro {
-                            SessionNoteComposer()
-                        }
-                    }
-                    .padding(8)
-                    .frame(width: FloatingPetController.islandWidth, alignment: .leading)
-                    .tahoeFloatingChrome()
-                } else if session.isComposingNote {
+                if session.isComposingNote, !current.issue.isPomodoro {
                     SessionNoteComposer()
                         .padding(8)
-                        .frame(width: FloatingPetController.islandWidth, alignment: .leading)
+                        .frame(width: width, height: FloatingPetController.noteComposerHeight - 6)
                         .tahoeFloatingChrome()
+                }
+                if !store.floatingPetIslandFolded {
+                    FloatingTimerStrip(onResizeTimer: onResizeTimer)
                 }
             }
         }
     }
 }
 
-/// Duration chips + Start. Shown on the overlay before a no-issue timer begins.
+/// The same horizontal surface before a no-issue timer begins. Starting changes
+/// the content without changing the user's width or moving the pet.
 @MainActor
 struct PomodoroSetupIsland: View {
+    var onResizeTimer: (CGFloat, NSPoint) -> Void = { _, _ in }
+    @Environment(UsageStore.self) private var store
     @Environment(FocusSessionStore.self) private var session
     @Environment(CompanionStore.self) private var companion
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @State private var hovering = false
+    @State private var handleFocused = false
 
     private var l: L { companion.l }
 
     var body: some View {
-        @Bindable var session = session
-        VStack(alignment: .leading, spacing: 8) {
-            Text(l.pomoTimer)
-                .font(.caption.weight(.semibold))
-            HStack(spacing: 4) {
+        let theme = MenuBarTheme(scheme: scheme)
+        HStack(spacing: 5) {
+            dragHandle(.resize, label: l.resizeFloatingTimer)
+                .frame(width: 12, height: 30)
+                .overlay {
+                    Capsule().fill(hovering || handleFocused ? theme.accent.opacity(0.6) : theme.border)
+                        .frame(width: 2, height: 16)
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
+            FloatingTimerClock()
+                .frame(width: 74, alignment: .leading)
+            Rectangle().fill(theme.border).frame(width: 1, height: 16).accessibilityHidden(true)
+            Text(l.pomodoroTitle).font(.system(size: 11))
+                .lineLimit(1).truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Menu {
                 ForEach(SessionXP.plannedPresets, id: \.self) { minutes in
-                    let selected = session.plannedMinutes == minutes
                     Button(l.minutesValue(minutes)) {
                         session.plannedMinutes = minutes
                     }
-                    .font(.caption.weight(selected ? .semibold : .regular))
-                    .foregroundStyle(selected ? Color.primary : Color.secondary)
-                    .linearSegmentChrome(selected: selected)
                 }
+            } label: {
+                Text(l.minutesValue(session.plannedMinutes)).font(.system(size: 11))
             }
-            HStack(spacing: 6) {
-                Button(l.startPomodoro) { session.startPomodoro() }
-                    .tahoeButtonStyle(.prominent)
-                Button(l.cancel) { session.cancelPomodoroSetup() }
-                    .tahoeButtonStyle(.accessory)
-                    .foregroundStyle(.secondary)
-            }
+            .menuStyle(.borderlessButton).fixedSize()
+            .foregroundStyle(theme.secondary)
+            Button { session.startPomodoro() } label: { Image(systemName: "play.fill") }
+                .font(.system(size: 11))
+                .buttonStyle(FloatingTimerButtonStyle(selected: true))
+                .help(l.startPomodoro).accessibilityLabel(l.startPomodoro)
+            FloatingTimerNewIssueButton()
+            dragHandle(.move, label: l.moveFloatingTimer)
+                .frame(width: 16, height: 30)
+                .overlay {
+                    Image(systemName: "circle.grid.2x2.fill")
+                        .font(.system(size: 9)).foregroundStyle(theme.secondary)
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
         }
-        .controlSize(.mini)
-        .padding(8)
-        .frame(width: FloatingPetController.islandWidth, alignment: .leading)
-        .tahoeFloatingChrome()
+        .padding(.horizontal, 4)
+        .frame(width: CGFloat(store.floatingTimerWidth), height: FloatingTimerMetrics.height)
+        .foregroundStyle(theme.text)
+        .background(theme.canvas, in: RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8).strokeBorder(
+                contrast == .increased ? theme.secondary : theme.border, lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .onHover { hovering = $0 }
+    }
+
+    private func dragHandle(_ mode: FloatingTimerDragView.Mode, label: String) -> some View {
+        FloatingTimerDragHandle(mode: mode, width: CGFloat(store.floatingTimerWidth), label: label,
+                                onResize: onResizeTimer, onFocusChange: { handleFocused = $0 })
+            .help(label)
     }
 }
 

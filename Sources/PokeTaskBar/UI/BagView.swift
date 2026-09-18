@@ -10,7 +10,7 @@ struct BagView: View {
         if store.ownedItems.isEmpty && store.storedCompanions.filter(\.isEgg).isEmpty {
             emptyState
         } else {
-            ScrollView {
+            ContentFittingScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(store.ownedItems, id: \.kind) { item in
                         ItemCard(store: store, nav: nav, kind: item.kind, count: item.count)
@@ -40,7 +40,7 @@ struct BagView: View {
 /// 확인은 인라인(버튼 morph) — .sheet/.alert 금지: 창이 닫힐 때 고아 시트가
 /// 이후 클릭을 먹통내는 기존 결함(PopoverView 주석) 회피.
 @MainActor
-private struct ItemCard: View {
+struct ItemCard: View {
     let store: CompanionStore
     let nav: PopoverNavigation
     let kind: ItemKind

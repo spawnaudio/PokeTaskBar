@@ -22,6 +22,28 @@ struct L {
     // MARK: 탭
     var home: String { t("홈", "Home", "ホーム", "Inicio", "Accueil", "Início", "Startseite") }
     var focusTab: String { t("집중", "Focus", "集中", "Enfoque", "Focus", "Foco", "Fokus") }
+    var menuBarUsage: String { t("사용량", "Usage", "使用量", "Uso", "Usage", "Uso", "Nutzung") }
+    var currentFocus: String { t("현재 집중", "Current focus", "現在の集中", "Enfoque actual", "Focus actuel", "Foco atual", "Aktueller Fokus") }
+    var finishFocusTimer: String { t("종료", "Finish", "終了", "Finalizar", "Terminer", "Concluir", "Beenden") }
+    var moveFloatingTimer: String { t("타이머와 펫 이동", "Move timer and pet", "タイマーとペットを移動", "Mover temporizador y mascota", "Déplacer le minuteur et le compagnon", "Mover temporizador e companheiro", "Timer und Begleiter bewegen") }
+    var resizeFloatingTimer: String { t("타이머 너비 조절", "Resize timer", "タイマーの幅を変更", "Cambiar ancho del temporizador", "Redimensionner le minuteur", "Redimensionar temporizador", "Timerbreite ändern") }
+    var focusDuration: String { t("집중 시간", "Focus duration", "集中時間", "Duración del enfoque", "Durée de concentration", "Duração do foco", "Fokusdauer") }
+    var startFocus: String { t("집중 시작", "Start focus", "集中を開始", "Iniciar enfoque", "Démarrer la concentration", "Iniciar foco", "Fokus starten") }
+    var setTimerDuration: String { t("타이머 시간 설정", "Set timer duration", "タイマーの時間を設定", "Establecer duración", "Régler la durée", "Definir duração", "Timerdauer festlegen") }
+    var setTimeRemaining: String { t("남은 시간 설정", "Set time remaining", "残り時間を設定", "Establecer tiempo restante", "Régler le temps restant", "Definir tempo restante", "Restzeit festlegen") }
+    var timerMinutesLabel: String { t("분", "Minutes", "分", "Minutos", "Minutes", "Minutos", "Minuten") }
+    func timerMinuteRange(_ lower: Int, _ upper: Int) -> String {
+        t("\(lower)–\(upper)분 입력", "Enter \(lower)–\(upper) minutes", "\(lower)〜\(upper)分を入力",
+          "Introduce entre \(lower) y \(upper) minutos", "Saisissez \(lower) à \(upper) minutes",
+          "Insira de \(lower) a \(upper) minutos", "\(lower)–\(upper) Minuten eingeben")
+    }
+    var floatingTimerActions: String { t("타이머 동작", "Timer actions", "タイマー操作", "Acciones del temporizador", "Actions du minuteur", "Ações do temporizador", "Timeraktionen") }
+    var companionDetails: String { t("파트너 정보", "Companion details", "パートナーの詳細", "Detalles del compañero", "Détails du compagnon", "Detalhes do companheiro", "Partnerdetails") }
+    func focusTimeRemaining(_ minutes: Int) -> String {
+        t("총 \(minutes)분 중 남은 시간", "remaining of \(minutes) minutes", "\(minutes)分の残り時間",
+          "restantes de \(minutes) minutos", "restantes sur \(minutes) minutes",
+          "restantes de \(minutes) minutos", "verbleibend von \(minutes) Minuten")
+    }
     var linearTab: String { t("Linear", "Linear", "Linear", "Linear", "Linear", "Linear", "Linear") }
     var usageTab: String { t("토큰 사용량", "Token usage", "トークン使用量", "Uso de tokens", "Usage tokens", "Uso de tokens", "Token-Nutzung") }
     var timeXPTab: String { t("시간 XP", "Time XP", "時間XP", "XP tiempo", "XP temps", "XP tempo", "Zeit-XP") }

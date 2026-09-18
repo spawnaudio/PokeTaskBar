@@ -9,7 +9,7 @@ read_when:
 
 # Popover Focus / Usage / Collection
 
-Locked 2026-09-12. Implementation follows this spec; do not reopen root-tab count or flatten Linear.
+Navigation locked 2026-09-12; menu-bar styling updated 2026-09-18 from the approved Linear-inspired mockup. Keep the four root tabs and nested Linear navigation.
 
 This file lives under `docs/reference/` because the repo publishes only that docs tree (`docs/*` is gitignored).
 
@@ -17,27 +17,31 @@ This file lives under `docs/reference/` because the repo publishes only that doc
 
 **NSWindow** (not a transient `NSPopover`). Click-outside and focus loss do **not** close it. Status-item click toggles visibility via `orderOut` (the attached window is not `.closable`, so `performClose` is a no-op). The close button and pet/open paths bring it forward if already shown. Hosting is still torn down on close (energy).
 
-**Attached (default).** Borderless, not movable, always placed under the status item. Dragging does **not** undock it. Non-opaque window (`NSColor.clear`) with 12pt continuous rounding on the hosting view so the attached panel is not square. Linear light shell `#F3F4F6` / canvas white (`MenuBarPanelMetrics.shellFill` / `canvasFill`); dark keeps a matching split. 8pt gap around a 12pt-rounded inset canvas plus a hairline. Resizable: default **400×640**, min **400×520**, attached max **500×660**. Stock borderless `NSWindow` cannot become key — the panel uses `MenuBarPanelWindow` so Settings `SecureField`s accept typing.
+**Attached (default).** Borderless, not movable, always placed under the status item. Dragging does **not** undock it. Non-opaque window (`NSColor.clear`) with 12pt continuous rounding on the hosting view so the attached panel is not square. Linear light shell `#F3F4F6` / canvas white (`MenuBarPanelMetrics.shellFill` / `canvasFill`); dark keeps a matching split. 8pt gap around a 12pt-rounded inset canvas plus a hairline. Content-sized: default width **400**, resizable width **400–500**, height fits the active page with a **180 pt** chrome floor and **660 pt** maximum (also capped to the available screen). The top edge stays anchored; the bottom edge animates over **280 ms**, or immediately with Reduce Motion. The initial hosting size remains **400×640** until measured. Stock borderless `NSWindow` cannot become key — the panel uses `MenuBarPanelWindow` so Settings `SecureField`s accept typing.
 
 **Detached.** Only the toolbar detach button undocks. Then it is a movable, resizable window with `fullSizeContentView`, a hidden transparent titlebar, and traffic lights on the same darker shell as the tabs (leading inset **76pt**). Frame autosave `PokeTaskBarMenuBarPanel`. No 500pt cap — normal window min/max (min height **400**, max **2400**). The same button snaps it back under the status item and locks it again.
 
-Default size **400×640**. System light/dark via `MenuBarPanelMetrics` dynamic fills (Linear `#F3F4F6` / white in light, matching split in dark). Cards: ~12pt continuous corners, `cardFill` and a `TahoeHairline` (`TahoeStrokedFill` so the stroke rides the fill). Buttons, idle tabs, accessory icons, chips, and cards all keep that hairline — not only the selected state. Lists stay **opaque and unboxed** — rows use hairline dividers and a hover fill, not a card per item. Root tabs sit on the shell toolbar. Linear page tabs are **Chrome-style** (`ChromeTabBar`: selected tab is a raised page that joins the panel, no bottom stroke). Nested Linear/Collection filters stay `TahoeTabBar` pills. Dropdowns are quiet bordered chips (`TahoePopupMenu` / `linearChipChrome`), tinted to match status/priority. Issue IDs are muted text, not pills. Pause / Mark done / primary actions use the same filled Linear chip (`tahoeButtonStyle(.prominent)`). SF Pro. Caption2 tertiary section labels. Clock: large rounded `monospacedDigit`.
+Default size **400×640**. `MenuBarTheme` supplies appearance-specific shell, canvas, surface, text, border, and teal accent colors through the scoped `menuBarChrome` environment. Light uses `#F3F4F6` / white; dark uses `#17181B` / `#1F2023`. Shared cards and chips use 7–8pt corners inside this window. The status-item pill and Today window retain their own styling. Lists remain unboxed. SF Pro, compact labels, and a large monospaced countdown establish hierarchy. The small progress indicators use `MenuBarProgressStyle` because the AppKit-backed indicator can ignore tint on macOS.
 
 Compact layout tests still use `PopoverMetrics.width` (360). Live width is `\.popoverContentWidth`.
 
-Do not restyle Collection / Dex / Shop **content** as Linear except the shared segment pills. Keep light/dark via `MenuBarPanelMetrics` dynamic colors — do not fall back to `controlBackgroundColor` / `underPageBackgroundColor` (washed Linear-light greys) or lock a Nordic Gray / Inter dark-only theme.
+Do not restyle Collection / Dex / Shop **content** as Linear except the shared segment pills. Keep light/dark via the scoped `MenuBarTheme` and existing `MenuBarPanelMetrics` dynamic colors — do not fall back to `controlBackgroundColor` / `underPageBackgroundColor` (washed Linear-light greys) or lock a Nordic Gray / Inter dark-only theme.
 
 ## Shell toolbar
 
-Four labeled tabs (symbol + caption) sit on the darker outer shell: **Focus · Linear · Usage · Collection**. When a labeled cluster would wrap, that cluster becomes **icon-only** (`ViewThatFits`; root tabs, nested Linear/Collection bars, Focus CTAs, timer controls). A back chevron appears when the tab is not Focus or Settings is open. Selected tab = Linear filled grey + hairline + primary text, **not** `Color.accentColor`. Then icon-only **detach/attach**, **Today** (calendar), and **Settings**. Quit lives in Settings, not on the bar. Refresh lives on Focus (today’s usage), Usage, and Linear.
+The first row contains the app title, detach/attach, and Settings. Detached traffic lights reserve space in this row only. The second row contains **Focus · Linear · Usage · Collection**, with a neutral selected fill. `ViewThatFits` falls back from icons plus labels to labels only, then accessible icons for longer translations. A back chevron appears away from Focus or in Settings. Settings uses the shell heading rather than a duplicate inner header. Quit remains in Settings.
+
+A fixed footer opens **Today**. It shows Linear loading, failure, or the actual last-sync time when available; it never invents a successful sync.
 
 Reopening from hidden always lands on **Focus** (`PopoverNavigation.reset()`). Clicking outside does not hide the panel, so the current tab stays. Settings remains an in-window swap, not a sheet.
 
 ## Focus
 
-Pinned: companion **hero** on the darker canvas (120pt sprite + name / rarity / XP — **not** a hairline content card, no grey filled panel) → **Pomodoro** card (idle **Pomo Timer**, or the running clock) and a separate **Linear** card (idle Open Linear / Open Today, or the pinned issue clock). Pause + Open issue + status + timer controls on the Linear card. Usage glance (today total + provider split + refresh) in a hairline card; tap totals opens the Usage tab. Compact **Time XP** card. No Focus pin button. Pet-off prompts (0:00, check-in, forfeit warning) appear **on Focus** when the overlay is not visible.
+Pinned: a compact companion strip (76pt sprite, name, rarity, growth progress), Score/Coins row, and one unboxed current-focus section. Companion details, evolution, and Store in Storage remain accessible from the companion ellipsis. The task section shows ID, title, status/project when available, countdown, progress, Pause/Resume, and Mark done. Add time and Reset remain inline; Unfocus is in the timer ellipsis. Existing confirmation and check-in paths are preserved.
 
-Idle: same companion hero; copy “Select a Linear issue to focus” on the Linear card; **Pomo Timer** on its own card (opens the overlay setup island; clock starts only after **Start**). No in-progress list. Usage glance + Time XP.
+A separate **Pomo Timer** row opens duration setup when there is no active session. It is disabled during an active timer. **Time XP** is expandable. The content scrolls at smaller heights and with long titles or prompts; the shell and Today footer stay fixed.
+
+Idle: the companion strip remains, with an Open Linear action and the Pomo Timer row. A running Pomodoro uses the same countdown and pause controls, with **Finish** replacing Mark done and no Linear-specific metadata.
 
 **Pomodoro.** Overlay chevron and Focus/Today idle open duration options (25 / 50 / 90) on the floating island (`FocusSessionStore.openPomodoroSetup`). **Start** begins a timer with no Linear issue (`FocusPinnedIssue.pomodoroID`). Same clock / XP / pause path; hide Linear ID, status, notes, Mark done. Pinning a Linear issue while a pomodoro is running uses the forfeit path.
 
@@ -52,7 +56,7 @@ Keep nested tabs — do not flatten:
 
 Header: **New issue + refresh** in their own hairline card. **2pt** below that, a second card holds Chrome-style **Issues · Projects · Initiatives** (selected tab joins the page; idle tabs sit on the darker strip). Nested filters stay inside that card; the issue/project/initiative list is a **nested** hairline panel with unboxed rows. Unboxed issue rows: the **whole highlighted row** toggles fold (title, chips, padding, whitespace) except dedicated controls (ID, priority, status, pin) and markdown text selection. Folded layout is title + ID on line 1; **team** (+ **due**) on the first metadata line with trailing priority / status / pin; **project** on the next line; **labels** on the line below that — not one shared chip strip. Team chip uses workspace tints: SPA/SPAWN red, PER/SQUEAKY aqua blue, HOU/HOUSE orange, STU/STUDY aqua green. Unfolded shows every inspector field plus a **rendered** Linear markdown preview (`LinearMarkdownText`: headings, lists, checklists, emphasis, code, quotes — not flattened caption text). Trailing priority chip (Priority grey / Low blue / Medium yellow / High orange / Urgent red) + status chip tinted to the workflow type + pin. Hide empty fields. Completion XP when present. Projects/initiatives use the same unboxed row language; Initiatives use a grey outline `flag`.
 
-**Pin** starts the session and **switches to the Focus tab**. Do **not** auto-open Today from this pin. Today still opens from the calendar icon, the idle CTA, and the pet menu. Pinning from the Today desk is unchanged (`openDesk` as today).
+**Pin** starts the session and **switches to the Focus tab**. Do **not** auto-open Today from this pin. Today opens from the fixed menu-bar footer and the pet menu. Pinning from the Today desk is unchanged (`openDesk` as today).
 
 ## Today window
 

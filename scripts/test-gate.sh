@@ -22,6 +22,7 @@ LOGIC_CORE=(
   "Sources/PokeTaskBar/Core/EconomyScale.swift"
   "Sources/PokeTaskBar/Core/CompanionModel.swift"
   "Sources/PokeTaskBar/Core/CompanionStore.swift"
+  "Sources/PokeTaskBar/Core/XPFeedback.swift"
   "Sources/PokeTaskBar/Core/PokemonProfile.swift"
   "Sources/PokeTaskBar/Core/PokemonNameLocalization.swift"
   "Sources/PokeTaskBar/Core/LocalizationErrors.swift"

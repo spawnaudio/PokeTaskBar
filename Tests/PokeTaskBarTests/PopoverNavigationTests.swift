@@ -14,8 +14,8 @@ final class PopoverNavigationTests: XCTestCase {
         XCTAssertFalse(nav.showingCollectionLog)
     }
 
-    func testRootTabsAreFocusLinearCollectionUsage() {
-        XCTAssertEqual(PopoverTab.allCases, [.focus, .linear, .collection, .usage])
+    func testRootTabsMatchMenuBarMockup() {
+        XCTAssertEqual(PopoverTab.allCases, [.focus, .linear, .usage, .collection])
     }
 
     func testResetReturnsToFocusFromSettingsAndKeepsCollectionSegment() {

@@ -1,0 +1,161 @@
+{
+  "page": "Collection \u2014 Shop",
+  "status": "Option 1 approved for v1.3 main-window implementation",
+  "generatedWith": "Built-in image_gen",
+  "selectedOption": 1,
+  "nextPageAfterApproval": "Collection \u2014 full Pok\u00e9mon details",
+  "remainingPageSequence": [
+    "Collection \u2014 Shop",
+    "Collection \u2014 full Pok\u00e9mon details"
+  ],
+  "approvalWorkflow": "On selection, read the current PokeTasks feature document, add only missing design decisions and the exact selected image, verify, then immediately generate the next page mockups. Use linear-document-map.json for document routing.",
+  "referenceImages": [
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/bag-approved.png",
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-approved.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/item-rare-candy.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/item-shiny-charm.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/egg.png"
+  ],
+  "displayOrder": [
+    {
+      "option": 1,
+      "name": "Compact Catalogue",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-c9112a3a-a77c-4d74-b59f-dd25fb73ad56.png",
+      "prompt": "Usecase: ui-mockup. Create ONE realistic production-quality macOS PokeTaskBar main-window mockup for Collection \u2192 Shop. Target 1488\u00d71056 landscape. Render complete window straight-on with native traffic lights, full bottom corners, outer inset margins. No browser, presentation framing, option numbers, captions outside the app or multiple screenshots.\nReferences 1 and 2 are the APPROVED Bag and Storage. Preserve their shared macOS shell, expanded left navigation and calm Linear-like inset rounded main canvas. References 3,4,5 are exact in-app Rare Candy, Shiny Charm and egg sprites: use their recognizable pixel appearance. Mint uses a small green leaf. Keep sprites proportional and crisp. No smooth 3D art.\nShell #EFF0F2, main canvas #F8F8FA, grouped surfaces #FFFFFF, ink #242528, metadata #73757B. SF Pro-like typography 14\u201316 body, 28\u201332 headings. Neutral selected backgrounds and restrained small blue accents. Main canvas inset on ALL four sides; sidebars blend into shell. ABSOLUTELY NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules, or resting resize grips/dots. Separation through whitespace, open gutters and subtle surface tone. No decorative gradients, glow, glass or card stacks.\nExpanded left navigation approx240px: PokeTaskBar, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection selected, Usage, Settings at bottom. Native top toolbar back/forward, Collection page tab and small sidebar collapse/reopen buttons. Right extras collapsed for these proposals: all essential data/actions stay in main canvas.\nMain page heading Collection. Local navigation Bag / Storage / Pok\u00e9dex / Shop with SHOP selected. Secondary title Shop. Quiet balance \"12,500 Coins\" labelled \"Available\". These are earned in-app Coins, never dollars or payment cards. Compact Open Bag and Open Storage text links stay in main header or footer, not sidebar-only.\nEXACT six existing products at default shop difficulty, sorted low-to-high price with the ALREADY OWNED passive Shiny Charm LAST:\n1 Mint \u2014 1,000 Coins \u2014 \"2\u00d7 XP for 30 minutes\" \u2014 \"Owned 2\" \u2014 Buy.\n2 Rare Candy \u2014 5,000 Coins \u2014 \"+1.5M XP when used\" \u2014 \"Owned 5\" \u2014 Buy.\n3 Pok\u00e9mon Egg \u2014 10,000 Coins \u2014 \"Adds an egg to Storage\" \u2014 Buy.\n4 Uncommon Egg \u2014 25,000 Coins \u2014 \"Uncommon or better\" \u2014 subtle Uncommon badge \u2014 \"Not enough Coins\".\n5 Rare Egg \u2014 40,000 Coins \u2014 \"Rare or better\" \u2014 subtle Rare badge \u2014 \"Not enough Coins\".\n6 Shiny Charm \u2014 ALREADY OWNED, passive, permanent, \"Improves shiny hatch chance\" \u2014 \"Owned \u00b7 Active\" with quiet check mark. NO Buy, Use, quantity or repeat-purchase controls. Price not necessary once owned.\nAll three eggs use the SAME ivory-and-green egg sprite; distinguish tiers through labels/badges only. No legendary egg, recolored magical eggs, random invented products, categories, deals, bundles, cart, checkout, money purchases, countdowns or sales pressure.\nPurchase flow: clicking Buy opens a small inline confirmation and final Buy / Cancel controls at that product; no modal sheet. Buying a Mint or Rare Candy adds one to Bag without applying it. Buying an egg sends it to Storage and leaves the current Lapras training; success opens Storage. Current raising Pok\u00e9mon is Lapras, not an egg. The screenshot shows either idle state or the direction's specified inline confirmation.\nActual selected product remains affordable against 12,500 Coins. Never offer active Buy for 25,000 or40,000. No training/Use item on Shop. Compact useful copy and generous breathing room; simple honest purchase state. No search/sort/filter toolbar necessary for six products.\nDirection 1: Compact Catalogue.\nUse a three-column by two-row grid of six softly white rounded product panels within the wide inset main canvas, each approximately 345px wide and260px tall. Reading order is Mint, Rare Candy, Pok\u00e9mon Egg / Uncommon Egg, Rare Egg, Shiny Charm. Plenty of card padding and no prominent borders.\nAbove grid show Shop left, available12,500Coins right, then calm small subtitle \"Items for your next session.\" No large illustration hero; product icons compact72pxmaximum, a shared tidy baseline. Product name16ptsemibold, effectdescription14pt, ownedcountsmall. Anchor price and Buy action to lower edge of each affordable card. Buttons quietneutral; blue onlyfocusaccent.\nFor Uncommon Egg and Rare Egg display readable price, tierbadge and quiet \"Not enough Coins\" in place of Buy. For ShinyCharm show ownedactive state and smallcharmicon; no priceaction. Avoid disabledBuybuttons takingpriority.\nAll six cards fully visible above maincanvasbottom; no cutoff, no three-rowlist disguisedascards. Undergrid a single calm helper line \"Eggs go to Storage. Your current Pok\u00e9mon keeps training.\" and compact OpenBag / OpenStorage links. Restofcanvas generousair. No rightsidebar. Beautiful precise compactmacOSappdesign, not storefrontmarketing.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/shop-exploration-1.png",
+      "status": "approved",
+      "sha256": "7748daef849715fa9b6e207d0af867657c95df6e921e480617169e58a842aca7",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 2,
+      "name": "Compact List",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-026de098-41c2-482e-92d4-520a290d5f89.png",
+      "prompt": "Usecase: ui-mockup. Create ONE realistic production-quality macOS PokeTaskBar main-window mockup for Collection \u2192 Shop. Target 1488\u00d71056 landscape. Render complete window straight-on with native traffic lights, full bottom corners, outer inset margins. No browser, presentation framing, option numbers, captions outside the app or multiple screenshots.\nReferences 1 and 2 are the APPROVED Bag and Storage. Preserve their shared macOS shell, expanded left navigation and calm Linear-like inset rounded main canvas. References 3,4,5 are exact in-app Rare Candy, Shiny Charm and egg sprites: use their recognizable pixel appearance. Mint uses a small green leaf. Keep sprites proportional and crisp. No smooth 3D art.\nShell #EFF0F2, main canvas #F8F8FA, grouped surfaces #FFFFFF, ink #242528, metadata #73757B. SF Pro-like typography 14\u201316 body, 28\u201332 headings. Neutral selected backgrounds and restrained small blue accents. Main canvas inset on ALL four sides; sidebars blend into shell. ABSOLUTELY NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules, or resting resize grips/dots. Separation through whitespace, open gutters and subtle surface tone. No decorative gradients, glow, glass or card stacks.\nExpanded left navigation approx240px: PokeTaskBar, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection selected, Usage, Settings at bottom. Native top toolbar back/forward, Collection page tab and small sidebar collapse/reopen buttons. Right extras collapsed for these proposals: all essential data/actions stay in main canvas.\nMain page heading Collection. Local navigation Bag / Storage / Pok\u00e9dex / Shop with SHOP selected. Secondary title Shop. Quiet balance \"12,500 Coins\" labelled \"Available\". These are earned in-app Coins, never dollars or payment cards. Compact Open Bag and Open Storage text links stay in main header or footer, not sidebar-only.\nEXACT six existing products at default shop difficulty, sorted low-to-high price with the ALREADY OWNED passive Shiny Charm LAST:\n1 Mint \u2014 1,000 Coins \u2014 \"2\u00d7 XP for 30 minutes\" \u2014 \"Owned 2\" \u2014 Buy.\n2 Rare Candy \u2014 5,000 Coins \u2014 \"+1.5M XP when used\" \u2014 \"Owned 5\" \u2014 Buy.\n3 Pok\u00e9mon Egg \u2014 10,000 Coins \u2014 \"Adds an egg to Storage\" \u2014 Buy.\n4 Uncommon Egg \u2014 25,000 Coins \u2014 \"Uncommon or better\" \u2014 subtle Uncommon badge \u2014 \"Not enough Coins\".\n5 Rare Egg \u2014 40,000 Coins \u2014 \"Rare or better\" \u2014 subtle Rare badge \u2014 \"Not enough Coins\".\n6 Shiny Charm \u2014 ALREADY OWNED, passive, permanent, \"Improves shiny hatch chance\" \u2014 \"Owned \u00b7 Active\" with quiet check mark. NO Buy, Use, quantity or repeat-purchase controls. Price not necessary once owned.\nAll three eggs use the SAME ivory-and-green egg sprite; distinguish tiers through labels/badges only. No legendary egg, recolored magical eggs, random invented products, categories, deals, bundles, cart, checkout, money purchases, countdowns or sales pressure.\nPurchase flow: clicking Buy opens a small inline confirmation and final Buy / Cancel controls at that product; no modal sheet. Buying a Mint or Rare Candy adds one to Bag without applying it. Buying an egg sends it to Storage and leaves the current Lapras training; success opens Storage. Current raising Pok\u00e9mon is Lapras, not an egg. The screenshot shows either idle state or the direction's specified inline confirmation.\nActual selected product remains affordable against 12,500 Coins. Never offer active Buy for 25,000 or40,000. No training/Use item on Shop. Compact useful copy and generous breathing room; simple honest purchase state. No search/sort/filter toolbar necessary for six products.\nDirection 2: Compact List.\nA quiet Linear-style purchasing workspace with one wide WHITE inset rounded content panel, six generous horizontal rows separated ONLY by whitespace, NEVER horizontal rules or vertical column rules. Main Shopheadingabove, available12,500Coins compact at top right, small \"Choose an item or egg.\" secondarycopy. OpenBag andOpenStorage quietlinks on the same header's lower edge.\nAll SIX rows fullyvisible in givenpriceorder. Use clean columns: small48pxsprite, flexible itemname+one-lineeffect, modestOwnedcount ifapplicable, pricealignedright, compactBuy oravailabilityalignedright. Names semibold16pt,descriptions14pt muted. Mint owned2, RareCandyowned5. Pok\u00e9monEggplainlabel. UncommonEggandRareEgghavesmalltierpill adjacenttitle,plainlegible\"Not enough Coins\" instead of purchase action. ShinyCharmlastshowsquietOwned\u00b7Active badgeandnoprice,noBuy.\nRows approximately90pxtall, balanced for canvas. Absolutelyno gridlines or horizontalseparators within thispanel. First3Buyslightlytonalneutrals,nolargeblueCTA. Evenlyspaced sprites at identicalopticalsize. No heroart,selectedpreview,itemcategories,searchorfilters.\nUnderthissinglepanel, separated by GENEROUSWHITESPACEONLY, a concise textnote: \"Eggs go to Storage. Your current Pok\u00e9mon keeps training.\" Do NOT draw a footer horizontal rule. Right optionalextrascollapsed, fullcanvasfoursidesfloatinginset,preservebottomcorners. Precisiondensebutnotcramped, fluidMainwindowdesignwithlargequietmarginbeneathlist.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/shop-exploration-2.png",
+      "status": "not selected",
+      "sha256": "61cc7977b9e2016fc8b4926ecb6a126be0841f02ae86ded981ef098ffb4e2a3d",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 3,
+      "name": "Purchase Workspace",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-e589fd7e-b950-4aee-8b81-cccc5c9021a2.png",
+      "prompt": "Usecase: ui-mockup. Create ONE realistic production-quality macOS PokeTaskBar main-window mockup for Collection \u2192 Shop. Target 1488\u00d71056 landscape. Render complete window straight-on with native traffic lights, full bottom corners, outer inset margins. No browser, presentation framing, option numbers, captions outside the app or multiple screenshots.\nReferences 1 and 2 are the APPROVED Bag and Storage. Preserve their shared macOS shell, expanded left navigation and calm Linear-like inset rounded main canvas. References 3,4,5 are exact in-app Rare Candy, Shiny Charm and egg sprites: use their recognizable pixel appearance. Mint uses a small green leaf. Keep sprites proportional and crisp. No smooth 3D art.\nShell #EFF0F2, main canvas #F8F8FA, grouped surfaces #FFFFFF, ink #242528, metadata #73757B. SF Pro-like typography 14\u201316 body, 28\u201332 headings. Neutral selected backgrounds and restrained small blue accents. Main canvas inset on ALL four sides; sidebars blend into shell. ABSOLUTELY NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules, or resting resize grips/dots. Separation through whitespace, open gutters and subtle surface tone. No decorative gradients, glow, glass or card stacks.\nExpanded left navigation approx240px: PokeTaskBar, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection selected, Usage, Settings at bottom. Native top toolbar back/forward, Collection page tab and small sidebar collapse/reopen buttons. Right extras collapsed for these proposals: all essential data/actions stay in main canvas.\nMain page heading Collection. Local navigation Bag / Storage / Pok\u00e9dex / Shop with SHOP selected. Secondary title Shop. Quiet balance \"12,500 Coins\" labelled \"Available\". These are earned in-app Coins, never dollars or payment cards. Compact Open Bag and Open Storage text links stay in main header or footer, not sidebar-only.\nEXACT six existing products at default shop difficulty, sorted low-to-high price with the ALREADY OWNED passive Shiny Charm LAST:\n1 Mint \u2014 1,000 Coins \u2014 \"2\u00d7 XP for 30 minutes\" \u2014 \"Owned 2\" \u2014 Buy.\n2 Rare Candy \u2014 5,000 Coins \u2014 \"+1.5M XP when used\" \u2014 \"Owned 5\" \u2014 Buy.\n3 Pok\u00e9mon Egg \u2014 10,000 Coins \u2014 \"Adds an egg to Storage\" \u2014 Buy.\n4 Uncommon Egg \u2014 25,000 Coins \u2014 \"Uncommon or better\" \u2014 subtle Uncommon badge \u2014 \"Not enough Coins\".\n5 Rare Egg \u2014 40,000 Coins \u2014 \"Rare or better\" \u2014 subtle Rare badge \u2014 \"Not enough Coins\".\n6 Shiny Charm \u2014 ALREADY OWNED, passive, permanent, \"Improves shiny hatch chance\" \u2014 \"Owned \u00b7 Active\" with quiet check mark. NO Buy, Use, quantity or repeat-purchase controls. Price not necessary once owned.\nAll three eggs use the SAME ivory-and-green egg sprite; distinguish tiers through labels/badges only. No legendary egg, recolored magical eggs, random invented products, categories, deals, bundles, cart, checkout, money purchases, countdowns or sales pressure.\nPurchase flow: clicking Buy opens a small inline confirmation and final Buy / Cancel controls at that product; no modal sheet. Buying a Mint or Rare Candy adds one to Bag without applying it. Buying an egg sends it to Storage and leaves the current Lapras training; success opens Storage. Current raising Pok\u00e9mon is Lapras, not an egg. The screenshot shows either idle state or the direction's specified inline confirmation.\nActual selected product remains affordable against 12,500 Coins. Never offer active Buy for 25,000 or40,000. No training/Use item on Shop. Compact useful copy and generous breathing room; simple honest purchase state. No search/sort/filter toolbar necessary for six products.\nDirection3: Purchase Workspace.\nMatchtheapprovedStorageandBag'stwo-areaswithinmaincanvas: a compact360pxcataloguebrowserleft, a broadselected-productpreviewright, separatedbyanOPEN24pxGUTTER, absolutelyNOverticaldividerstroke. Keepmainappnavigationseparateonfarleft,notconfusetheproductbrowserwithnavigation. Nooptionalrightextras.\nAbovebothareas Shopheadingleft, Available12,500Coins right. CompactOpenBag/OpenStoragelinksquietinheader. LeftwhitepanelshowsALLSIXproductsinsixreadablerows,with40pxicons, names,smallprices/ownershipandavailability. ReadingorderMint1000CoinsOwned2;RareCandy5000CoinsOwned5;Pok\u00e9monEgg10000CoinsSELECTEDneutralsoftbackground;UncommonEgg25000CoinsNotenoughCoins;RareEgg40000CoinsNotenoughCoins;ShinyCharmOwned\u00b7Active. NoindividualBuybuttonsinthebrowser; selectionshowsactioninmainpreview. Names canwrapnaturallywhereessential, nopriceclipping.\nRightpreviewsoftwhitepanel: top \"Pok\u00e9mon Egg\" heading and small \"Stored until you're ready\" subtitle. Centre a crisp proportional eggillustrationabout120pxtall, nevergiant450px. SAMEivorygreeneggasset. No unidentifiedhatchedPok\u00e9monpredictor, no rarebadgeonthebasicPok\u00e9monEgg.\nBelowillustration anopenunboxedarrangement of shortproductfacts: \"Adds one egg to Pok\u00e9mon Storage.\" then \"Your current Lapras keeps training.\" Keeptheselegibleandnotrepeatedelsewhere.\nShowselectedegg'sINLINECONFIRMATIONSTATEatthebottomofthissamepreviewregion: \"Buy Pok\u00e9mon Egg?\" then two compactlabelvaluerows \"Cost 10,000 Coins\" and \"Balance after purchase 2,500 Coins\". Below prominentmodestly-sizeddarkBuybutton and quietCancelbuttonsidebyside. Nohoverpopover,dialogoverlay,cart,quantity,bulkbuy,deliveryorrealmoneycheckout.\nMainpreviewisonecoherentarea,notnestedcards. A single short \"Opens Storage after purchase\" hintbeneathbuttons. NoTrain,Useitem,Startfocus. Thisisapurchaseconfirmationonly. Use whitespace,NOhorizontalrulesANYWHERE, including previewfacts, rowlist andfooter. Leavecomfortablebottomspaceandshowfloatingcanvasbottomcorners. A calmusefulworkspacewhereidentity,purchaseeffectandremainingCoinbalanceareunambiguous.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/shop-exploration-3.png",
+      "status": "not selected",
+      "sha256": "29d17e64b9216a3852ac976e1140d4c9b14748c4e8d674a989326cc0edc2992d",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    }
+  ],
+  "mockData": {
+    "availableCoins": 12500,
+    "difficulty": 1,
+    "items": [
+      {
+        "name": "Mint",
+        "price": 1000,
+        "owned": 2
+      },
+      {
+        "name": "Rare Candy",
+        "price": 5000,
+        "owned": 5
+      },
+      {
+        "name": "Pok\u00e9mon Egg",
+        "price": 10000
+      },
+      {
+        "name": "Uncommon Egg",
+        "price": 25000
+      },
+      {
+        "name": "Rare Egg",
+        "price": 40000
+      },
+      {
+        "name": "Shiny Charm",
+        "basePrice": 30000,
+        "owned": true,
+        "passive": true
+      }
+    ],
+    "currentPokemon": "Lapras"
+  },
+  "existingSourceFiles": [
+    "Sources/PokeTaskBar/UI/ShopView.swift",
+    "Sources/PokeTaskBar/Core/CompanionModel.swift",
+    "Sources/PokeTaskBar/Core/CompanionStore.swift",
+    "Sources/PokeTaskBar/Core/EconomyScale.swift",
+    "Sources/PokeTaskBar/Core/Localization.swift"
+  ],
+  "implementationNotes": [
+    "Shop remains Collection > Shop; reuse local Bag / Storage / Pok\u00e9dex / Shop navigation.",
+    "Prices shown use existing base prices at default shop difficulty 1.0: Mint 1,000; Rare Candy 5,000; basic Pok\u00e9mon Egg 10,000; Uncommon Egg 25,000; Shiny Charm 30,000; Rare Egg 40,000 Coins. Production prices come from store.price with current shopDifficulty, never fixed display literals.",
+    "Mock balance 12,500 Coins and inventory five Rare Candy, two Mint and an owned Shiny Charm are illustrative, consistent with the approved Bag reference. Shiny Charm is sorted last because it is already owned.",
+    "Preserve price ascending ordering with purchased passive items last. Available products remain the three existing item kinds and three existing egg tiers; no legendary egg.",
+    "Mint boosts XP 2x for 30 minutes; it does not change nature. Rare Candy grants 1.5M XP when used from Bag. Purchases add inventory and do not immediately apply an item.",
+    "Purchase controls confirm inline, with Buy and Cancel. Option 3 demonstrates this confirmation for a basic Pok\u00e9mon Egg: 12,500 minus 10,000 leaves 2,500 Coins.",
+    "Selecting a product changes only the preview, not purchase state. Confirming must be cleared or rebound to the specific selected product; each purchase revalidates affordability and existing eligibility.",
+    "Buying an egg banks it in Storage and opens Storage; the current partner remains training. No new training or item-use actions belong on Shop.",
+    "Owned Shiny Charm shows Owned / Active, no repeat purchase, quantity or Use action. All three egg tiers share the existing egg sprite and use names/badges to distinguish guaranteed rarity floors.",
+    "Insufficient balance is a legible quiet state with no active purchase control; preserve eligibility even when the active partner is an egg.",
+    "Right extras may stay collapsed; balance, product details, confirmation and links remain in the main canvas. Independently collapsible/resizable sidebars use the approved hover-only boundary guide.",
+    "The no-separator rule remains authoritative: remove incidental generated local footer/card rules or vertical link dividers; no permanent major-section or sidebar separator strokes.",
+    "Keep sprite proportions and existing pixel assets. Responsive layout must preserve readable prices, statuses, keyboard focus and visible confirmation controls."
+  ],
+  "approvedPrecedents": {
+    "focus": 1,
+    "issues": 2,
+    "projects": {
+      "default": 1,
+      "alternate": 3,
+      "control": "List / Grid"
+    },
+    "initiatives": {
+      "default": 2,
+      "alternate": 3,
+      "control": "Expanded / Overview"
+    },
+    "collection": 3,
+    "usage": {
+      "default": 1,
+      "alternates": [
+        2,
+        3
+      ],
+      "control": "Overview / Provider / Limits"
+    },
+    "settings": 3,
+    "bag": {
+      "selectedOption": 3,
+      "refinement": "Current Pok\u00e9mon hero, item secondary"
+    },
+    "storage": {
+      "selectedOption": 3,
+      "selectionMapping": "User selected 4, the last image after the revised Bag image."
+    },
+    "catchLog": 3
+  },
+  "activeLinearProject": {
+    "id": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+    "name": "PokeTasks",
+    "url": "https://linear.app/spawn-audio/project/poketasks-cedf1ccdaeb7/overview"
+  },
+  "approvalDestination": {
+    "id": "2a850889-2316-45c1-ba25-74df3164731f",
+    "title": "UI Overhaul v2 - Collection: Pok\u00e9dex & Bag",
+    "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-collection-pokedex-and-bag-20fb94c02bdb"
+  },
+  "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/shop-approved.png"
+}

@@ -1,0 +1,117 @@
+{
+  "today-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/77e4f922-06a4-4800-a983-3dbc842d3ab6/0581f385-fb2e-4b44-8338-6b52fbe6284c",
+    "sha256": "ed3135f374488f06a231d807ebc1d0d23b7ff0919d9601b63530dbe2983ced87",
+    "bytes": 1315116,
+    "uploadStatus": 200
+  },
+  "menubar-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/d203a296-0184-48a7-a266-dbeff0e8513d/750b1635-c8a7-49de-8f85-efcb9834d9c0",
+    "sha256": "427cfcbafdb26d28889a2fa778d7b7a6a8630e40339c16200c6d2695b55450d8",
+    "bytes": 1188655,
+    "uploadStatus": 200
+  },
+  "document": {
+    "id": "36914001-ea7f-458f-81ad-c3fbe7290147",
+    "title": "UI Overhaul v2",
+    "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-46c9d567cbb8",
+    "projectId": "332b8967-458a-476c-bfbb-4684fd0ce0ee"
+  },
+  "focus-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/822a64a7-65e2-446b-93d8-20908ae3072d/3b679c06-7355-4601-a889-1b5c25f0da5f",
+    "sha256": "014372c0d83c075fe34d2d750062fa293e8132e0484510970dd061f86a21bbc2",
+    "bytes": 1035432,
+    "uploadStatus": 200
+  },
+  "issues-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/1ecbf957-8bbe-498d-bb68-e7aa7ad154bb/7ea768a7-dd92-425c-9f26-1677688cb896",
+    "sha256": "7f0ff184ff090d3deb67d527bf0560a850f6d315997e649ccb31ec35d21e47cf",
+    "bytes": 1248685,
+    "uploadStatus": 200
+  },
+  "floating-timer-button-states.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/67c2e648-15e4-4c32-b29c-a7ea7641b440/f9eb1191-9574-4392-8716-ea3f4b44f995",
+    "sha256": "82f09dd98cd528feff96fffe8a828e70e4ff7122cbb3da420479bcba070e6d99",
+    "bytes": 61943,
+    "uploadStatus": 200
+  },
+  "issues-superseded-option3.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/907d1a62-26fb-484c-9d62-c440ace36157/005c6abb-8ff2-4d73-901a-d5a5c6d20c86",
+    "sha256": "daa491cba70da3d7d8aa0dc1cd8965a3b11acd3e4ac9e04279de2e78088fff03",
+    "bytes": 1269034,
+    "uploadStatus": 200,
+    "status": "superseded by Issues option 2"
+  },
+  "projects-list-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/4b6d5a4e-b9cd-493e-9a17-e926e8f9b6b3/18660ec9-76af-48fa-9df4-ae20a2d10928",
+    "sha256": "4ddb2bca13ebaa07d4d52064459fe945d73bd49fdb4de14004f46a0a6b7676bb",
+    "bytes": 1321891,
+    "uploadStatus": 200
+  },
+  "projects-grid-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/b792248a-123a-48a2-9da1-feccd0299e77/6707df8d-ca8d-4fa8-a165-70a53435de54",
+    "sha256": "a5f0b59ec7b8bd7d10a024b922944b326140223c2fbef9d61a99875d2f172796",
+    "bytes": 1250456,
+    "uploadStatus": 200
+  },
+  "initiatives-expanded-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/6f8e5e26-b05f-44cf-889d-a9c5adb04e26/c9017b1a-4f67-4bb0-ab69-1130f4551cff",
+    "sha256": "39ec5ac8a649c05d8e8ef589096c7f5132e675f952a86df3b616d9663396fb14",
+    "bytes": 1147651,
+    "uploadStatus": 200
+  },
+  "initiatives-overview-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/0d519304-1a80-4107-89ac-8a18a62aea38/83f70fae-60f6-42a1-a260-dd0839e7023f",
+    "sha256": "41f736396d4526bc008570258ac2c42dcc3c20d337c9d4fda872be058a101460",
+    "bytes": 1266878,
+    "uploadStatus": 200
+  },
+  "collection-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/c5db46ea-5fad-4ca4-be15-79cf8068cc5c/c5608963-6a58-420a-a133-1dcedd31df0c",
+    "sha256": "f82d84c519c358c1a09b2a007184adf225d7f297b1dd1ca69acebae31fbf3457",
+    "bytes": 1307739,
+    "uploadStatus": 200
+  },
+  "usage-overview-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/bb581324-a702-4dd9-a998-e02f4250174f/fdaa987c-d37e-448c-b40b-1c80a03ca6ed",
+    "sha256": "65e0865757a36d8412b54364d0b6567c9aad2cc9b5e334f7bfa0eacad990cb6e",
+    "bytes": 1220656,
+    "uploadStatus": 200
+  },
+  "usage-provider-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/97ae9ec6-bd9e-45e4-82f7-70c0e284cc90/394fc4dd-dc78-49ed-bb7e-c413998c3d01",
+    "sha256": "066ce7edc81c913feac27c933ba46b68f02b6d54d325bf8d23e1bf032899ba3a",
+    "bytes": 1035531,
+    "uploadStatus": 200
+  },
+  "usage-limits-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/826edfc9-ecf2-4e72-9c7a-0140a77eecb0/b2a41a5c-2b41-44c2-a463-fde44d55ee33",
+    "sha256": "b3a323f18eb9c55efcc1ec0db055b11044608410dce84a281b4982c115b3b438",
+    "bytes": 1168299,
+    "uploadStatus": 200
+  },
+  "settings-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/fb0453b1-5800-4741-9db5-81a08c3a2c7b/9cd326bd-877f-4451-8764-d86c3b3ac581",
+    "sha256": "edf60c6fd7f3878d64559d3b47d83e3f8d90b4bf9c089762b3c54ce876f850f8",
+    "bytes": 1195426,
+    "uploadStatus": 200
+  },
+  "bag-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/1e1cf253-5823-4aed-a5af-b995ec945777/35cd195f-8990-4079-be56-892b0a68e124",
+    "sha256": "a5b812831ca5e6679d4568a3662ce9d60c075e3c401cbf5e15874351662cd58a",
+    "bytes": 1255773,
+    "uploadStatus": 200
+  },
+  "storage-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/134712ba-7a8d-4169-8080-1106fb8fd8a9/3953063f-a789-4532-ba2e-e891c21c55fe",
+    "sha256": "1002acbf483c76b89cbd93b7ae9902c03f0a94eabc44ae4020dc5169df0b5ddf",
+    "bytes": 1207445,
+    "uploadStatus": 200
+  },
+  "catch-log-approved.png": {
+    "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/482e2242-59e3-40bf-8dc9-32839e0a98d7/4c3cccbd-0aec-4d3e-9be8-1afad79449e9",
+    "sha256": "0c90d49ce30ec1d3bc1f9b188920cd6ccf08cb21fe9070564874f0ed4eaafede",
+    "bytes": 1238061,
+    "uploadStatus": 200
+  }
+}

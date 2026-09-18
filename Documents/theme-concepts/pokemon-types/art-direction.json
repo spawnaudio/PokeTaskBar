@@ -1,0 +1,94 @@
+{
+  "normal": {
+    "name": "Normal",
+    "pokemon": "Eevee",
+    "direction": "Soft linen studio: warm ivory #F4F0E7 canvas, oatmeal #DDD5C5 shell, cocoa #39342F ink, warm taupe #8D7968 accent. Matte paper-soft surfaces, 10px quietly rounded controls, elegant unembellished system sans, fine warm rules. Tiny woven-fabric motif confined to companion strip. Comfortable neutral everyday style; distinctly tactile, not plain default gray."
+  },
+  "fire": {
+    "name": "Fire",
+    "pokemon": "Charmander",
+    "direction": "Ember forge: dark warm basalt #241A19 canvas, lifted charcoal #352724 surfaces, ivory #FFF0DD ink, vivid ember #F57B3A primary accent and muted red-orange edges. Crisp chamfered 7px controls, thin ember keylines, monospaced clock. Subtle warm ember/firelight in companion strip only. Restrained premium warmth, no flame behind task text or dramatic full-screen fire."
+  },
+  "water": {
+    "name": "Water",
+    "pokemon": "Squirtle",
+    "direction": "Deep tidal blue: rich deep-ocean #102F46 canvas, blue #19465D raised surfaces, seafoam-white #E4F7F5 ink, bright turquoise #55D4D1 accent. Smooth rounded controls with quiet ripple contours, soft blue dividers, cool crisp system sans. Small pixel tidal pool or concentric ripple in companion strip only. Dark aquatic style, distinctly deeper than Ocean Glass."
+  },
+  "electric": {
+    "name": "Electric",
+    "pokemon": "Lapras",
+    "direction": "Volt at night: graphite #212126 canvas, deep charcoal #303036 surfaces, warm ivory #FFF7DB ink, saturated electrical yellow #F1D54E accents. Crisp cut corners, exact thin yellow keylines, segmented XP, subtle tiny circuit traces only beside companion. Dark primary buttons in yellow fill with black labels. Energetic but legible, no bright pink.",
+    "note": "Initial character-specific and light-palette attempts failed generation. Revised to an electric-yellow graphite treatment with the existing Lapras companion."
+  },
+  "grass": {
+    "name": "Grass",
+    "pokemon": "Lapras",
+    "direction": "Fresh greenhouse: pale leaf #F0F5E7 canvas, sage #DCE8CD shell, forest #234D35 ink, leaf-green #588E45 accent. Gently leaf-rounded asymmetric detail on companion card only; simple soft rectangle controls and botanical fine dividers. Bright clean native sans, small leaf-vein detail in companion strip. Quiet morning garden, no image under body text.",
+    "note": "Character-specific preview was rejected twice by image generation; the theme retains the existing Lapras companion. Theme and companion are independent."
+  },
+  "ice": {
+    "name": "Ice",
+    "pokemon": "Alolan Vulpix",
+    "direction": "Polar crystal: snow-white #F4FBFE canvas, frost-blue #D7EAF2 shell, arctic navy #25465D ink, icy blue #68ACD0 accent and pale lavender secondary note. Fine faceted 6px corners and frost-white hairline edges, restrained translucency with solid legible fields. Small crystal/snowflake motif in companion strip. Crisp airy high-contrast winter daylight."
+  },
+  "fighting": {
+    "name": "Fighting",
+    "pokemon": "Machop",
+    "direction": "Dojo discipline: warm unbleached #F3E7D5 canvas, muted clay #E0C4A7 shell, deep oxblood #592F2F ink, vermilion #BA5342 accent. Strong flat squared 4px controls, bold sturdy sans headings, disciplined rules and a narrow wrapping-band motif in companion strip. Athletic precision, calm capable work tool, no arena, violence or distressed grunge."
+  },
+  "poison": {
+    "name": "Poison",
+    "pokemon": "Ekans",
+    "direction": "Amethyst laboratory: dark aubergine #24192F canvas, plum #382342 raised surfaces, pale lilac #F1DEF7 text, orchid #BF78D6 accent plus a tiny acid-lime #CEE17A secondary detail. Clean elongated capsules, thin violet borders and delicate specimen markings. Small abstract liquid-drop motif in companion strip. Elegant curious chemistry mood, no skulls, hazardous gore, or overpowering slime."
+  },
+  "ground": {
+    "name": "Ground",
+    "pokemon": "Sandshrew",
+    "direction": "Desert strata: warm sand #F0DFBF canvas, ochre #DAC099 shell, dark earth #513B2A ink, sun-baked terracotta #AD6A40 accent. Matte layered surfaces, sturdy 6px rounded rectangles, fine horizontal stratum lines, legible grounded humanist sans. Tiny dune contour in companion strip only. Sunlit earthy and quiet, no gritty noisy texture."
+  },
+  "flying": {
+    "name": "Flying",
+    "pokemon": "Pidgey",
+    "direction": "Open sky: cloud-white #F5F9FC canvas, powder-blue #DFEBF8 shell, deep slate-blue #314E73 ink, cornflower #759FDB accent. Long airy capsule controls, subtle sky gradients only in empty header space, extra breathing room, light thin rules. Small feather/windline motif beside companion. Effortless native legibility, no clouds behind text."
+  },
+  "psychic": {
+    "name": "Psychic",
+    "pokemon": "Abra",
+    "direction": "Astral mind: rich indigo-plum #241B38 canvas, violet #382849 surfaces, very pale pink #F9E8F3 ink, saturated rose #E985B7 accent with lilac #AD9FEB secondary. Smooth concentric orbital outlines and pill controls; clean geometric sans and calm aligned timer. Tiny orbital rings confined to companion header. Thoughtful cosmic energy, distinct from gold Midnight Observatory and cyan Neon Arcade."
+  },
+  "bug": {
+    "name": "Bug",
+    "pokemon": "Caterpie",
+    "direction": "Field study: creamy chartreuse-white #F2F3DB canvas, light olive #DEE3B6 shell, dark moss #38451F ink, lively chartreuse #8EAA39 accent. Neatly segmented progress indicators, compact softly angular 6px controls, micro leaf-vein geometry in companion strip. Precise friendly naturalist notebook, sharper lime/olive rather than Grass's leafy green."
+  },
+  "rock": {
+    "name": "Rock",
+    "pokemon": "Geodude",
+    "direction": "Granite workshop: pale limestone #EAE6DE canvas, stone #D4CBBB shell, charcoal-umber #413E36 ink, ochre-bronze #A38A4C accent. Flat quarry-block geometry, bevel-free squared controls with 3px corners, substantial but restrained dividing rules. Very subtle mineral fleck only in companion strip, all reading surfaces smooth. Architectural calm, no fake 3D boulders surrounding controls."
+  },
+  "ghost": {
+    "name": "Ghost",
+    "pokemon": "Gastly",
+    "direction": "Lavender dusk: smoky violet #211D32 canvas, raised dusk #342C49 surfaces, soft lilac-white #ECE5FC ink, spectral lavender #AD93DE accent with tiny seafoam #95CBBE details. Soft quiet rounded controls, faint hazy halo confined to companion strip, subtle dashed or fading separators sparingly. Friendly mysterious twilight; legible still surfaces, no horror, no wisps behind task text."
+  },
+  "dragon": {
+    "name": "Dragon",
+    "pokemon": "Dratini",
+    "direction": "Royal scale: regal navy #171F39 canvas, sapphire #273252 surfaces, warm pearl #F3ECD9 text, antique gold #D5B673 accent with royal violet #8E78CD secondary. Elegant modest angular corners, slender double-rule accents on companion header, orderly subtle scale geometry there only. Majestic precise UI, solid typography, no weapons, castle scenes, heavy fantasy scrollwork or tiny serif text."
+  },
+  "dark": {
+    "name": "Dark",
+    "pokemon": "Umbreon",
+    "direction": "Nocturne: nearly black charcoal #171719 canvas, graphite #272629 surfaces, warm pearl #EEE9DF text, muted moon-gold #B7A575 accent. Restrained matte controls, barely rounded 8px corners, quiet high-contrast selection and thin warm neutral rules. One small crescent/ring detail beside companion. Understated monochrome and gold; distinguish from Dragon by removing heraldic geometry and blue-violet colour."
+  },
+  "steel": {
+    "name": "Steel",
+    "pokemon": "Magnemite",
+    "direction": "Precision alloy: light cool-silver #EDF0F2 canvas, brushed-gray #D9DFE3 shell, gunmetal #2C3841 text, desaturated steel-blue #5C8493 accent. Clean 6px machined corners, exact 1px borders, flat panels with restrained metallic gradient only in shell, technical mono labels and readable native sans body. Tiny rivet-free concentric instrument marking by companion. Refined precision, no industrial clutter."
+  },
+  "fairy": {
+    "name": "Fairy",
+    "pokemon": "Clefairy",
+    "direction": "Rose quartz: blush-white #FFF4F5 canvas, petal-pink #F0DDE8 shell, dark mulberry #633D5C ink, raspberry-rose #BC709F accent, whisper of lilac. Soft 14px rounded controls, delicate fine borders, one tiny star-petal sparkle detail in companion strip, polished rounded sans. Gentle magical warmth, grown-up and readable, no glitter shower, heart overload, pastel low contrast, or cartoon toy controls."
+  }
+}
