@@ -524,7 +524,7 @@ struct MonState: Codable, Equatable, Sendable {
 }
 
 /// 도감 항목 — 라인 전체(초기→최종) 순서 보존.
-struct DexEntry: Codable, Sendable, Identifiable {
+struct DexEntry: Codable, Equatable, Sendable, Identifiable {
     /// Version 1 preserves every API language; earlier saves retained only app-supported names.
     static let currentNamesVersion = 1
     var id = UUID().uuidString
