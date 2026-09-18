@@ -155,7 +155,7 @@ struct PopoverView: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                        .strokeBorder(TahoeHairline.idle, lineWidth: 1)
                 }
                 .padding(.leading, leadingChrome)
                 .padding(.trailing, gap)

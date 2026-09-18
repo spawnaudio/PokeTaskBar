@@ -1068,6 +1068,7 @@ final class UsageStore {
             }
             try linearAPIKeys.save(.init(key: key))
             linearAPIKeyConfigured = true
+            linearIntegrationEnabled = true
             linearIssuesError = nil
         } catch LinearAPIError.malformedKey {
             linearAPIKeyError = "malformed"

@@ -36,6 +36,7 @@ struct SettingsView: View {
     @State private var customScanMatchGeneration = 0
     @FocusState private var customScanFocused: Bool
     @FocusState private var sessionKeyFocused: Bool
+    @FocusState private var linearAPIKeyFocused: Bool
     private var l: L { companion.l }
 
     private var isBundledApp: Bool { AppEnv.isBundledApp }
@@ -77,6 +78,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         generalGroup(store)
+                        linearGroup(store)
                         difficultyGroup
                         menuBarGroup(store)
                         floatingPetGroup(store)
@@ -257,6 +259,13 @@ struct SettingsView: View {
                         }
                     }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func linearGroup(_ store: UsageStore) -> some View {
+        settingsSection(l.linearTab) {
+            linearIntegrationRows(store)
         }
     }
 
@@ -524,6 +533,15 @@ struct SettingsView: View {
         }
     }
 
+    private func submitLinearAPIKey(_ store: UsageStore) {
+        let pasted = linearAPIKeyInput
+        guard !pasted.isEmpty else { return }
+        Task {
+            await store.saveLinearAPIKey(pasted)
+            if store.linearAPIKeyError == nil { linearAPIKeyInput = "" }
+        }
+    }
+
     @ViewBuilder
     private func linearIntegrationRows(_ store: UsageStore) -> some View {
         @Bindable var store = store
@@ -552,13 +570,11 @@ struct SettingsView: View {
         SecureField(store.linearAPIKeyConfigured ? "••••••••" : "lin_api_…", text: $linearAPIKeyInput)
             .textFieldStyle(.roundedBorder)
             .padding(.horizontal, 12)
+            .focused($linearAPIKeyFocused)
+            .onSubmit { submitLinearAPIKey(store) }
         HStack {
             Button(l.save) {
-                let pasted = linearAPIKeyInput
-                Task {
-                    await store.saveLinearAPIKey(pasted)
-                    if store.linearAPIKeyError == nil { linearAPIKeyInput = "" }
-                }
+                submitLinearAPIKey(store)
             }
             .tahoeButtonStyle(.prominent)
             .controlSize(.small)
@@ -622,8 +638,6 @@ struct SettingsView: View {
                 sessionKeyRows(store)
                     // 재시작 후엔 후보 목록이 비어 있어 조직을 바꿀 수 없다 — 열 때 한 번 채운다.
                     .task { await store.refreshSessionOrganizations() }
-                Divider()
-                linearIntegrationRows(store)
                 Divider()
                 groupRow {
                     VStack(alignment: .leading, spacing: 1) {
@@ -760,7 +774,7 @@ struct SettingsView: View {
                 .font(.caption).fontWeight(.semibold).foregroundStyle(.secondary)
                 .textCase(.uppercase).padding(.leading, 4)
             VStack(spacing: 0) { content() }
-                .background(Color(nsColor: .controlBackgroundColor),
+                .background(Color(nsColor: MenuBarPanelMetrics.cardFill),
                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1))

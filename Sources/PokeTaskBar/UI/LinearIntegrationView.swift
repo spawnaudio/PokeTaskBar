@@ -103,10 +103,15 @@ struct LinearIntegrationView: View {
             ])
 
             if !store.linearIntegrationEnabled || !store.linearAPIKeyConfigured {
-                Text(l.linearIssuesNeedsSetup)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(l.linearIssuesNeedsSetup)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(l.settings) { nav.showSettings = true }
+                        .tahoeButtonStyle(.regular)
+                        .controlSize(.small)
+                }
             } else {
                 if selectedRoot == .issues {
                     TahoeTabBar(selection: $selectedIssuesTab, items: [

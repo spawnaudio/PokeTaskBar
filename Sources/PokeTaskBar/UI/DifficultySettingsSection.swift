@@ -42,7 +42,7 @@ struct DifficultySettingsSection: View {
                 Divider()
                 row(l.difficultyShopLabel, value: $draft.shop)
             }
-            .background(Color(nsColor: .controlBackgroundColor),
+            .background(Color(nsColor: MenuBarPanelMetrics.cardFill),
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1))

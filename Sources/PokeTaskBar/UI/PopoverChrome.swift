@@ -20,8 +20,8 @@ struct PopoverMaterialBackground: NSViewRepresentable {
 /// Shared 0.5pt hairline so buttons, chips, tabs, and cards all read as bordered.
 enum TahoeHairline {
     static let width: CGFloat = 0.5
-    static let idle = Color.primary.opacity(0.14)
-    static let selected = Color.primary.opacity(0.18)
+    static let idle = Color(nsColor: MenuBarPanelMetrics.hairline)
+    static let selected = Color(nsColor: MenuBarPanelMetrics.hairlineSelected)
 
     static func tinted(_ color: Color) -> Color { color.opacity(0.45) }
 }
@@ -34,7 +34,7 @@ struct PopoverCardModifier: ViewModifier {
             .padding(12)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.primary.opacity(0.06))
+                    .fill(Color(nsColor: MenuBarPanelMetrics.cardFill))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -71,7 +71,7 @@ extension View {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .frame(maxWidth: expands ? .infinity : nil, alignment: .leading)
-            .background((tint?.opacity(0.16) ?? Color.primary.opacity(0.06)), in: Capsule())
+            .background((tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)), in: Capsule())
             .overlay {
                 Capsule().strokeBorder(
                     tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle,
@@ -85,7 +85,7 @@ extension View {
             .buttonStyle(.plain)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(selected ? Color.primary.opacity(0.14) : Color.clear, in: Capsule())
+            .background(selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear, in: Capsule())
             .overlay {
                 Capsule().strokeBorder(
                     selected ? TahoeHairline.selected : TahoeHairline.idle,
@@ -96,7 +96,7 @@ extension View {
     /// Toolbar strip: filled control surface + hairline.
     func popoverBottomBarChrome() -> some View {
         self
-            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(Color(nsColor: MenuBarPanelMetrics.chipFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)
@@ -112,7 +112,7 @@ extension View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color.primary.opacity(0.16), in: Capsule())
+                .background(Color(nsColor: MenuBarPanelMetrics.selectedFill), in: Capsule())
                 .overlay {
                     Capsule().strokeBorder(TahoeHairline.selected, lineWidth: TahoeHairline.width)
                 }
@@ -147,7 +147,7 @@ extension View {
     func tahoeIconChrome(selected: Bool = false) -> some View {
         self
             .background(
-                selected ? Color.primary.opacity(0.14) : Color.clear,
+                selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
                 in: Circle())
             .overlay {
                 Circle().strokeBorder(
@@ -293,7 +293,7 @@ struct LinearTagChip: View {
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background((tint?.opacity(0.16) ?? Color.primary.opacity(0.06)), in: Capsule())
+            .background((tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)), in: Capsule())
             .overlay {
                 Capsule().strokeBorder(
                     tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle,
@@ -491,7 +491,7 @@ struct PopoverShellToolbar: View {
                     .padding(.horizontal, showTitle ? 10 : 8)
                     .padding(.vertical, 6)
                     .background(
-                        selected ? Color.primary.opacity(0.12) : Color.clear,
+                        selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
                         in: Capsule())
                     .overlay {
                         Capsule().strokeBorder(

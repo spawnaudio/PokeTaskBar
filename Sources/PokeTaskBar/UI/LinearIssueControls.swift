@@ -313,7 +313,7 @@ struct LinearMarkdownText: View {
                 .font(.system(.callout, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(Color(nsColor: MenuBarPanelMetrics.chipFill), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(TahoeHairline.idle, lineWidth: TahoeHairline.width)

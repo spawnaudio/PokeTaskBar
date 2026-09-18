@@ -46,7 +46,23 @@ struct LinearAPIKeyStore: Sendable {
 
     /// Trim paste noise; Linear keys are `lin_api_…`.
     static func normalize(_ raw: String) throws -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.count >= 2 {
+            let first = trimmed.first
+            let last = trimmed.last
+            if (first == "\"" && last == "\"") || (first == "'" && last == "'") {
+                trimmed = String(trimmed.dropFirst().dropLast())
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        if let range = trimmed.range(of: "Authorization:", options: [.caseInsensitive, .anchored]) {
+            trimmed = String(trimmed[range.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let range = trimmed.range(of: "Bearer ", options: [.caseInsensitive, .anchored]) {
+            trimmed = String(trimmed[range.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         guard trimmed.hasPrefix("lin_api_"),
               trimmed.count >= 20,
               trimmed.count <= 512,

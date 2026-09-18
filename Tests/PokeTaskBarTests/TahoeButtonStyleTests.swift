@@ -67,7 +67,8 @@ final class TahoeButtonStyleTests: XCTestCase {
         XCTAssertTrue(source.contains("enum TahoeHairline"))
         XCTAssertTrue(source.contains("func tahoeIconChrome"))
         XCTAssertTrue(source.contains("TahoeHairline.idle"))
-        XCTAssertTrue(source.contains("Color.primary.opacity(0.14)"))
+        XCTAssertTrue(source.contains("MenuBarPanelMetrics.hairline"))
+        XCTAssertTrue(source.contains("MenuBarPanelMetrics.selectedFill"))
         XCTAssertTrue(source.contains("selected ? TahoeHairline.selected : TahoeHairline.idle"))
         XCTAssertTrue(source.contains("detachMenuBarPanel") || source.contains("menuBarPanelDetached"))
         XCTAssertFalse(

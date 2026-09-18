@@ -400,6 +400,13 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertNoThrow(try LinearAPIKeyStore.normalize("lin_api_" + String(repeating: "x", count: 40)))
     }
 
+    func testNormalizeStripsPasteNoise() throws {
+        let key = "lin_api_" + String(repeating: "x", count: 40)
+        XCTAssertEqual(try LinearAPIKeyStore.normalize("  Bearer \(key)\n"), key)
+        XCTAssertEqual(try LinearAPIKeyStore.normalize("\"\(key)\""), key)
+        XCTAssertEqual(try LinearAPIKeyStore.normalize("Authorization: \(key)"), key)
+    }
+
     func testValidateAPIKeyUsesViewerProbe() async throws {
         let data = #"{"data":{"viewer":{"id":"user-1"}}}"#.data(using: .utf8)!
         let http = StubLinearHTTPClient(status: 200, data: data)
@@ -1062,6 +1069,27 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertTrue(ready.canComposeLinearIssue)
         ready.linearIntegrationEnabled = false
         XCTAssertFalse(ready.canComposeLinearIssue)
+    }
+
+    @MainActor
+    func testSavingLinearAPIKeyEnablesIntegration() async throws {
+        let data = #"{"data":{"viewer":{"id":"user-1"}}}"#.data(using: .utf8)!
+        let keyURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("linear-key-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: keyURL) }
+        let defaults = UserDefaults(suiteName: "linear-save-\(UUID().uuidString)")!
+        let usage = UsageStore(
+            providers: [],
+            autoRefresh: false,
+            defaults: defaults,
+            linearClient: LinearClient(http: StubLinearHTTPClient(status: 200, data: data)),
+            linearAPIKeys: LinearAPIKeyStore(fileURL: keyURL))
+        XCTAssertFalse(usage.linearIntegrationEnabled)
+        await usage.saveLinearAPIKey("  Bearer lin_api_" + String(repeating: "x", count: 40) + "  ")
+        XCTAssertNil(usage.linearAPIKeyError)
+        XCTAssertTrue(usage.linearAPIKeyConfigured)
+        XCTAssertTrue(usage.linearIntegrationEnabled)
+        XCTAssertTrue(usage.canComposeLinearIssue)
     }
 
     @MainActor

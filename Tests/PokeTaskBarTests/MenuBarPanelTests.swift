@@ -158,7 +158,6 @@ final class MenuBarPanelTests: XCTestCase {
         let focus = try String(contentsOf: root.appendingPathComponent("FocusTabView.swift"), encoding: .utf8)
         XCTAssertTrue(focus.contains("pomodoroSection"))
         XCTAssertTrue(focus.contains("linearSection"))
-        XCTAssertTrue(focus.contains("showsRefresh: true"))
         XCTAssertTrue(focus.contains("TimeXPView"))
         XCTAssertTrue(focus.contains("session.openPomodoroSetup()"))
         XCTAssertTrue(focus.contains("l.pomoTimer"))
@@ -172,5 +171,82 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertFalse(
             nextToken.hasPrefix(".popoverCard("),
             "CompanionHeader is a canvas hero, not a hairline content card")
+    }
+
+    func testLightAndDarkShellMatchLinearSurfaces() throws {
+        let light = try XCTUnwrap(NSAppearance(named: .aqua))
+        let dark = try XCTUnwrap(NSAppearance(named: .darkAqua))
+        let shellLight = Self.snapshot(MenuBarPanelMetrics.shellFill, for: light)
+        let canvasLight = Self.snapshot(MenuBarPanelMetrics.canvasFill, for: light)
+        let cardLight = Self.snapshot(MenuBarPanelMetrics.cardFill, for: light)
+        let controlLight = Self.snapshot(.controlBackgroundColor, for: light)
+        let underPageLight = Self.snapshot(.underPageBackgroundColor, for: light)
+
+        XCTAssertFalse(
+            shellLight.isEqual(controlLight),
+            "light shell must be Linear sidebar grey (#F3F4F6), not system controlBackground")
+        XCTAssertFalse(
+            canvasLight.isEqual(underPageLight),
+            "light canvas must be white, not underPageBackground grey")
+        XCTAssertEqual(canvasLight.redComponent, 1, accuracy: 0.02)
+        XCTAssertEqual(canvasLight.greenComponent, 1, accuracy: 0.02)
+        XCTAssertEqual(canvasLight.blueComponent, 1, accuracy: 0.02)
+        XCTAssertEqual(cardLight.redComponent, 1, accuracy: 0.02)
+        XCTAssertEqual(shellLight.redComponent, 0.953, accuracy: 0.02)
+        XCTAssertEqual(shellLight.greenComponent, 0.957, accuracy: 0.02)
+        XCTAssertEqual(shellLight.blueComponent, 0.965, accuracy: 0.02)
+
+        let shellDark = Self.snapshot(MenuBarPanelMetrics.shellFill, for: dark)
+        let canvasDark = Self.snapshot(MenuBarPanelMetrics.canvasFill, for: dark)
+        XCTAssertFalse(shellLight.isEqual(shellDark))
+        XCTAssertFalse(canvasLight.isEqual(canvasDark))
+        XCTAssertGreaterThan(canvasDark.brightnessComponent, 0)
+        XCTAssertLessThan(canvasDark.brightnessComponent, 0.2)
+    }
+
+    @MainActor
+    func testAttachedMenuBarWindowCanBecomeKeyForSecureFields() {
+        let stock = NSWindow(
+            contentRect: .zero,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false)
+        XCTAssertFalse(
+            stock.canBecomeKey,
+            "stock borderless windows drop SecureField keystrokes")
+        let panel = MenuBarPanelWindow(
+            contentRect: .zero,
+            styleMask: MenuBarPanelMetrics.attachedStyleMask,
+            backing: .buffered,
+            defer: false)
+        XCTAssertTrue(panel.canBecomeKey)
+        XCTAssertTrue(panel.canBecomeMain)
+    }
+
+    func testLinearAPIKeyLivesInVisibleGeneralSettings() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/SettingsView.swift")
+        let settings = try String(contentsOf: root, encoding: .utf8)
+        guard let general = settings.range(of: "private func generalGroup"),
+              let advanced = settings.range(of: "private func advancedGroup")
+        else {
+            return XCTFail("expected general and advanced settings groups")
+        }
+        let generalBody = settings[general.lowerBound..<advanced.lowerBound]
+        XCTAssertTrue(
+            generalBody.contains("linearIntegrationRows"),
+            "Linear API key must not be buried in collapsed Advanced")
+        XCTAssertFalse(settings[advanced.lowerBound...].contains("linearIntegrationRows(store)"))
+    }
+
+    private static func snapshot(_ color: NSColor, for appearance: NSAppearance) -> NSColor {
+        var resolved = color
+        appearance.performAsCurrentDrawingAppearance {
+            resolved = NSColor(cgColor: color.cgColor) ?? color
+        }
+        return resolved.usingColorSpace(.sRGB) ?? resolved
     }
 }

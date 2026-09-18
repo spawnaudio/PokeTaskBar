@@ -6,6 +6,13 @@ extension LaunchWindowPolicy {
     static let menuBarPanelAutosaveName = "PokeTaskBarMenuBarPanel"
 }
 
+/// Attached panel is borderless; stock `NSWindow` then returns `canBecomeKey == false`,
+/// so Settings `SecureField`s (Linear API key) never receive typing or paste.
+final class MenuBarPanelWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 /// Sticky menu-bar window. Default is the current 360pt compact size; attached
 /// stretch stops at 500pt. Detached uses normal window min/max (no 500pt cap).
 enum MenuBarPanelMetrics {
@@ -48,8 +55,61 @@ enum MenuBarPanelMetrics {
         detached ? detachedMaxHeight : attachedMaxHeight
     }
 
-    static var shellFill: NSColor { .controlBackgroundColor }
-    static var canvasFill: NSColor { .underPageBackgroundColor }
+    /// Linear light: sidebar `#F3F4F6`, page white. Dark keeps a matching split.
+    static var shellFill: NSColor {
+        dynamicColor(
+            name: "PTBShellFill",
+            light: NSColor(srgbRed: 0.953, green: 0.957, blue: 0.965, alpha: 1),
+            dark: NSColor(srgbRed: 0.141, green: 0.145, blue: 0.161, alpha: 1))
+    }
+
+    static var canvasFill: NSColor {
+        dynamicColor(
+            name: "PTBCanvasFill",
+            light: .white,
+            dark: NSColor(srgbRed: 0.090, green: 0.094, blue: 0.106, alpha: 1))
+    }
+
+    static var cardFill: NSColor {
+        dynamicColor(
+            name: "PTBCardFill",
+            light: .white,
+            dark: NSColor.white.withAlphaComponent(0.06))
+    }
+
+    static var chipFill: NSColor {
+        dynamicColor(
+            name: "PTBChipFill",
+            light: NSColor.black.withAlphaComponent(0.04),
+            dark: NSColor.white.withAlphaComponent(0.06))
+    }
+
+    static var selectedFill: NSColor {
+        dynamicColor(
+            name: "PTBSelectedFill",
+            light: NSColor.black.withAlphaComponent(0.08),
+            dark: NSColor.white.withAlphaComponent(0.12))
+    }
+
+    static var hairline: NSColor {
+        dynamicColor(
+            name: "PTBHairline",
+            light: NSColor.black.withAlphaComponent(0.10),
+            dark: NSColor.white.withAlphaComponent(0.16))
+    }
+
+    static var hairlineSelected: NSColor {
+        dynamicColor(
+            name: "PTBHairlineSelected",
+            light: NSColor.black.withAlphaComponent(0.14),
+            dark: NSColor.white.withAlphaComponent(0.22))
+    }
+
+    private static func dynamicColor(name: String, light: NSColor, dark: NSColor) -> NSColor {
+        NSColor(name: name) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        }
+    }
 
     /// Dragging does not detach. Only the in-panel button does.
     static func shouldPlaceBelowStatusItem(detached: Bool) -> Bool { !detached }
@@ -230,7 +290,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let window = NSWindow(
+        let window = MenuBarPanelWindow(
             contentRect: NSRect(origin: .zero, size: MenuBarPanelMetrics.defaultContentSize),
             styleMask: MenuBarPanelMetrics.attachedStyleMask,
             backing: .buffered,
