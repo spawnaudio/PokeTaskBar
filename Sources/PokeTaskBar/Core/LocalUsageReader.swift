@@ -1627,7 +1627,7 @@ enum LocalUsageReader {
 
     /// 특정 로컬 날짜의 합계 → DailyUsage. 해당 날짜 데이터 없으면 nil.
     /// `includeModels` 를 켠 프로바이더만 per-model 내역을 채운다 — 끄면 `models` 는 nil 이라
-    /// 팝오버의 per-model 행이 그 프로바이더에서는 뜨지 않는다(현재는 Pi 만 opt-in).
+    /// 팝오버의 per-model 행이 그 프로바이더에서는 뜨지 않는다(현재는 Pi·omp 가 opt-in).
     static func daily(entries: [Entry], localDay: String, includeModels: Bool = false) -> DailyUsage? {
         var b = Bucket()
         var models: [String: Int]? = includeModels ? [:] : nil
@@ -1714,7 +1714,11 @@ enum LocalUsageReader {
     /// 최근 5시간 롤링 윈도우 기반 활성 블록(번 레이트 추정용).
     static func activeBlock(entries: [Entry], now: Date) -> BlockUsage? {
         let windowStart = now.addingTimeInterval(-blockWindow)
-        let recent = entries.filter { $0.date >= windowStart }.sorted { $0.date < $1.date }
+        // Claude Code can write `<synthetic>` assistant records whose usage fields are all zero
+        // even when no Claude request ran (for example, a local wrapper/session bootstrap). Those
+        // records are parser-valid metadata, not usage: exclude them from both existence and the
+        // block start time so they cannot create or stretch a carrier snapshot/tab.
+        let recent = entries.filter { $0.date >= windowStart && $0.total > 0 }.sorted { $0.date < $1.date }
         guard let first = recent.first else { return nil }
         var b = Bucket()
         for e in recent { b.add(e) }

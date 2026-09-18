@@ -21,6 +21,8 @@ THRESHOLD="${THRESHOLD:-75}"
 LOGIC_CORE=(
   "Sources/PokeTaskBar/Core/EconomyScale.swift"
   "Sources/PokeTaskBar/Core/CompanionModel.swift"
+  "Sources/PokeTaskBar/Core/UnownForm.swift"
+  "Sources/PokeTaskBar/Core/CollectionWeight.swift"
   "Sources/PokeTaskBar/Core/CompanionStore.swift"
   "Sources/PokeTaskBar/Core/XPFeedback.swift"
   "Sources/PokeTaskBar/Core/PokemonProfile.swift"

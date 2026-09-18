@@ -53,6 +53,30 @@ final class PopoverNavigationTests: XCTestCase {
         XCTAssertFalse(nav.showSettings)
         XCTAssertEqual(nav.tab, .focus)
     }
+
+    /// #301: Hide is a right-click. Show has to live on the popover footer, bound to the same
+    /// `floatingPetEnabled` the Settings checkbox already uses. Removing the button must fail this.
+    func testPopoverFooterTogglesFloatingPetWithoutOpeningSettings() throws {
+        let source = try String(contentsOf: Self.popoverSource, encoding: .utf8)
+        let footer = try XCTUnwrap(source.range(of: "struct PopoverFooter"))
+        let body = String(source[footer.lowerBound...])
+        XCTAssertTrue(
+            body.contains("store.floatingPetEnabled.toggle()"),
+            "footer must flip floatingPetEnabled — Hide already does; Show had only Settings")
+        XCTAssertTrue(body.contains("l.floatingPetHideLabel"))
+        XCTAssertTrue(body.contains("l.floatingPetEnableLabel"))
+        XCTAssertFalse(
+            body.contains("nav.showSettings = true\n            }\n            .buttonStyle(.borderless)\n            .help(l.floatingPet"),
+            "the pet control must not be a second door into Settings")
+    }
+
+    private static let popoverSource: URL = {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/PokeTaskBar/UI/PopoverChrome.swift")
+    }()
 }
 
 final class RepresentativeLocalizationTests: XCTestCase {

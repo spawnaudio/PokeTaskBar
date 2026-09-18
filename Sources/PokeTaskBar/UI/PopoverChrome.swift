@@ -665,6 +665,14 @@ struct PopoverFooter: View {
             }
             .buttonStyle(.plain)
             .help(l.todayDeskMenuOpen)
+            Button {
+                store.floatingPetEnabled.toggle()
+            } label: {
+                Image(systemName: store.floatingPetEnabled ? "eye" : "eye.slash")
+            }
+            .buttonStyle(.plain)
+            .help(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
+            .accessibilityLabel(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
             Spacer(minLength: 4)
             if store.linearIntegrationEnabled && store.linearAPIKeyConfigured {
                 if store.isRefreshingLinearIssues {

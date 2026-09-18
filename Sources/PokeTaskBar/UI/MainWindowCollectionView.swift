@@ -179,7 +179,7 @@ struct MainWindowCollectionView: View {
             ScrollView {
                 LazyVStack(spacing: 6) {
                     if species.isEmpty { Text("No matching Pokémon.").foregroundStyle(.secondary).padding() }
-                    ForEach(species) { pokemon in
+                    ForEach(species, id: \.collectionID) { pokemon in
                         selectionRow(name: pokemon.name, subtitle: String(format: "#%03d", pokemon.id), id: pokemon.id,
                             shiny: pokemon.isShiny, selected: selectedSpecies?.id == pokemon.id) { nav.selectedSpeciesID = pokemon.id }
                     }

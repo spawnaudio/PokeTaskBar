@@ -197,18 +197,21 @@ struct PopoverView: View {
     @ViewBuilder
     private var updateBanner: some View {
         if let update = updater.available, store.updateNotificationsEnabled {
-            HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(l.updateAvailable(update.version, current: updater.currentVersion))
                     .font(.caption)
-                Spacer()
-                if updater.isUpdating {
-                    Text(l.updating).font(.caption2).foregroundStyle(.secondary)
-                    ProgressView().controlSize(.small)
-                } else {
-                    Button(l.updateButton) { updater.applyUpdate() }
-                        .tahoeButtonStyle(.prominent).controlSize(.small)
-                    Button(l.updateLater) { updater.skipCurrent() }
-                        .tahoeButtonStyle(.accessory).controlSize(.small).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Spacer()
+                    if updater.isUpdating {
+                        Text(l.updating).font(.caption2).foregroundStyle(.secondary)
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Button(l.updateButton) { updater.applyUpdate() }
+                            .tahoeButtonStyle(.prominent).controlSize(.small)
+                        Button(l.skipThisVersion) { updater.skipCurrent() }
+                            .tahoeButtonStyle(.accessory).controlSize(.small).foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(8)

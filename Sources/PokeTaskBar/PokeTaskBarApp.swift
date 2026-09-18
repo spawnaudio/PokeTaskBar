@@ -571,8 +571,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// **하한(fps 설정)이 반드시 들어가야 한다.** 프레임은 하한에 맞춰 솎아낸 결과물이라, 키가
     /// 종·이로치만 담으면 설정을 바꿔도 다음 진화까지 옛 fps 로 계속 돈다(설계 시 확인된 함정).
     /// 순수·테스트용: `testIdentityKeysIncludeTheFrameFloor`.
-    static func menuSpriteKey(id: Int, shiny: Bool, floor: TimeInterval) -> String {
-        "\(id)-\(shiny)-\(floor)"
+    static func menuSpriteKey(id: Int, shiny: Bool, floor: TimeInterval, unownForm: UnownForm? = nil) -> String {
+        let form = UnownForm.resolved(speciesID: id, form: unownForm)
+        return "\(id)-\(shiny)-\(floor)-\(form?.rawValue ?? "")"
     }
 
     // MARK: 프레임 합성 (22px)
