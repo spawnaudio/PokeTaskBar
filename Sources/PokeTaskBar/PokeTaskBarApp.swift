@@ -390,12 +390,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard store.linearIntegrationEnabled else { return }
         Task { @MainActor in
             let issues = await store.fetchLinearCompletionsForCompanion()
-            let outcome = companion.creditLinearCompletions(issues)
-            _ = companion.creditLinearProjects(store.linearRecentCompletedProjects)
-            store.announceLinearCompletions(outcome.newlyCredited)
-            for completed in outcome.newlyCredited {
-                sessionStore.handleLinearCompletion(completed)
-            }
+            Self.applyLinearCompletions(
+                issues, projects: store.linearRecentCompletedProjects,
+                store: store, companion: companion, sessionStore: sessionStore)
+        }
+    }
+
+    /// Keep reward crediting and its visible feedback together for each polling result.
+    static func applyLinearCompletions(
+        _ issues: [LinearCompletedIssue], projects: [LinearCompletedProject],
+        store: UsageStore, companion: CompanionStore, sessionStore: FocusSessionStore
+    ) {
+        let outcome = companion.creditLinearCompletions(issues)
+        let projectOutcome = companion.creditLinearProjects(projects)
+        store.announceLinearCompletions(outcome.newlyCredited, projects: projectOutcome.newlyCredited)
+        for completed in outcome.newlyCredited {
+            sessionStore.handleLinearCompletion(completed)
         }
     }
 

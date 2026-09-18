@@ -509,6 +509,19 @@ struct L {
     var linearStatusUnknown: String { t("상태", "Status", "ステータス", "Estado", "Statut", "Status", "Status") }
     var linearLastSynced: String { t("마지막 동기화", "Last synced", "最終同期", "Última sincronización", "Dernière synchronisation", "Última sincronização", "Zuletzt synchronisiert") }
     var linearCompletedBubbleTitle: String { t("이슈 완료!", "Issue complete!", "課題完了！", "¡Issue completada!", "Issue terminée !", "Issue concluída!", "Issue erledigt!") }
+    func linearProjectCompletedBubbleTitle(_ count: Int) -> String {
+        if count == 1 {
+            return t("프로젝트 완료!", "Project complete!", "プロジェクト完了！", "¡Proyecto completado!",
+                     "Projet terminé !", "Projeto concluído!", "Projekt abgeschlossen!")
+        }
+        return t("프로젝트 \(count)개 완료!", "\(count) projects complete!", "プロジェクト\(count)件完了！",
+                 "¡\(count) proyectos completados!", "\(count) projets terminés !",
+                 "\(count) projetos concluídos!", "\(count) Projekte abgeschlossen!")
+    }
+    func linearMixedCompletedBubbleTitle(_ count: Int) -> String {
+        t("\(count)건 완료!", "\(count) completions!", "\(count)件完了！", "¡\(count) completados!",
+          "\(count) éléments terminés !", "\(count) concluídos!", "\(count) Abschlüsse!")
+    }
     func linearCompletedBubbleTitleCount(_ count: Int) -> String {
         t("이슈 \(count)건 완료!",
           "\(count) issues complete!",
