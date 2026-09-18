@@ -1,0 +1,345 @@
+{
+   "normal": {
+      "names": {
+         "en": "Normal",
+         "fr": "Normal"
+      },
+      "colour": "#9099a1",
+      "strong_against": [],
+      "weak_against": [
+         "rock",
+         "steel"
+      ],
+      "ineffective_against": [
+         "ghost"
+      ]
+   },
+   "fire": {
+      "names": {
+         "en": "Fire",
+         "fr": "Feu"
+      },
+      "colour": "#ff9c54",
+      "strong_against": [
+         "grass",
+         "ice",
+         "bug",
+         "steel"
+      ],
+      "weak_against": [
+         "fire",
+         "water",
+         "rock",
+         "dragon"
+      ],
+      "ineffective_against": []
+   },
+   "water": {
+      "names": {
+         "en": "Water",
+         "fr": "Eau"
+      },
+      "colour": "#4d90d5",
+      "strong_against": [
+         "fire",
+         "ground",
+         "rock"
+      ],
+      "weak_against": [
+         "water",
+         "grass",
+         "dragon"
+      ],
+      "ineffective_against": []
+   },
+   "electric": {
+      "names": {
+         "en": "Electric",
+         "fr": "Électrik"
+      },
+      "colour": "#f3d23b",
+      "strong_against": [
+         "water",
+         "flying"
+      ],
+      "weak_against": [
+         "electric",
+         "grass",
+         "dragon"
+      ],
+      "ineffective_against": [
+         "ground"
+      ]
+   },
+   "grass": {
+      "names": {
+         "en": "Grass",
+         "fr": "Plante"
+      },
+      "colour": "#63bb5b",
+      "strong_against": [
+         "water",
+         "ground",
+         "rock"
+      ],
+      "weak_against": [
+         "fire",
+         "grass",
+         "poison",
+         "flying",
+         "bug",
+         "dragon",
+         "steel"
+      ],
+      "ineffective_against": []
+   },
+   "ice": {
+      "names": {
+         "en": "Ice",
+         "fr": "Glace"
+      },
+      "colour": "#74cec0",
+      "strong_against": [
+         "grass",
+         "ground",
+         "flying",
+         "dragon"
+      ],
+      "weak_against": [
+         "fire",
+         "water",
+         "ice",
+         "steel"
+      ],
+      "ineffective_against": []
+   },
+   "fighting": {
+      "names": {
+         "en": "Fighting",
+         "fr": "Combat"
+      },
+      "colour": "#ce4069",
+      "strong_against": [
+         "normal",
+         "ice",
+         "rock",
+         "dark",
+         "steel"
+      ],
+      "weak_against": [
+         "poison",
+         "flying",
+         "psychic",
+         "bug",
+         "fairy"
+      ],
+      "ineffective_against": [
+         "ghost"
+      ]
+   },
+   "poison": {
+      "names": {
+         "en": "Poison",
+         "fr": "Poison"
+      },
+      "colour": "#ab6ac8",
+      "strong_against": [
+         "grass",
+         "fairy"
+      ],
+      "weak_against": [
+         "poison",
+         "ground",
+         "rock",
+         "ghost"
+      ],
+      "ineffective_against": [
+         "steel"
+      ]
+   },
+   "ground": {
+      "names": {
+         "en": "Ground",
+         "fr": "Sol"
+      },
+      "colour": "#d97746",
+      "strong_against": [
+         "fire",
+         "electric",
+         "poison",
+         "rock",
+         "steel"
+      ],
+      "weak_against": [
+         "grass",
+         "bug"
+      ],
+      "ineffective_against": [
+         "flying"
+      ]
+   },
+   "flying": {
+      "names": {
+         "en": "Flying",
+         "fr": "Vol"
+      },
+      "colour": "#8fa8dd",
+      "strong_against": [
+         "grass",
+         "fighting",
+         "bug"
+      ],
+      "weak_against": [
+         "electric",
+         "rock",
+         "steel"
+      ],
+      "ineffective_against": []
+   },
+   "psychic": {
+      "names": {
+         "en": "Psychic",
+         "fr": "Psy"
+      },
+      "colour": "#f97176",
+      "strong_against": [
+         "fighting",
+         "poison"
+      ],
+      "weak_against": [
+         "psychic",
+         "steel"
+      ],
+      "ineffective_against": [
+         "dark"
+      ]
+   },
+   "bug": {
+      "names": {
+         "en": "Bug",
+         "fr": "Insecte"
+      },
+      "colour": "#90c12c",
+      "strong_against": [
+         "grass",
+         "psychic",
+         "dark"
+      ],
+      "weak_against": [
+         "fire",
+         "fighting",
+         "poison",
+         "flying",
+         "ghost",
+         "steel",
+         "fairy"
+      ],
+      "ineffective_against": []
+   },
+   "rock": {
+      "names": {
+         "en": "Rock",
+         "fr": "Roche"
+      },
+      "colour": "#c7b78b",
+      "strong_against": [
+         "fire",
+         "ice",
+         "flying",
+         "bug"
+      ],
+      "weak_against": [
+         "fighting",
+         "ground",
+         "steel"
+      ],
+      "ineffective_against": []
+   },
+   "ghost": {
+      "names": {
+         "en": "Ghost",
+         "fr": "Spectre"
+      },
+      "colour": "#5269ac",
+      "strong_against": [
+         "psychic",
+         "ghost"
+      ],
+      "weak_against": [
+         "dark"
+      ],
+      "ineffective_against": [
+         "normal"
+      ]
+   },
+   "dragon": {
+      "names": {
+         "en": "Dragon",
+         "fr": "Dragon"
+      },
+      "colour": "#0a6dc4",
+      "strong_against": [
+         "dragon"
+      ],
+      "weak_against": [
+         "steel"
+      ],
+      "ineffective_against": [
+         "fairy"
+      ]
+   },
+   "dark": {
+      "names": {
+         "en": "Dark",
+         "fr": "Ténèbres"
+      },
+      "colour": "#5a5366",
+      "strong_against": [
+         "psychic",
+         "ghost"
+      ],
+      "weak_against": [
+         "fighting",
+         "dark",
+         "fairy"
+      ],
+      "ineffective_against": []
+   },
+   "steel": {
+      "names": {
+         "en": "Steel",
+         "fr": "Acier"
+      },
+      "colour": "#5a8ea1",
+      "strong_against": [
+         "ice",
+         "rock",
+         "fairy"
+      ],
+      "weak_against": [
+         "fire",
+         "water",
+         "electric",
+         "steel"
+      ],
+      "ineffective_against": []
+   },
+   "fairy": {
+      "names": {
+         "en": "Fairy",
+         "fr": "Fée"
+      },
+      "colour": "#ec8fe6",
+      "strong_against": [
+         "fighting",
+         "dragon",
+         "dark"
+      ],
+      "weak_against": [
+         "fire",
+         "poison",
+         "steel"
+      ],
+      "ineffective_against": []
+   }
+}

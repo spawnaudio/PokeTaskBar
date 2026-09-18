@@ -1,0 +1,6 @@
+# Curated design references are tracked in ordinary Git, without Git LFS.
+# Keep operating-system metadata and temporary files out of the collection.
+.DS_Store
+Thumbs.db
+*.tmp
+*.part
