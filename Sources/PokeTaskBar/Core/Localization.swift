@@ -22,6 +22,28 @@ struct L {
     // MARK: 탭
     var home: String { t("홈", "Home", "ホーム", "Inicio", "Accueil", "Início", "Startseite") }
     var focusTab: String { t("집중", "Focus", "集中", "Enfoque", "Focus", "Foco", "Fokus") }
+    var menuBarUsage: String { t("사용량", "Usage", "使用量", "Uso", "Usage", "Uso", "Nutzung") }
+    var currentFocus: String { t("현재 집중", "Current focus", "現在の集中", "Enfoque actual", "Focus actuel", "Foco atual", "Aktueller Fokus") }
+    var finishFocusTimer: String { t("종료", "Finish", "終了", "Finalizar", "Terminer", "Concluir", "Beenden") }
+    var moveFloatingTimer: String { t("타이머와 펫 이동", "Move timer and pet", "タイマーとペットを移動", "Mover temporizador y mascota", "Déplacer le minuteur et le compagnon", "Mover temporizador e companheiro", "Timer und Begleiter bewegen") }
+    var resizeFloatingTimer: String { t("타이머 너비 조절", "Resize timer", "タイマーの幅を変更", "Cambiar ancho del temporizador", "Redimensionner le minuteur", "Redimensionar temporizador", "Timerbreite ändern") }
+    var focusDuration: String { t("집중 시간", "Focus duration", "集中時間", "Duración del enfoque", "Durée de concentration", "Duração do foco", "Fokusdauer") }
+    var startFocus: String { t("집중 시작", "Start focus", "集中を開始", "Iniciar enfoque", "Démarrer la concentration", "Iniciar foco", "Fokus starten") }
+    var setTimerDuration: String { t("타이머 시간 설정", "Set timer duration", "タイマーの時間を設定", "Establecer duración", "Régler la durée", "Definir duração", "Timerdauer festlegen") }
+    var setTimeRemaining: String { t("남은 시간 설정", "Set time remaining", "残り時間を設定", "Establecer tiempo restante", "Régler le temps restant", "Definir tempo restante", "Restzeit festlegen") }
+    var timerMinutesLabel: String { t("분", "Minutes", "分", "Minutos", "Minutes", "Minutos", "Minuten") }
+    func timerMinuteRange(_ lower: Int, _ upper: Int) -> String {
+        t("\(lower)–\(upper)분 입력", "Enter \(lower)–\(upper) minutes", "\(lower)〜\(upper)分を入力",
+          "Introduce entre \(lower) y \(upper) minutos", "Saisissez \(lower) à \(upper) minutes",
+          "Insira de \(lower) a \(upper) minutos", "\(lower)–\(upper) Minuten eingeben")
+    }
+    var floatingTimerActions: String { t("타이머 동작", "Timer actions", "タイマー操作", "Acciones del temporizador", "Actions du minuteur", "Ações do temporizador", "Timeraktionen") }
+    var companionDetails: String { t("파트너 정보", "Companion details", "パートナーの詳細", "Detalles del compañero", "Détails du compagnon", "Detalhes do companheiro", "Partnerdetails") }
+    func focusTimeRemaining(_ minutes: Int) -> String {
+        t("총 \(minutes)분 중 남은 시간", "remaining of \(minutes) minutes", "\(minutes)分の残り時間",
+          "restantes de \(minutes) minutos", "restantes sur \(minutes) minutes",
+          "restantes de \(minutes) minutos", "verbleibend von \(minutes) Minuten")
+    }
     var linearTab: String { t("Linear", "Linear", "Linear", "Linear", "Linear", "Linear", "Linear") }
     var usageTab: String { t("토큰 사용량", "Token usage", "トークン使用量", "Uso de tokens", "Usage tokens", "Uso de tokens", "Token-Nutzung") }
     var timeXPTab: String { t("시간 XP", "Time XP", "時間XP", "XP tiempo", "XP temps", "XP tempo", "Zeit-XP") }
@@ -87,6 +109,17 @@ struct L {
     var weeklySonnet: String { t("주간 Sonnet", "Weekly Sonnet", "週間 Sonnet", "Sonnet semanal", "Sonnet hebdo", "Sonnet semanal", "Sonnet – wöchentlich") }
     var claudeCurrentBlock: String { t("Claude 현재 5h 블록", "Claude current 5h block", "Claude 現在の5hブロック", "Bloque actual de 5h de Claude", "Bloc 5 h actuel de Claude", "Bloco atual de 5h do Claude", "Aktueller 5-Stunden-Block von Claude") }
     var reset: String { t("리셋", "Reset", "リセット", "Reinicio", "Réinit.", "Renovação", "Zurücksetzen") }
+    /// 페이스 눈금 툴팁. "적정 사용량"으로 부르지 않는다 — 덜 쓰라는 권고가 아니라 "이 속도면 리셋
+    /// 전에 소진된다"는 기준선이고, 창을 다 채워 쓸 이유가 없는 날에 규범으로 읽히면 안 된다.
+    func paceHint(_ percent: String) -> String {
+        t("페이스 — 창 시간만큼 균등하게 썼다면 지금 \(percent)입니다.",
+          "Pace — an even burn across this window would sit at \(percent) now.",
+          "ペース — この枠を均等に使っていれば今は \(percent) です。",
+          "Ritmo: un consumo uniforme en esta ventana estaría en \(percent) ahora.",
+          "Rythme — une consommation régulière sur cette fenêtre serait à \(percent).",
+          "Ritmo — um consumo uniforme nesta janela estaria em \(percent) agora.",
+          "Tempo – bei gleichmäßigem Verbrauch in diesem Fenster wären es jetzt \(percent).")
+    }
     var limitReached: String { t("한도 도달", "Limit reached", "上限到達", "Límite alcanzado", "Limite atteinte", "Limite atingido", "Limit erreicht") }
     var personalSpendLimit: String { t("개인 사용 한도", "Personal spend limit", "個人利用上限", "Límite de gasto personal", "Limite de dépense personnelle", "Limite de gasto pessoal", "Persönliches Ausgabenlimit") }
     var staleLimits: String { t("갱신 지연", "Stale", "更新遅延", "Desactualizado", "Périmé", "Desatualizado", "Nicht aktuell") }
@@ -145,6 +178,19 @@ struct L {
     /// Antigravity 한도 그룹 및 윈도우 이름
     var antigravityGeminiGroup: String { t("Gemini 모델군", "Gemini Models", "Gemini モデル群", "Modelos Gemini", "Modèles Gemini", "Modelos Gemini", "Gemini-Modelle") }
     var antigravityThirdPartyGroup: String { t("Claude & GPT 모델군", "Claude & GPT Models", "Claude & GPT モデル群", "Modelos Claude y GPT", "Modèles Claude et GPT", "Modelos Claude e GPT", "Claude- & GPT-Modelle") }
+    /// API `displayName` ("Gemini Models", "Claude and GPT models", …) → 앱 언어 라벨.
+    /// 팝오버·한도 알림·사탕 알림·펫 버블이 같은 매핑을 써야 한 화면 두 언어가 안 난다(#322).
+    /// 판정은 `AntigravityRateLimitStatus.geminiGroup` / `thirdPartyGroup` 과 같은 축(gemini /
+    /// claude|gpt|3p). 모르는 이름은 API 문자열을 그대로 둔다.
+    func antigravityGroupTitle(_ displayName: String) -> String {
+        if displayName.localizedCaseInsensitiveContains("gemini") { return antigravityGeminiGroup }
+        if displayName.localizedCaseInsensitiveContains("claude")
+            || displayName.localizedCaseInsensitiveContains("gpt")
+            || displayName.localizedCaseInsensitiveContains("3p") {
+            return antigravityThirdPartyGroup
+        }
+        return displayName
+    }
     func antigravityWindow(window: String?, bucketId: String) -> String {
         if window == "5h" || bucketId.contains("5h") {
             return fiveHourSession
@@ -1140,10 +1186,20 @@ struct L {
     // MARK: 컴패니언
     var finalForm: String { t("최종 진화체", "Final form", "最終進化", "Forma final", "Forme finale", "Forma final", "Letzte Entwicklungsstufe") }
     func stage(_ i: Int, _ k: Int) -> String { t("진화 단계 \(i) / \(k)", "Stage \(i) / \(k)", "進化段階 \(i) / \(k)", "Etapa \(i) / \(k)", "Stade \(i) / \(k)", "Estágio \(i) / \(k)", "Entwicklungsstufe \(i) / \(k)") }
-    var unknownNextEvolution: String { t("알 수 없는 다음 진화", "Unknown next evolution", "次の進化先は不明", "Próxima evolución desconocida", "Prochaine évolution inconnue", "Próxima evolução desconhecida", "Nächste Entwicklung unbekannt") }
+    var unknownNextEvolution: String { t("알 수 없는 다음 진화", "Unknown next evolution", "次の進化先は不明", "Próxima evolución desconocida", "Prochaine évolution inconnue", "Próxima evolución desconhecida", "Nächste Entwicklung unbekannt") }
     var eggIncubating: String { t("🥚 부화 준비 중", "🥚 Incubating", "🥚 孵化の準備中", "🥚 Incubando", "🥚 En incubation", "🥚 Incubando", "🥚 Wird ausgebrütet") }
     func eggToHatch(_ amount: String) -> String { t("부화까지 \(amount)", "\(amount) to hatch", "孵化まで \(amount)", "\(amount) para eclosionar", "\(amount) avant l'éclosion", "\(amount) para chocar", "\(amount) bis zum Schlüpfen") }
-    func toNextEvolution(_ amount: String) -> String { t("다음 진화까지 \(amount)", "\(amount) to next evolution", "次の進化まで \(amount)", "\(amount) para la siguiente evolución", "\(amount) avant la prochaine évolution", "\(amount) para a próxima evolução", "\(amount) bis zur nächsten Entwicklung") }
+    /// 알 부화 임계 도달 후 외부 데이터 요청이 실패한 동안의 다음 새로고침 안내.
+    var eggHatchDelayed: String {
+        t("⏳ 부화가 지연되고 있어요. 다음 새로고침에서 다시 시도해요",
+          "⏳ Hatching is delayed — retrying on the next refresh",
+          "⏳ 孵化が遅れています。次回の更新時に再試行します",
+          "⏳ La eclosión se retrasa; se reintentará en la próxima actualización",
+          "⏳ L’éclosion est retardée — nouvel essai au prochain rafraîchissement",
+          "⏳ A eclosão está atrasada — nova tentativa na próxima atualização",
+          "⏳ Das Schlüpfen verzögert sich — neuer Versuch bei der nächsten Aktualisierung")
+    }
+    func toNextEvolution(_ amount: String) -> String { t("다음 진화까지 \(amount)", "\(amount) to next evolution", "次の進化まで \(amount)", "\(amount) para la siguiente evolución", "\(amount) avant la prochaine évolution", "\(amount) para a próxima evolución", "\(amount) bis zur nächsten Entwicklung") }
     func toGraduation(_ amount: String) -> String { t("졸업까지 \(amount)", "\(amount) to graduation", "卒業まで \(amount)", "\(amount) para graduarse", "\(amount) avant le diplôme", "\(amount) para se formar", "\(amount) bis zum Abschied") }
     func growthBoost(_ multiplier: Int) -> String { t("\(multiplier)× 성장", "\(multiplier)× growth", "成長 \(multiplier)倍", "Crecimiento ×\(multiplier)", "Croissance ×\(multiplier)", "Crescimento ×\(multiplier)", "\(multiplier)× Wachstum") }
     func graduated(_ name: String) -> String {
@@ -1165,6 +1221,22 @@ struct L {
     var catchLogTitle: String { t("포획 로그", "Catch log", "捕獲ログ", "Registro de capturas", "Journal de captures", "Registro de capturas", "Fangprotokoll") }
     /// 도감 총계는 개체가 아니라 종 수 — 로그의 dexTotal("총 N마리")과 단위가 다르다.
     func dexSpeciesTotal(_ n: Int) -> String { t("\(n)종", "\(n) species", "\(n)種", "\(n) especies", "\(n) espèces", "\(n) espécies", "\(n) Spezies") }
+    func unownFormsCollected(_ count: Int) -> String {
+        t("안농 글자 \(count)/28", "Unown forms \(count)/28", "アンノーン \(count)/28文字",
+          "Formas Unown \(count)/28", "Formes Zarbi \(count)/28", "Formas Unown \(count)/28",
+          "Icognito-Formen \(count)/28")
+    }
+    var unownChooseForm: String {
+        t("글자 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme", "Escolher forma", "Form auswählen")
+    }
+    var unownNotCollected: String {
+        t("미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée", "Não coletada", "Noch nicht gesammelt")
+    }
+    func dexPageLabel(_ page: Int, _ total: Int) -> String {
+        t("\(total)페이지 중 \(page)페이지", "Page \(page) of \(total)", "\(total)ページ中 \(page)ページ", "Página \(page) de \(total)", "Page \(page) sur \(total)", "Página \(page) de \(total)", "Seite \(page) von \(total)")
+    }
+    var dexPagePrev: String { t("이전 페이지", "Previous page", "前のページ", "Página anterior", "Page précédente", "Página anterior", "Vorherige Seite") }
+    var dexPageNext: String { t("다음 페이지", "Next page", "次のページ", "Página siguiente", "Page suivante", "Próxima página", "Nächste Seite") }
     var dexRaising: String { t("키우는 중", "Raising", "育成中", "Criando", "En élevage", "Treinando", "In Aufzucht") }
     /// 포획 로그에서 졸업분과 놓아준 개체를 가르는 표식. 종은 도감에 남고 개체 기록만 이 뱃지를 단다.
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen") }
@@ -1373,7 +1445,17 @@ struct L {
           "🆕 v\(version) verfügbar (installiert: \(current))")
     }
     var updateButton: String { t("업데이트", "Update", "更新", "Actualizar", "Mettre à jour", "Instalar", "Aktualisieren") }
-    var updateLater: String { t("나중에", "Later", "後で", "Más tarde", "Plus tard", "Depois", "Später") }
+    var skipThisVersion: String { t("이 버전 건너뛰기", "Skip this version", "このバージョンをスキップ", "Omitir esta versión", "Ignorer cette version", "Ignorar esta versão", "Diese Version überspringen") }
+    func skippedVersion(_ version: String) -> String {
+        t("v\(version)을 건너뛰었어요",
+          "You skipped v\(version)",
+          "v\(version) をスキップしました",
+          "Omitiste la v\(version)",
+          "Tu as ignoré la v\(version)",
+          "Você ignorou a v\(version)",
+          "Du hast v\(version) übersprungen")
+    }
+    var showSkippedAgain: String { t("다시 알리기", "Show again", "もう一度表示", "Mostrar de nuevo", "Afficher à nouveau", "Mostrar de novo", "Wieder anzeigen") }
     var updating: String { t("업데이트 중…", "Updating…", "更新中…", "Actualizando…", "Mise à jour…", "Atualizando…", "Wird aktualisiert…") }
     var updateSectionTitle: String { t("업데이트", "Updates", "アップデート", "Actualizaciones", "Mises à jour", "Atualizações", "Aktualisierungen") }
     var updateNotificationsLabel: String { t("업데이트 알림", "Update notifications", "アップデート通知", "Notificaciones de actualización", "Notifications de mise à jour", "Notificações de atualização", "Hinweise auf Aktualisierungen") }
@@ -1403,6 +1485,29 @@ struct L {
     }
     var useAfterHatch: String { t("부화 후 사용할 수 있어요", "Usable after hatching", "孵化後に使えます", "Se puede usar después de eclosionar", "Utilisable après l'éclosion", "Dá para usar depois que chocar", "Nach dem Schlüpfen verwendbar") }
     var useNeedsPokemon: String { t("사용할 포켓몬이 없어요", "No Pokémon to use it on", "使えるポケモンがいません", "No hay ningún Pokémon en quien usarlo", "Aucun Pokémon sur qui l'utiliser", "Nenhum Pokémon para usar o item", "Kein Pokémon, bei dem du es verwenden kannst") }
+
+    /// Rare Candy batch preview, including carryover and graduation waste.
+    var candyGraduates: String {
+        t("이 포켓몬은 졸업할 것으로 예상돼요.", "Expected to graduate.", "卒業する見込みです。",
+          "Se espera que se gradúe.", "Devrait terminer sa croissance.",
+          "Deve se formar.", "Schließt voraussichtlich sein Training ab.")
+    }
+    func candyCarryoverXP(_ xp: String) -> String {
+        t("예상 진화 후 이월 경험치: \(xp) XP.",
+          "Expected after evolution: \(xp) XP carried over.",
+          "進化後の予想繰越経験値：\(xp) XP。",
+          "Tras evolucionar: \(xp) XP de remanente previsto.",
+          "Après évolution : \(xp) XP de report prévu.",
+          "Após evoluir: previsão de \(xp) XP restantes.",
+          "Nach der Entwicklung: voraussichtlich \(xp) EP übertragen.")
+    }
+    func candyDiscardedXP(_ xp: String) -> String {
+        t("졸업 시 남는 \(xp) XP는 사라져요.", "On graduation, \(xp) leftover XP will be discarded.",
+          "卒業時、余った\(xp) XPは失われます。", "Al graduarse, se perderán \(xp) XP sobrantes.",
+          "À la fin de la croissance, les \(xp) XP restants seront perdus.",
+          "Ao se formar, \(xp) XP restantes serão descartados.",
+          "Beim Trainingsabschluss verfallen \(xp) überschüssige EP.")
+    }
 
     /// 아이템 표시명 — species 처럼 공식 현지명.
     func itemName(_ kind: ItemKind) -> String {

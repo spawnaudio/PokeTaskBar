@@ -1,0 +1,254 @@
+[
+  {
+    "file": "normal-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1609118,
+    "sha256": "ebcb28ffc07d0b3ab8f0e84e66f06e26ba9f09a971afa225502986cf95a05c92"
+  },
+  {
+    "file": "normal-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1584190,
+    "sha256": "46a1c8e9eb9ed31e2eadfeb3ddc124fc93c4bbde59a599d93cb2e6cfff69c7d3"
+  },
+  {
+    "file": "fire-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1152689,
+    "sha256": "11f83ba770c7102c8a45b8f6e323e92c5440a60d0208b04276e4585e47b2ee19"
+  },
+  {
+    "file": "fire-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1644364,
+    "sha256": "1db7dc28abd8b0312a52289aa88083645df50e2944afec935b29788046b024b5"
+  },
+  {
+    "file": "water-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1239342,
+    "sha256": "1c34f3896c7c37065e755d5036c179b1e4ad07cfde92c41763d846f2d428bfc0"
+  },
+  {
+    "file": "water-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1694988,
+    "sha256": "cc0a3cfe54bd5b84ce6a2e2961095ea2d71df8e6227d27c3cb3a0c91de672482"
+  },
+  {
+    "file": "electric-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1279074,
+    "sha256": "0f9997ab1dce3d62d0c2f44140017d9c6474ac20b58115009b201efcd4f955b3"
+  },
+  {
+    "file": "electric-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1691328,
+    "sha256": "6874513517b62df00400b8d5052d77de31fbf565304f7bfbd6f6b3d835217b77"
+  },
+  {
+    "file": "grass-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1153275,
+    "sha256": "64f4e9ef09dbac8b3672f5ed352b562def328a53381f51317cb82ae4114d42b9"
+  },
+  {
+    "file": "grass-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1604679,
+    "sha256": "0e989febc4c8cb3a1f49194c2f1d4dfde88fcfdf15315410bda866d55435e547"
+  },
+  {
+    "file": "ice-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1228973,
+    "sha256": "edf2cd3594940f351fdabad0b25eccdceb3ac566b8788e8d0013e54f1fcda130"
+  },
+  {
+    "file": "ice-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1576990,
+    "sha256": "b7d2299bf29de255ed90cfddb0057b9013a262cb978a2b0aff17afb5daf66105"
+  },
+  {
+    "file": "fighting-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1143620,
+    "sha256": "7419f478424ae04c59d90d29ef8ab769e0a06908de06b2c5a79faf9172ecb8ac"
+  },
+  {
+    "file": "fighting-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1595871,
+    "sha256": "160c834a9155c8996a9e1923181da9a506aa39666af61aa20f1096e6d0e7c61d"
+  },
+  {
+    "file": "poison-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1194337,
+    "sha256": "cdb4b18165a2a8d5fc382dce22087053f384f2a7bb0cc30c29d655f3295e5435"
+  },
+  {
+    "file": "poison-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1649960,
+    "sha256": "be0af969fb28f4697df100fdf3b40385b58343762c5be67ff868a6651a5e0f97"
+  },
+  {
+    "file": "ground-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1154604,
+    "sha256": "b4e26c3d37f598993277568c0080d1dcc92d4bc114d8bedd3bcabcf81b91db0a"
+  },
+  {
+    "file": "ground-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1579481,
+    "sha256": "b4569967692a821496dce4c9936661b51aa37240bdc98faafb571a11f30d05be"
+  },
+  {
+    "file": "flying-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1104852,
+    "sha256": "07cd8b146a19b4ed83fce98c7d1e33fb62ee2d7e30aed0e6e5aa4643c5a9d187"
+  },
+  {
+    "file": "flying-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1515869,
+    "sha256": "43a63585b310d18599cbc4e13d4a2f9f8a5432f30897f8ea07012566b2d5dcdb"
+  },
+  {
+    "file": "psychic-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1275359,
+    "sha256": "aea1f68e30648167eb1d2a591bf9f792b807e235740e3f68c334c2c410ca1cbf"
+  },
+  {
+    "file": "psychic-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1646634,
+    "sha256": "fbdb84b9d8d4a8ece8ea2e2718295af9a33d0fd98f56e4b1987793fb2602f2f3"
+  },
+  {
+    "file": "bug-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1133616,
+    "sha256": "0a365e4d38b0785135082b16c84bfc2ce6dbd541d5debc47f54fb0e9041fd2c6"
+  },
+  {
+    "file": "bug-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1590313,
+    "sha256": "d360c601ad2c18f946762059ab70116b1680dc5d5c57583346ca757bb2e44f3f"
+  },
+  {
+    "file": "rock-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1188866,
+    "sha256": "58cbe42ed043971c86bbe40de2d868aada6990f245154f8b709d8f4864217a37"
+  },
+  {
+    "file": "rock-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1572998,
+    "sha256": "d59feb6b89471646f988a3e142e0665481eceb7d9c7f4ac50f11d819bf269b79"
+  },
+  {
+    "file": "ghost-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1233896,
+    "sha256": "8c34b3bb3846791df1f0a51498d6df31d08c1cd600e9220df223495831dda13a"
+  },
+  {
+    "file": "ghost-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1688342,
+    "sha256": "d6633548b2d737c23ea07d4da55d2c49b4ce4e46059871214a527bf956c582b3"
+  },
+  {
+    "file": "dragon-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1231193,
+    "sha256": "cacc721f43343a535b3f98d89458c0da227ab7726129e6a49bca5104362f0de7"
+  },
+  {
+    "file": "dragon-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1660004,
+    "sha256": "6567053d46423e70dcc82e4d0e59d9601bfd20e4b765f32f95dfffbd298a6531"
+  },
+  {
+    "file": "dark-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1110135,
+    "sha256": "e82000c82dc5f3a5601663165c243a17aea1fe854f3db2748caa9766712e84e4"
+  },
+  {
+    "file": "dark-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1578562,
+    "sha256": "7df0cbf7134239b5b616689b0700dfd940e5544683162698cdd61e51b03c47a0"
+  },
+  {
+    "file": "steel-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1288433,
+    "sha256": "fd7e23ed9f6a50b3623ec4117af2e34c4ec3026402511f278c81275fc0761b59"
+  },
+  {
+    "file": "steel-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1549971,
+    "sha256": "ef63422ebfbd4cf089653acd3f59e4a6c12bbd17c4d82b5fe0eaa9da7d4e82e2"
+  },
+  {
+    "file": "fairy-preview.png",
+    "width": 1122,
+    "height": 1402,
+    "bytes": 1073465,
+    "sha256": "3b68e5c68046e96872ab51e9d15bcafc091258ff12b3eb8982fa0ef8ea069f2c"
+  },
+  {
+    "file": "fairy-components.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 1520556,
+    "sha256": "ef54a5b943db566e018c69ba0f7b9eb89dc53eb11c5253ba0e376de130346c74"
+  }
+]

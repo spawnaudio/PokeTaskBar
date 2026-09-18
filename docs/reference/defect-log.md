@@ -14,6 +14,42 @@ read_when:
 `CLAUDE.md` §결함 대응 프로토콜의 4단계(근본원인 → 부류 스윕 → 회귀 테스트 → 영구 캡처)를 거쳐
 남은 규칙들이다. 각 항목은 실제로 겪은 회귀에 묶여 있다.
 
+## Attached panel sizing
+
+- **Validate each floating-overlay mode through its actual view.** The first Linear-style
+  overlay pass rendered only `FloatingTimerStrip`, leaving the folded clock and pet-only
+  toggle on their old styling despite a three-state concept. `FloatingCompactTimer` now
+  groups the clock, pause/resume and expand buttons; the idle toggle uses the matching
+  rounded timer control. `FloatingTimerOverlayTests` mounts `FloatingPetView` in its real
+  hosting view, checks compact/idle geometry in both appearances and seven languages,
+  and sends native mouse events to pause, resume, expand and open timer setup. A strip-only
+  snapshot cannot validate these branches. Keep the combined compact width and pet anchor
+  stable when changing their chrome.
+
+- **Include the pre-start timer in the expanded-overlay contract.** The running strip
+  was present, but opening a timer without a session still entered the old 132 pt setup
+  panel with a roughly 7% opaque fill and no drag handles. Earlier tests checked that
+  setup opened and that the panel fit; they never checked its rendered surface or the
+  full open/start/fold/expand flow. Setup now uses the same opaque 48 pt strip, saved width
+  and native movement/resize handles as the running timer. The resize path must accept
+  setup alone (no active session). The native controller regression verifies both handles,
+  drawn surface opacity, first-click Start/Pause, resizing before Start, and the pet anchor
+  through fold/expand in light and dark. It fails on the old setup implementation.
+
+- **Attached window height must measure page content, not the current scroll viewport.**
+  The fixed 640 pt shell and 520 pt minimum left short pages mostly blank. Previous
+  tests explicitly asserted a stable window size and never compared short and long
+  native pages. `MenuBarContentMeasurements` now combines measured shell sections
+  with each mounted scroll area's content-minus-viewport adjustment; measuring a
+  second hidden tree would duplicate tasks and measuring the viewport alone would
+  preserve the original bug. Large lazy collections remain capped without loading
+  all rows. `AdaptiveMenuBarSizingTests` exercises native pages, empty/populated
+  lists, all Collection segments, session changes, seven languages, width changes,
+  and the real window controller. Keep the anchor fixed, scroll after the screen
+  cap, respect Reduce Motion, and leave detached windows manually sized. The real
+  controller test requires a macOS display server; a sandbox with no `NSScreen`
+  cannot validate native window placement and must not be reported as passing it.
+
 ## 스프라이트 전환
 
 - **움직이는 상세 화면은 첫 렌더부터 캐시된 GIF 프레임을 사용한다.** 정적 PNG는 96px 투명
@@ -74,6 +110,12 @@ read_when:
 
 - **옵셔널 tautology.** 옵셔널 필드라도 *생산자가 항상 채우면* `x != nil` 은 항상 참이다. "값이 있나"는
   의미값으로 검사한다(예: `totalTokens > 0`, 또는 진짜 nil 가능한 필드 `activeBlock`). — weekTotal 회귀(#56).
+- **사용량 엔트리의 존재는 실제 사용의 증거가 아니다.** Claude 는 로컬 세션 시작 과정에서 토큰 필드가
+  전부 0인 `<synthetic>` assistant 엔트리를 기록할 수 있다. `activeBlock` 이 최근 엔트리 존재만 검사하고,
+  store 가 non-nil 블록만 검사하면 오늘 사용량 0인 Claude Code 탭이 생긴다. 블록 집계와 캐리어 스냅샷
+  경계 모두 `totalTokens > 0`을 요구한다. 회귀는 비어 있는 배열이 아니라 **non-empty zero-token 입력**으로
+  `LocalUsageReaderTests.testActiveBlockIgnoresZeroTokenSyntheticEntries`와
+  `UsageStoreTests.testNoCarrierForZeroTokenActiveBlock`에서 고정한다.
 - **JSON `null` 은 "값 있음"이 아니다.** `obj["x"] != nil` 은 `NSNull` 에도 참이라 `intValue` 가 0 을 돌려주고,
   그 0 으로 캐시분을 빼면 토큰이 통째로 사라진다. 숫자 필드는 `NSNull`·문자열·부재를 모두 nil 로 만드는
   추출기(`intOrNil`/`doubleOrNil`)로 읽고, 대체 스펠링 폴백은 그 nil 로 판단한다.
@@ -116,6 +158,13 @@ read_when:
   클램프 자체는 통과해도 `output + thoughts` 처럼 파싱 직후 더하는 곳에서 다시 트랩난다. 합산 여유가 있는
   상한(`maxParsedTokenValue`)을 쓴다. 회귀 가드는 프로바이더별로 **테스트를 쪼개라** — 트랩은 프로세스를
   끝내므로 한 테스트에 몰면 뒤 케이스가 아예 실행되지 않는다.
+  **추출기가 `LocalUsageReader` 밖에 있으면 같은 함정이 그대로 남는다.** OpenCode·Cursor의
+  `LocalAdditionalUsageProvider.intValue` 와 Hermes의 `columnInt` 는 `Int.max` 로 포화시킨 뒤
+  `input + output` 에서 다시 SIGTRAP 했다(`testCursorHugeTokenCountsDoNotTrapOnTheAdd`·
+  `testHermesHugeSessionTokensDoNotTrapOnTheReasoningAdd`). 대시보드 JSON 을 읽는
+  `CursorUsageAPI.intValue` 도 같은 포화 후 `makeEntry` 합에서 트랩한다
+  (`testParseCursorUsageEventClampsHugeTokenCounts`). Kiro 타임스탬프의 `Int64(Double)` 도
+  `Int64.max` 를 넘는 유한값에서 트랩한다. 상한은 더하는 추출기마다 같이 건다.
 
 ## 외부 로그·사용량 소스
 
@@ -132,6 +181,18 @@ read_when:
   함께 전송한다. 또한 만료 직전(near-expiry) 계정 전환 시 이전 계정 캐시로 잘못 폴백하지 않도록 동일 출처
   검증(`isSameSourceCredential`)을 통해 같은 계정의 갱신 캐시만 디스크의 만료 토큰보다 우선 유지한다.
   가드: `testAntigravityAutoPollReadsNestedTokenObject`·`testAntigravityAutoPollPicksUpNestedTokenSwitch`·`testNearExpiryAccountSwitchDoesNotFallBackToPreviousCachedAccount`·`testExpiredFileRefreshesAndSubsequentPollRetainsRefreshedToken`.
+
+- **토큰 파일 검색 경로는 지원하는 외부 에디션의 실제 저장 위치를 전수 포함해야 한다.** `LocalAntigravityUsageReader`는
+  `antigravity`, `antigravity-cli`, `antigravity-ide` 세 경로를 모두 지원하지만, `AntigravityTokenCache.defaultTokenFileURLs`는
+  `jetski-standalone-oauth-token`과 `antigravity/` 하위 경로만 탐색하여 공식 CLI(`agy`)가 기본 저장하는
+  `~/.gemini/antigravity-cli/antigravity-oauth-token`을 누락했다. 유효한 토큰 파일이 디스크에 있어도 탐색되지 않아
+  백그라운드 자동 폴이 `keychainInteractionNotAllowed`로 매 분 실패했고, 한도가 stale 상태가 되어 사용자가
+  "Actualiser(갱신)"를 누를 때마다 macOS 키체인 암호 프롬프트가 강제되었다. 또한 `disableKeychainAccess` 토글 시
+  토큰 파일 존재 여부와 무관하게 한도 조회를 중단하던 문제가 있었다.
+  해결: `defaultTokenFileURLs`에 `antigravity-cli`, `antigravity-ide`, `antigravity-oauth-token`,
+  `ANTIGRAVITY_TOKEN_FILE` 환경변수 및 앱 상태 경로를 전수 등록하고, `hasTokenFile`을 제공하여 키체인이
+  비활성화된 상태에서도 토큰 파일 기반 무프롬프트 자동 갱신을 보장한다.
+  가드: `testDefaultTokenFileURLsIncludeCLIAndIDEPaths`·`testHasTokenFileReflectsDiskPresence`·`testRegisteredNamesCoverEveryProviderOverride`.
 
 - **append-only SQLite watermark 루프를 프로바이더마다 복사하지 마라.** Cursor 와 Copilot 이
   같은 `didReset` / `highWater == 0` 규칙을 두 벌로 들고 있으면 한쪽만 고친 수정이 다른 쪽에 남는다
@@ -223,6 +284,21 @@ read_when:
   패치·마이너가 단가 한 칸만 바꿀 수 있으면 **정확 매칭 행을 표에 추가**하고, 폴백이 우연히 맞는
   모델(예: `claude-opus-5` → opus 폴백)은 건드리지 않는다. 가드: `testPricingExactAndFallbackAndZero`
   의 `claude-fable-5-1` cache-read $0.25 단언.
+- **폴백을 제거하는 것은 그 폴백이 덮던 *모든 입력*에 대한 동작 변경이다 — 지우기 전에 그 입력을 열거하라.**
+  #289 가 `contains("opus")` 류 패밀리 폴백을 없앨 때(그 자체는 #277 때문에 옳다) 폴백으로만
+  가격이 매겨지던 `claude-opus-5`·`claude-sonnet-5` 의 정확 매칭 행을 넣지 않아, 현행 세대 Claude
+  사용량 전체가 `estimatedCost == nil` → `CostCoverage.unavailable` → 비용란이 "계산 불가" 로
+  비었다(#303, v2.5.4 로 출시됨). 바로 위 항목이 "폴백이 우연히 맞는 모델은 건드리지 말라" 고
+  경고해 뒀는데도 폴백만 지워졌다. 규칙: 폴백 삭제 PR 은 **삭제 전 그 폴백에 걸리던 모델 식별자를
+  실제 로그에서 grep 해 열거하고**, 각각에 정확 매칭 행을 같은 커밋에 추가한다.
+- **"미지 입력 → nil" 을 단언하는 테스트는 신규 현행 모델이 미지로 떨어지는 순간 결함을 *정답으로
+  고정한다*.** #289 는 `XCTAssertEqual(ModelPricing.rate(for: "claude-opus-5"), .zero)` 를 남겼고
+  (`testPricingExactAndFallbackAndZero`), 그래서 스위트는 #303 을 잡기는커녕 초록으로 보증했다.
+  line coverage 도 무력하다 — `.unavailable` 분기는 기존 테스트가 이미 실행하므로 게이트를 통과한다.
+  대칭 가드가 필요하다: 미지 이름이 값을 빌리지 않는지(`testUnknownNamesNeverBorrowFamilyPrices`)
+  **와** 실제로 로그에서 읽히는 현행 식별자가 전부 가격을 갖는지
+  (`testModelsReadFromProviderLogsAreAllPriced`) 를 둘 다 단언한다. 미지로 남겨 두는 단언에는
+  **아직 출시되지 않은** 이름만 쓴다(`claude-opus-6`), 현행 세대 이름은 절대 쓰지 않는다.
 - **새 provider를 추가할 때 reader/cache만 연결하면 Settings의 custom-root contract가 조용히 빠진다.** `CustomScanRoots`는
   provider별 `curatedRoots(for:)`와 실제 reader의 `CustomScanRoots.storedValue(for:)` 조회를 모두 registry로
   취급한다. Pi 추가 때 reader/cache/provider는 등록했지만 이 두 지점을 빠뜨려 CI의
@@ -438,6 +514,14 @@ read_when:
   `jetski-standalone-oauth-token` 은 파일 로드 시 `expiresAt=nil` 이라 캐시가 만료로 풀리지 않는다.
   회귀: `testClaudeAutoPollPicksUpInPlaceAccountSwitch`·`testAntigravityAutoPollPicksUpTokenFileSwitch`.
   캐시-우선 early return 을 되돌리면 이 두 테스트가 실패해야 한다.
+- **파일이 없는 Keychain-only 설치는 사용자 갱신도 만료만 보면 이전 계정에 붙는다.** #227 은
+  파일이 새 유효 토큰으로 덮이는 경우를 고쳤다. 파일이 없으면 같은 메모리 캐시가 남고, 같은 Team 의
+  다른 메일은 401 을 안 주므로 invalidate 경로에 안 들어간다. Refresh 를 눌러도 Keychain 을 안 읽고
+  로그는 "keychain"이라고 남긴다(#300). 사용자 동작(`allowKeychainPrompt: true`)만
+  `bypassCache: true`. 자동 폴은 그대로 캐시 — 키체인 다이얼로그를 되살리면 #210 이 돌아온다.
+  같은 한 줄: `AntigravityRateLimitsProvider.fetch`. 회귀:
+  `testManualRefreshRereadsKeychainWhenCachedTokenIsStillValid`. `bypassCache` 를 빼면
+  Authorization 이 `token-account-a` 로 남고 Keychain 조회가 0 이다.
 - **`kSecMatchLimitAll` 과 `kSecReturnData` 는 같이 못 쓴다 — macOS 가 errSecParam(-50) 으로 거절한다.**
   "서비스에 항목이 여럿일 수 있으니 전부 받아서 유효한 걸 고르자"는 발상 자체는 옳지만(#229), 한 번의
   `SecItemCopyMatching` 으로 *모든 항목의 데이터*를 받는 쿼리는 **파라미터 단계에서** 거절된다. 항목이
@@ -524,6 +608,12 @@ read_when:
   초록인데 #174 가 다시 산다. (#174)
 
 ## 표시·UI
+
+- **Antigravity 그룹 표시명은 한 헬퍼로.** API 의 `displayName`("Gemini Models" 등)을 알림·사탕·
+  펫 버블에 그대로 넣으면 앱 언어가 한국어여도 본문에 영어가 섞인다. 팝오버만 `L` 로 바꾸던
+  분기를 `L.antigravityGroupTitle` 로 끌어올려 candy / `buildLimitWindows` / 팝오버가 공유한다.
+  판정 축은 `gemini` · `claude|gpt|3p`(status 의 gemini/thirdParty 헬퍼와 동일). 회귀:
+  `AntigravityGroupLocalizationTests`.
 
 - **계속 쌓이는 로그는 정렬이 아니라 실제 화면 생성 비용을 검증하라.** 포획 로그의
   `ScrollView` + `VStack` 이 화면 밖까지 모든 행을 만들고, 각 `SpriteView.init` 이 동기
@@ -723,7 +813,7 @@ read_when:
   all-spaces/`.floating` 펫이 실제로 거의 안 가려져 메뉴바와 동일 수확체감으로 미도입. (#102 리뷰 지적 반영, 2026-07-22.)
 - **`.nonactivatingPanel` 은 키 윈도우가 될 수 없다.** 플로팅 펫은 클릭이 다른 앱을 안 뺏게 `.nonactivatingPanel` 이고, 앱은 LSUIElement(`.accessory`)다. 그 조합에서 SwiftUI `TextField`(세션 메모·체크인)를 올려도 패널이 `canBecomeKey == false` 라 키 입력이 앞 앱으로 새어 나간다. 높이만 커지는 레이아웃 테스트는 통과한다. 가드: 펫 패널 서브클래스가 `canBecomeKey` 이고 스톡 nonactivating 은 거짓(`testFloatingPetPanelCanBecomeKeyUnlikeStockNonactivatingPanel`) + 텍스트 필드가 있을 때만 키 윈도우를 연다(`overlayNeedsKeyWindow` — 메모 작성·체크인; 0:00 프롬프트는 버튼만). 텍스트가 열릴 때 `activate(ignoringOtherApps:)` + `makeKeyAndOrderFront`(팝오버와 동일 함정, SettingsView 주석). 토큰/버블 `sync` 마다 재활성화하면 타이핑 중 포커스가 튕기므로 rising-edge 만.
 - **Borderless attached menu-bar windows have the same `canBecomeKey == false` trap.** Stock `NSWindow` with `[.borderless, .resizable]` never becomes key, so Settings `SecureField` (Linear API key) drops typing and paste. Subclass (`MenuBarPanelWindow`) must override `canBecomeKey` / `canBecomeMain`. Linear keys must also strip paste noise (`Bearer ` / quotes / `Authorization:`) and live in visible General settings, not collapsed Advanced; a successful save turns integration on. Guards: `testAttachedMenuBarWindowCanBecomeKeyForSecureFields`, `testNormalizeStripsPasteNoise`, `testSavingLinearAPIKeyEnablesIntegration`, `testLinearAPIKeyLivesInVisibleGeneralSettings`, `testLightAndDarkShellMatchLinearSurfaces`.
-- **Light chrome is Linear surfaces, not system greys.** `controlBackgroundColor` / `underPageBackgroundColor` wash out Linear light (`#F3F4F6` sidebar, white page). Port `MenuBarPanelMetrics` dynamic fills (shell / canvas / card / chip / selected / hairline) and resolve them through `NSAppearance`. Do not restyle Collection content as Linear except shared pills.
+- **Light chrome is Linear surfaces, not system greys.** `controlBackgroundColor` / `underPageBackgroundColor` wash out Linear light (`#F3F4F6` sidebar, white page). Use the scoped `MenuBarTheme` for the menu-bar window and `MenuBarPanelMetrics` dynamic fills for existing native surfaces. Do not restyle Collection content as Linear except shared pills. A cyan that passes on dark canvas can fail on a light selected surface: `MenuBarOverhaulTests.testTextAndAccentContrastInBothAppearances` checks text, secondary text, and accent against every main surface at 4.5:1. Inspect native renders too: macOS linear progress indicators can ignore tint, so the menu-bar indicators draw their own track through `MenuBarProgressStyle`. The opt-in native screenshot test covers both appearances, timer states, minimum attached height, other tabs, Settings, and detached layout. Header sizing is checked in all seven languages.
 - **Graduation must leave a free un-guaranteed egg in training.** `graduate()` used to set `trainingEmpty = true`, so later token XP never incremented `eggUsage` (`applyGrowth` and `hatchIfNeeded` both no-op on an empty slot). Tests asserted `eggUsage == 0` and `eggTier == nil` after graduation — both true with *no egg* — so buying a shop egg and swapping it in looked like the only way to hatch again. Place a `eggTier == nil` egg in the slot (rarity rolls at hatch like a shop fresh egg). Guards: `testNewEggAfterGraduationReincubates`, `testGuaranteeDoesNotSurviveIntoTheNextEgg`, `testUseGraduatesFinalStage`.
 - **Open-panel snappiness is a different hitch than idle GIF wakeup.** Closed hosting teardown (`contentView=nil`) already stops relative-`Text` layout when hidden. With the panel **open**, three cheaper bugs still janked the main thread: ① focus `tick()` atomically encoded+wrote the session JSON every second; persist on phase/XP/check-in or a 10s cadence instead (`FocusSessionStore.tickPersistInterval`, `testAccrualTicksDoNotRewriteSessionFileEverySecond`). ② usage `refresh` assigned a new `snapshots` array (`fetchedAt: Date()`) even when daily/week/month payloads were identical, so every `@Observable` consumer rebuilt; skip with `ProviderSnapshot.payloadEquals` (`testIdenticalRefreshKeepsSnapshotPayloadIdentity`). ③ the floating pet observed `todayTotalTokens` and called `setFrame(display: true)` + `orderFrontRegardless` on every poll — split tooltip observation and skip the frame commit when the rect is unchanged (`shouldApplyPanelFrame`, `testVisiblePetSkipsRedundantFrameCommits`). Open Usage/Linear `Text(_, style: .relative)` still self-invalidates ~1Hz; those labels are `RelativeTimestampText` (15s `TimelineView`). Linear issue/project `ScrollView` lists are `LazyVStack` so off-screen foldable rows are not built on tab entry. Do **not** drop always-on GIF `frameFloor > 0`. Guards: `RefreshPublishPerformanceTests`, `RelativeTimestampPerformanceTests`, `FloatingPetEnergyTests.testVisiblePetSkipsRedundantFrameCommits`, Focus persist cadence tests.
 
@@ -784,8 +874,31 @@ read_when:
 
 ## 프로세스 제어·업데이트
 
+- **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가
+  `skippedUpdateVersion` 에 한 번 쓰면 `check()` 는 그 태그를 `available` 에서 빼고, Settings 의
+  `else` 는 `available == nil` 을 "최신"으로 읽는다. 배너를 숨기는 것과 최신임을 선언하는 것은 다른
+  상태다. 스킵한 릴리스는 `skipped` 로 남기고 Settings 는 "건너뜀" + 업데이트/다시 알리기를 보여 준다.
+  더 새 태그는 배너로 돌아온다. 회귀: `testSkippedReleaseStaysVisibleAndANewerOneReturnsToTheBanner`,
+  `testShowAgainRestoresTheBannerAndUpdateUsesTheSkippedRelease`.
+
 - **`pgrep -x <name>` 은 실행 파일의 정체성 검사이지, 기다리는 특정 프로세스에 대한 검사가 아니다.**
   중복 인스턴스가 떠 있는 동안 실행될 수 있는 모든 wait-for-exit 루프는 PID를 받아야 한다. `UpdateChecker`가
   자동 업데이트 시 앱 종료를 기다릴 때 `pgrep -x PokeTaskBar`를 쓰면, 중복 인스턴스가 살아있는 동안 루프를
   결코 빠져나오지 못하고 20초 타임아웃을 온전히 소모한다(#175). `ProcessInfo.processInfo.processIdentifier`로
   종료 대상 프로세스 PID를 전달하고 `kill -0 "$3"`로 특정 프로세스의 종료를 대기한다.
+
+
+## v1.4 upstream integration boundaries
+
+- A copied and renamed app cannot safely take the original source tree as an ordinary
+  path merge. Use the recorded baseline in `v1.4-upstream-integration.md`, translate
+  module paths, and merge against the preserved fork snapshot. Usage controls moved
+  out of PopoverView in this fork; port them to the actual mounted views.
+- Upstream test fixtures embed upstream economy and inventory semantics. Bulk-candy
+  and Ditto fixtures now exercise PokeTaskBar's 1.5M candy and Coins conversion;
+  Unown fixtures preserve the timed Mint, duplicate normal-form re-roll, and storage
+  purchase contracts. Do not change the user's game rules to make imported fixtures pass.
+- A pending Unown letter and hatch-retry message belong to one training egg. Clear
+  both when a storage swap changes the trainee; the prefetch/restart storage test
+  exercises that path. The species/letter identity is also used explicitly by the
+  existing scrolling grid and main-window list.

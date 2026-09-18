@@ -190,7 +190,7 @@ final class FocusSessionTests: XCTestCase {
             hasUsageData: true)
         XCTAssertNotNil(companion.state.lastTimeOpenAwardAt)
 
-        focus.pin(issue(), openDesk: false)
+        focus.pin(issue(), openDesk: false, minutes: focus.plannedMinutes)
         XCTAssertTrue(companion.timeOpenXPSuspended)
 
         clock.now = t0.addingTimeInterval(TimeOpenXP.awardIntervalSeconds * 2)
@@ -233,7 +233,7 @@ final class FocusSessionTests: XCTestCase {
                 .appendingPathComponent("focus-state-off-\(UUID().uuidString).json"),
             ticksOnTimer: false)
 
-        focus.pin(issue(), openDesk: false)
+        focus.pin(issue(), openDesk: false, minutes: focus.plannedMinutes)
         focus.tick(now: t0.addingTimeInterval(50 * 60))
         focus.finishLeavingInProgress()
         XCTAssertEqual(companion.state.eggUsage, 0)
@@ -273,7 +273,7 @@ final class FocusSessionTests: XCTestCase {
     func testCompletedIssueAfterFocusSessionStoresTimerSummary() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         let completed = LinearCompletedIssue(
             id: "issue-1", identifier: "ENG-142", title: "Ship login", completedAt: t0)
@@ -295,7 +295,7 @@ final class FocusSessionTests: XCTestCase {
     func testOvertimeDoneHistoryRecordsContinuePath() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         clock.now = t0.addingTimeInterval(50 * 60 + 1)
         stores.focus.continueOvertime()
@@ -314,7 +314,7 @@ final class FocusSessionTests: XCTestCase {
     func testLeaveInProgressHistoryThenCompleteWithoutSessionKeepsTimer() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(20 * 60))
         stores.focus.finishLeavingInProgress()
 
@@ -336,7 +336,7 @@ final class FocusSessionTests: XCTestCase {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
         stores.focus.checkInMinutes = 30
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(30 * 60))
         XCTAssertEqual(stores.focus.prompt, .checkIn)
         stores.focus.checkInDraft = "  still debugging  "
@@ -355,7 +355,7 @@ final class FocusSessionTests: XCTestCase {
     func testIssueHistorySurvivesReloadAndOldJSONDoesNotCrash() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         stores.focus.handleLinearCompletion(LinearCompletedIssue(
             id: "issue-1", identifier: "ENG-142", title: "Ship login", completedAt: t0))
@@ -406,7 +406,7 @@ final class FocusSessionTests: XCTestCase {
     func testSessionNoteCanBePostedBeforeFirstCheckIn() async {
         let capture = CommentCapture()
         let stores = makeStores(postComment: capture.post)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         XCTAssertEqual(stores.focus.session?.pendingCheckIn, false)
         XCTAssertEqual(stores.focus.prompt, .none)
 
@@ -426,7 +426,7 @@ final class FocusSessionTests: XCTestCase {
     func testSessionNotePostsLinearCommentAndEmptyIsNoOp() async {
         let capture = CommentCapture()
         let stores = makeStores(postComment: capture.post)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
 
         stores.focus.noteDraft = "   "
         await stores.focus.postSessionNote()
@@ -447,7 +447,7 @@ final class FocusSessionTests: XCTestCase {
         let clock = TimeOpenCompanionTestsClock(t0)
         let capture = CommentCapture()
         let stores = makeStores(clock: clock, postComment: capture.post)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         clock.now = t0.addingTimeInterval(50 * 60 + 1)
         stores.focus.continueOvertime()
@@ -468,7 +468,7 @@ final class FocusSessionTests: XCTestCase {
         let clock = TimeOpenCompanionTestsClock(t0)
         let capture = CommentCapture()
         let stores = makeStores(clock: clock, postComment: capture.post)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.noteDraft = "desk context"
         await stores.focus.postSessionNote()
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
@@ -492,7 +492,7 @@ final class FocusSessionTests: XCTestCase {
         let capture = CommentCapture()
         capture.result = false
         let stores = makeStores(postComment: capture.post)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.noteDraft = "nope"
         await stores.focus.postSessionNote()
 
@@ -510,8 +510,8 @@ final class FocusSessionTests: XCTestCase {
         let open = FloatingPetController.panelSize(
             petSize: pet, showingBubble: false, hasIsland: true, prompt: .none, composingNote: true)
         XCTAssertGreaterThan(open.height, closed.height)
-        XCTAssertEqual(open.height - closed.height, FloatingPetController.noteComposerHeight)
-        XCTAssertEqual(closed.height, FloatingPetController.islandHeight)
+        XCTAssertEqual(open.height, max(pet, FloatingPetController.islandHeight + FloatingPetController.noteComposerHeight))
+        XCTAssertEqual(closed.height, max(pet, FloatingPetController.islandHeight))
     }
 
     func testFoldedIslandShrinksPanelAndPromptsStillAddHeight() {
@@ -522,7 +522,8 @@ final class FocusSessionTests: XCTestCase {
             petSize: pet, showingBubble: false, hasIsland: true, prompt: .none,
             composingNote: false, islandFolded: true)
         XCTAssertLessThan(folded.width, expanded.width)
-        XCTAssertLessThan(folded.height, expanded.height)
+        // Both timer states are shorter than this 48 pt pet; folding reduces width.
+        XCTAssertEqual(folded.height, expanded.height)
         XCTAssertEqual(folded.height, pet)
         XCTAssertGreaterThanOrEqual(
             FloatingPetController.islandFoldChevronSize, 28,
@@ -531,7 +532,7 @@ final class FocusSessionTests: XCTestCase {
             folded.width,
             pet + FloatingPetController.islandFoldedClockWidth
                 + FloatingPetController.islandFoldChevronSize
-                + FloatingPetController.islandGap * 2,
+                + FloatingPetController.islandGap * 2 + FloatingPetController.compactNewIssueWidth,
             "folded overlay keeps mini countdown + chevron, not pet+chevron only")
         XCTAssertLessThan(
             folded.width,
@@ -727,9 +728,9 @@ final class FocusSessionTests: XCTestCase {
     func testPinningAnotherIssueWithLiveSessionUsesForfeitNotLeaveInProgress() async {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(20 * 60))
-        stores.focus.pin(issue(id: "issue-2", identifier: "ENG-143"), openDesk: false)
+        stores.focus.pin(issue(id: "issue-2", identifier: "ENG-143"), openDesk: false, minutes: stores.focus.plannedMinutes)
 
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
         XCTAssertNotNil(stores.focus.forfeitPrompt)
@@ -740,12 +741,69 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
         XCTAssertNil(stores.focus.forfeitPrompt)
 
-        stores.focus.pin(issue(id: "issue-2", identifier: "ENG-143"), openDesk: false)
+        stores.focus.pin(issue(id: "issue-2", identifier: "ENG-143"), openDesk: false, minutes: stores.focus.plannedMinutes)
         await stores.focus.confirmForfeit()
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-2")
         XCTAssertEqual(stores.focus.history(forIssueID: "issue-1")?.finish, .forfeited)
         XCTAssertEqual(stores.companion.state.eggUsage, 0)
         XCTAssertEqual(stores.focus.todayLog.filter { $0.kind == .forfeit }.count, 1)
+    }
+
+    func testIssueFocusUsesSelectedDurationAndDoesNotRestartCurrentIssue() {
+        let stores = makeStores()
+        stores.focus.pin(issue(), openDesk: false, minutes: 17)
+        XCTAssertEqual(stores.focus.session?.plannedSeconds, 17 * 60)
+        XCTAssertEqual(stores.focus.clockDisplay().text, "17:00")
+        XCTAssertEqual(stores.focus.plannedMinutes, 17)
+        let original = stores.focus.session
+        stores.focus.pin(issue(), openDesk: false, minutes: 90)
+        XCTAssertEqual(stores.focus.session, original)
+        XCTAssertEqual(stores.focus.plannedMinutes, 17)
+    }
+
+    func testSwitchKeepsCurrentDurationUntilConfirmedAndCapturesChosenMinutes() async {
+        let stores = makeStores()
+        stores.focus.pin(issue(), openDesk: false, minutes: 25)
+        let original = stores.focus.session
+        let next = issue(id: "issue-2", identifier: "ENG-143")
+        stores.focus.pin(next, openDesk: false, minutes: 37)
+        XCTAssertEqual(stores.focus.session, original)
+        XCTAssertEqual(stores.focus.plannedMinutes, 25)
+        stores.focus.cancelForfeit()
+        XCTAssertEqual(stores.focus.session, original)
+        XCTAssertEqual(stores.focus.plannedMinutes, 25)
+
+        stores.focus.pin(next, openDesk: false, minutes: 37)
+        stores.focus.plannedMinutes = 90
+        await stores.focus.confirmForfeit()
+        XCTAssertEqual(stores.focus.session?.issue.id, next.id)
+        XCTAssertEqual(stores.focus.session?.plannedSeconds, 37 * 60)
+        XCTAssertEqual(stores.focus.plannedMinutes, 37)
+    }
+
+    func testCreateAndFocusCommitsDurationOnlyAfterSuccessfulCreation() async {
+        let capture = IssueCreateCapture()
+        let stores = makeStores(createIssue: capture.create)
+        let draft = LinearIssueDraft(title: "New work", teamId: "team-1")
+        let previousMinutes = stores.focus.plannedMinutes
+        await stores.focus.createAndFocus(draft, minutes: 17)
+        XCTAssertNil(stores.focus.session)
+        XCTAssertEqual(stores.focus.plannedMinutes, previousMinutes)
+
+        capture.result = issue(id: "created", identifier: "ENG-200")
+        await stores.focus.createAndFocus(draft, minutes: 17)
+        XCTAssertEqual(stores.focus.session?.plannedSeconds, 17 * 60)
+        XCTAssertEqual(stores.focus.plannedMinutes, 17)
+
+        capture.result = issue(id: "created-2", identifier: "ENG-201")
+        await stores.focus.createAndFocus(draft, minutes: 45)
+        XCTAssertEqual(capture.drafts.count, 2, "Switching waits for confirmation before creating")
+        XCTAssertEqual(stores.focus.plannedMinutes, 17)
+        stores.focus.plannedMinutes = 90
+        await stores.focus.confirmForfeit()
+        XCTAssertEqual(stores.focus.session?.issue.id, "created-2")
+        XCTAssertEqual(stores.focus.session?.plannedSeconds, 45 * 60)
+        XCTAssertEqual(stores.focus.plannedMinutes, 45)
     }
 
     func testCreateDoesNotPinCreateAndFocusPinsWhenIdle() async {
@@ -759,7 +817,7 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(capture.drafts.count, 1)
         XCTAssertNil(stores.focus.session)
 
-        await stores.focus.createAndFocus(draft)
+        await stores.focus.createAndFocus(draft, minutes: stores.focus.plannedMinutes)
         XCTAssertEqual(stores.focus.session?.issue.id, "new-1")
         XCTAssertEqual(capture.drafts.count, 2)
     }
@@ -768,10 +826,10 @@ final class FocusSessionTests: XCTestCase {
         let capture = IssueCreateCapture()
         capture.result = issue(id: "new-1", identifier: "ENG-200")
         let stores = makeStores(createIssue: capture.create)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(20 * 60))
 
-        await stores.focus.createAndFocus(LinearIssueDraft(title: "New work", teamId: "team-1"))
+        await stores.focus.createAndFocus(LinearIssueDraft(title: "New work", teamId: "team-1"), minutes: stores.focus.plannedMinutes)
         XCTAssertTrue(capture.drafts.isEmpty)
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
         XCTAssertNotNil(stores.focus.forfeitPrompt)
@@ -786,10 +844,10 @@ final class FocusSessionTests: XCTestCase {
         let capture = IssueCreateCapture()
         capture.result = issue(id: "new-1", identifier: "ENG-200")
         let stores = makeStores(createIssue: capture.create)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(20 * 60))
 
-        await stores.focus.createAndFocus(LinearIssueDraft(title: "New work", teamId: "team-1"))
+        await stores.focus.createAndFocus(LinearIssueDraft(title: "New work", teamId: "team-1"), minutes: stores.focus.plannedMinutes)
         XCTAssertTrue(capture.drafts.isEmpty)
         await stores.focus.confirmForfeit()
         XCTAssertEqual(capture.drafts.count, 1)
@@ -801,7 +859,7 @@ final class FocusSessionTests: XCTestCase {
     func testForfeitHistoryThenMarkDoneStillAwardsLinearXP() async throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(20 * 60))
         stores.focus.requestUnfocus()
         await stores.focus.confirmForfeit()
@@ -821,7 +879,7 @@ final class FocusSessionTests: XCTestCase {
     func testResetConfirmAndAddTimeGoThroughTheStore() {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.requestReset()
         XCTAssertFalse(stores.focus.resetPrompt)
 
@@ -845,11 +903,75 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(remaining, 47 * 60, accuracy: 0.01)
     }
 
+    func testSetRemainingReplacesCountdownAndPreservesPauseAndEarnedTime() throws {
+        let now = t0.addingTimeInterval(607)
+        let running = try XCTUnwrap(FocusTick.setRemaining(runningSession(), minutes: 17, now: now))
+        XCTAssertEqual(running.clockDisplay(at: now).text, "17:00")
+        XCTAssertEqual(running.accumulatedSeconds, 607)
+        XCTAssertEqual(running.phase, .running)
+        XCTAssertEqual(running.clockDisplay(at: now.addingTimeInterval(3)).text, "16:57")
+        let paused = FocusTick.pause(running, now: now.addingTimeInterval(3))
+        let edited = try XCTUnwrap(FocusTick.setRemaining(paused, minutes: 8, now: now.addingTimeInterval(20)))
+        XCTAssertEqual(edited.phase, .paused)
+        XCTAssertTrue(edited.userPaused)
+        XCTAssertEqual(edited.accumulatedSeconds, 610)
+        XCTAssertEqual(edited.clockDisplay(at: now.addingTimeInterval(100)).text, "8:00")
+        XCTAssertEqual(edited.fiveXOpen, paused.fiveXOpen)
+        XCTAssertEqual(edited.plannedXPSettled, paused.plannedXPSettled)
+    }
+
+    func testSetRemainingHandlesSleepZeroOvertimeAndInvalidRequests() throws {
+        let asleep = FocusTick.holdSleep(runningSession(), now: t0.addingTimeInterval(60))
+        let editedSleep = try XCTUnwrap(FocusTick.setRemaining(asleep, minutes: 12, now: t0.addingTimeInterval(120)))
+        XCTAssertTrue(editedSleep.sleepHeld)
+        XCTAssertNil(editedSleep.segmentStartedAt)
+        XCTAssertEqual(editedSleep.clockDisplay(at: t0.addingTimeInterval(600)).text, "12:00")
+        let zero = FocusTick.apply(runningSession(), now: t0.addingTimeInterval(3000)).session
+        let editedZero = try XCTUnwrap(FocusTick.setRemaining(zero, minutes: 5, now: t0.addingTimeInterval(3000)))
+        XCTAssertEqual(editedZero.phase, .running)
+        XCTAssertNil(editedZero.awaitingChoiceSince)
+        let overtime = FocusTick.continueOvertime(zero, now: t0.addingTimeInterval(3000)).session
+        let editedOT = try XCTUnwrap(FocusTick.setRemaining(overtime, minutes: 7, now: t0.addingTimeInterval(3060)))
+        XCTAssertEqual(editedOT.clockDisplay(at: t0.addingTimeInterval(3060)).text, "7:00")
+        XCTAssertFalse(editedOT.enteredOvertime)
+        XCTAssertFalse(editedOT.fiveXOpen)
+        XCTAssertTrue(editedOT.plannedXPSettled)
+        for minutes in [0, -1, 181, Int.max] {
+            XCTAssertNil(FocusTick.setRemaining(runningSession(), minutes: minutes, now: t0))
+        }
+        XCTAssertNil(FocusTick.setRemaining(runningSession(), minutes: 180, now: t0.addingTimeInterval(1)))
+    }
+
+    func testCustomTimerMinutesPersistForSetupAndPausedSession() throws {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        XCTAssertEqual(stores.focus.editableTimerMinuteRange, 5...180)
+        XCTAssertEqual(stores.focus.timerEditorMinutes, 50)
+        XCTAssertFalse(stores.focus.setTimerMinutes(4))
+        XCTAssertFalse(stores.focus.setTimerMinutes(181))
+        XCTAssertTrue(stores.focus.setTimerMinutes(17))
+        stores.focus.startPomodoro()
+        clock.now = t0.addingTimeInterval(61)
+        stores.focus.togglePause()
+        XCTAssertEqual(stores.focus.editableTimerMinuteRange, 1...178)
+        XCTAssertEqual(stores.focus.timerEditorMinutes, 16)
+        XCTAssertFalse(stores.focus.setTimerMinutes(180))
+        XCTAssertTrue(stores.focus.setTimerMinutes(8))
+        let restored = FocusSessionStore(usage: stores.usage, companion: stores.companion,
+            clock: { clock.now }, fileURL: stores.focusURL, ticksOnTimer: false)
+        XCTAssertEqual(restored.plannedMinutes, 17)
+        XCTAssertEqual(restored.clockDisplay().text, "8:00")
+        XCTAssertTrue(restored.session?.userPaused == true)
+        stores.focus.togglePause()
+        clock.now = t0.addingTimeInterval(181 * 60)
+        XCTAssertNil(stores.focus.editableTimerMinuteRange)
+    }
+
     func testStoreCanAddRemainingTimeIsFalseAtPlannedCapWhileCounting() {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
         stores.focus.plannedMinutes = 180
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         clock.now = t0.addingTimeInterval(10 * 60)
         stores.focus.tick(now: clock.now)
         XCTAssertFalse(stores.focus.canAddRemainingTime)
@@ -1000,6 +1122,8 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(
             MenuBarLines.pillTrailing(sessionClock: nil, linearCounts: nil, scoreLine: "9.8M"),
             .score("9.8M"))
+        XCTAssertEqual(MenuBarLines.doneTodayPill(linearCounts: (3, 1)), .doneToday(1))
+        XCTAssertNil(MenuBarLines.doneTodayPill(linearCounts: nil))
         XCTAssertNil(MenuBarLines.focusedIssueTitle(nil))
         XCTAssertEqual(MenuBarLines.focusedIssueTitle(runningSession()), "Ship login")
         var pomo = runningSession()
@@ -1026,6 +1150,18 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(MenuBarLinearCountGlyph.completedSymbol, "checkmark.circle.fill")
         XCTAssertEqual(MenuBarLinearCountGlyph.inProgressColor, NSColor.systemYellow)
         XCTAssertEqual(MenuBarLinearCountGlyph.completedColor, NSColor.systemBlue)
+
+        let doneOnly = MenuBarLines.attributedTitle(
+            title: nil,
+            trailing: .doneToday(4),
+            font: font)
+        XCTAssertTrue(doneOnly.string.contains("4"))
+        XCTAssertFalse(doneOnly.string.contains("Ship login"))
+        var doneAttachments = 0
+        doneOnly.enumerateAttribute(.attachment, in: NSRange(location: 0, length: doneOnly.length)) { value, _, _ in
+            if value != nil { doneAttachments += 1 }
+        }
+        XCTAssertEqual(doneAttachments, 1, "done-today pill shows only the completed icon and count")
     }
 
     func testMenuBarLinearIssuesLineFollowsVisibilityAndLinearSetup() {
@@ -1062,7 +1198,7 @@ final class FocusSessionTests: XCTestCase {
         let stores = makeStores()
         stores.usage.floatingPetEnabled = false
         stores.focus.checkInMinutes = 30
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(30 * 60))
         XCTAssertEqual(stores.focus.prompt, .checkIn)
         XCTAssertTrue(SessionPromptSurface.showsOnPopover(floatingPetEnabled: stores.usage.floatingPetEnabled))
@@ -1077,7 +1213,7 @@ final class FocusSessionTests: XCTestCase {
     func testZeroTimeTickFlashesMenuAndKeepsPromptWhenPetOff() {
         let stores = makeStores()
         stores.usage.floatingPetEnabled = false
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         XCTAssertEqual(stores.focus.prompt, .zeroTime)
         XCTAssertTrue(SessionPromptSurface.showsOnPopover(floatingPetEnabled: false))
@@ -1098,7 +1234,7 @@ final class FocusSessionTests: XCTestCase {
     func testZeroTimeTickDoesNotFlashMenuWhenPetOn() {
         let stores = makeStores()
         stores.usage.floatingPetEnabled = true
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.tick(now: t0.addingTimeInterval(50 * 60))
         XCTAssertEqual(stores.focus.prompt, .zeroTime)
         XCTAssertTrue(SessionPromptSurface.showsOnOverlay(floatingPetEnabled: true))
@@ -1112,7 +1248,7 @@ final class FocusSessionTests: XCTestCase {
     func testForfeitFlashesCriticalMenuWhenPetOff() async {
         let stores = makeStores()
         stores.usage.floatingPetEnabled = false
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.requestUnfocus()
         XCTAssertNotNil(stores.focus.forfeitPrompt)
         await stores.focus.confirmForfeit()
@@ -1130,7 +1266,7 @@ final class FocusSessionTests: XCTestCase {
     func testForfeitDoesNotFlashMenuWhenPetOn() async {
         let stores = makeStores()
         stores.usage.floatingPetEnabled = true
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.requestUnfocus()
         await stores.focus.confirmForfeit()
         XCTAssertTrue(stores.usage.menuFlashLines.isEmpty)
@@ -1147,7 +1283,7 @@ final class FocusSessionTests: XCTestCase {
         stores.focus.onOpenDesk = { deskOpened = true }
         let nav = PopoverNavigation()
         nav.tab = .linear
-        nav.pinIssueFromLinear(issue(), session: stores.focus)
+        nav.pinIssueFromLinear(issue(), session: stores.focus, minutes: stores.focus.plannedMinutes)
         XCTAssertEqual(nav.tab, .focus)
         XCTAssertFalse(nav.showSettings)
         XCTAssertFalse(deskOpened)
@@ -1158,7 +1294,7 @@ final class FocusSessionTests: XCTestCase {
         let stores = makeStores()
         var deskOpened = false
         stores.focus.onOpenDesk = { deskOpened = true }
-        stores.focus.pin(issue())
+        stores.focus.pin(issue(), minutes: stores.focus.plannedMinutes)
         XCTAssertTrue(deskOpened)
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
     }
@@ -1194,7 +1330,7 @@ final class FocusSessionTests: XCTestCase {
 
     func testOpenPomodoroSetupIsNoOpDuringASession() {
         let stores = makeStores()
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.openPomodoroSetup()
         XCTAssertFalse(stores.focus.pomodoroSetupOpen)
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
@@ -1204,7 +1340,7 @@ final class FocusSessionTests: XCTestCase {
         let stores = makeStores()
         stores.focus.openPomodoroSetup()
         XCTAssertTrue(stores.focus.pomodoroSetupOpen)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         XCTAssertFalse(stores.focus.pomodoroSetupOpen)
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
     }
@@ -1217,8 +1353,8 @@ final class FocusSessionTests: XCTestCase {
         let setup = FloatingPetController.panelSize(
             petSize: pet, showingBubble: false, hasIsland: false, prompt: .none,
             showsTimerToggle: true, setupIsland: true)
-        XCTAssertGreaterThan(setup.height, toggle.height)
-        XCTAssertEqual(setup.height, FloatingPetController.setupIslandHeight)
+        XCTAssertEqual(setup.height, toggle.height, "The setup uses the same thin horizontal overlay")
+        XCTAssertEqual(setup.height, max(pet, FloatingPetController.setupIslandHeight))
         XCTAssertGreaterThan(setup.width, toggle.width)
     }
 
@@ -1227,7 +1363,7 @@ final class FocusSessionTests: XCTestCase {
     func testAccrualTicksDoNotRewriteSessionFileEverySecond() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         let afterPin = try Data(contentsOf: stores.focusURL)
 
         clock.now = t0.addingTimeInterval(1)
@@ -1244,7 +1380,7 @@ final class FocusSessionTests: XCTestCase {
     func testPhaseChangePersistsImmediately() throws {
         let clock = TimeOpenCompanionTestsClock(t0)
         let stores = makeStores(clock: clock)
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         let afterPin = try Data(contentsOf: stores.focusURL)
 
         clock.now = t0.addingTimeInterval(1)
@@ -1264,7 +1400,7 @@ final class FocusSessionTests: XCTestCase {
 
     func testStartPomodoroIsNoOpWhenASessionExists() {
         let stores = makeStores()
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         stores.focus.startPomodoro()
         XCTAssertEqual(stores.focus.session?.issue.id, "issue-1")
         XCTAssertFalse(stores.focus.session?.issue.isPomodoro == true)
@@ -1281,7 +1417,7 @@ final class FocusSessionTests: XCTestCase {
             ticksOnTimer: false)
         XCTAssertTrue(reloaded.session?.issue.isPomodoro == true)
 
-        stores.focus.pin(issue(), openDesk: false)
+        stores.focus.pin(issue(), openDesk: false, minutes: stores.focus.plannedMinutes)
         XCTAssertEqual(stores.focus.session?.issue.id, FocusPinnedIssue.pomodoroID)
         XCTAssertNotNil(stores.focus.forfeitPrompt)
         await stores.focus.confirmForfeit()

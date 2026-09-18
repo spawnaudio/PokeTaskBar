@@ -1,0 +1,149 @@
+{
+  "page": "Collection \u2014 Storage",
+  "status": "Last displayed Storage design selected: Pokemon Preview Workspace",
+  "generatedWith": "Built-in image_gen",
+  "selectedOption": 3,
+  "nextPageAfterApproval": "Collection \u2014 Catch log",
+  "remainingPageSequence": [
+    "Collection \u2014 Storage",
+    "Collection \u2014 Catch log",
+    "Collection \u2014 Shop",
+    "Collection \u2014 full Pok\u00e9mon details"
+  ],
+  "approvalWorkflow": "On selection, read the current PokeTasks feature document, add only missing design decisions and the exact selected image, verify, then immediately generate the next page mockups. Use linear-document-map.json for document routing.",
+  "displayNumbering": "The revised Bag image is outside this Storage set. Storage options 1, 2 and 3 follow in their displayed order.",
+  "approvedPrecedents": {
+    "focus": 1,
+    "issues": 2,
+    "projects": {
+      "default": 1,
+      "alternate": 3,
+      "control": "List / Grid"
+    },
+    "initiatives": {
+      "default": 2,
+      "alternate": 3,
+      "control": "Expanded / Overview"
+    },
+    "collection": 3,
+    "usage": {
+      "default": 1,
+      "alternates": [
+        2,
+        3
+      ],
+      "control": "Overview / Provider / Limits"
+    },
+    "settings": 3,
+    "bag": {
+      "selectedOption": 3,
+      "refinement": "Current Pok\u00e9mon hero; selected item is secondary"
+    }
+  },
+  "referenceImages": [
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/bag-approved.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/1-s.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/4-s.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/7-s.png",
+    "/Users/squeakyvermin/Library/Application Support/PokeTaskBar v1/sprites/egg.png"
+  ],
+  "displayOrder": [
+    {
+      "option": 1,
+      "name": "Inline Training",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-292afc21-eeb2-452c-a26e-a74f2553e0a5.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS COLLECTION \u2192 STORAGE page, continuing the approved app redesign.\nAttached image1 is the approved Bag with Pok\u00e9mon hero and the shared shell; images2/3/4 are the real Bulbasaur,Charmander,Squirtle pixel sprites; image5 is the real egg. Preserve recognisable crisp proportionalspriteart with nearest-neighbour pixel edges; do not turn creatures into 3Dtoys or smoothillustrations.\nTarget1488\u00d71056landscape,straight-on complete native window. CurrentdateFriday18September2026;nodateneeded. No externalbrowser,number,posterlabels,annotations or multipledesigns.\nApproved left appnavigation about240px expanded: PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collection,Usage,Settingsbottom. Collection selectedneutralfill. Native trafficlights,back/forward,compactCollectionpagetab,sidebarcollapsecontrols.\nCollection title and local Bag / Storage / Pok\u00e9dex / Shop tabs, STORAGEselected. Do not put Storage into rootnavigation or add Pok\u00e9dex/Catchlogtabshere.\nContinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,whitegroupedsurfacesonlywhereuseful,#242528text,#73757Bmetadata,quietbluefocusanddarkneutralprimaryactions. SFPro-like14\u201316ptinterface,28\u201332ptheading. Avoidpermanentverticalsidebarstrokes,fullheightrules,edge-to-edgesectionlinesandresizegripdots. Open gutters, whitespace and tonal panels distinguish areas. No gradients,heavyglass,gloworbattleframes.\nExisting purpose: store eggs and Pok\u00e9mon between training, with exactly ONE current trainee. Choosing Train swaps selectedstoredentry into training and banks thecurrenttrainee; preserve progress. Train is not a focus-session Startbutton and does not sell,release,trade or deleteanything.\nIllustrative current trainee: Lapras,Level32,as in approvedBag. Lapras is currently in training, not a storedlistentry.\nIllustrative storedentries are EXACTLY four: Bulbasaur,Charmander,Squirtle,FreshEgg. ThethreePok\u00e9mon eachshow 'Stage1/3 \u00b7 stored' ifmetadataisvisible; eggshows 'Stored egg'. No inventeddifficultytypes,rarities,combatstats,levels,XPnumbers,futurehatchdatesorpokemonweapons. Bulbasaur is selected wherea selection isneeded.\nPreserve existing storageinformation and Train action. First Train action opens an INLINEconfirmation 'Swap with Lapras?' with explicit Train/Cancel and short explanation 'Lapras will move to Storage. Its progress is kept.' If showing restingstate, confirmation appears onlyafterTrain. Selecting arow/card isnot itselfaswap. ForFreshEgg the sameTrainconfirmationapplies; no Hatchnow orfakeincubationprogress. Use Train textwithoutPlayicon.\nMaincontentmustmake currenttrainee and selectednexttraineedistinct, never show twocurrenttrainingbadges. Whenextrascollapse, maincanvasstillhasidentity,trainingactionandconfirmationcontext. Supportsidebaronlyprovidesoptionalcontext. Resizable/collapsiblesidebars withnoguidesatrest.\nDo not add inventorysearch,filters,sorting,partypositions,boxeslimits,storagesize,capacitycounters,bulkselect,purchases ornewgamefeatures forfourentries. Shop remainsexistingtab. Generouswhitespace,artfulspriteplacementandreadabledataoverornament. ThePok\u00e9monprovidevisualpersonalitybutcontrolsandhierarchyremaincalm.\nDirection: Inline Training.\nOptionalrightextrascollapsed; one wideinsetmaincanvas.\nUnderCollectionheadingandlocaltabs, showStorage subheading andshort 'One Pok\u00e9mon in training. Switch whenever you like.'\nAt top ofstoragecontent, a slimquietcurrenttrainee strip:64pxLapras, 'Currently training', 'Lapras \u00b7 Level32'. This is supportingcontext,notanothergiantpanel.\nBelow, showfourstoredentries as aspacious single-columnlist. Bulbasaur is expanded in a white rounded region about950pxwide and200pxhigh, with crisp120pxBulbasaurartatleft, Bulbasaur headingand Stage1/3\u00b7stored besideit. Toitsrightwithinthissameexpandedregion, show INLINEconfirmation 'Swap with Lapras?' and 'Lapras will move to Storage. Its progress is kept.' Dark Trainbutton and quietCancelbelow. Do not add nestedcardborders.\nBelow showcompactunboxedrows for Charmander, Squirtle, FreshEgg. Each has48pxsprite, name, appropriate stageorstoredmetadata, and a quietTrainbuttonalignedright. Keeprowsabout85pxhigh,norules. Allfourstoredentriesmustbevisible.\nShowthisconfirmationstateasaclearreviewbeforecommitting. No duplicateBulbasaurrow, notwotrainingstates, noextracards. Leave generousopenspacebelowlist.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-exploration-1.png",
+      "status": "unselected",
+      "sha256": "824d80271e1fffc75d7e97cda509ccde9365485f470505c43504c91507d5860a",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 2,
+      "name": "Storage Gallery",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-08c44c20-f37e-4da5-8da7-970d2083f60d.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS COLLECTION \u2192 STORAGE page, continuing the approved app redesign.\nAttached image1 is the approved Bag with Pok\u00e9mon hero and the shared shell; images2/3/4 are the real Bulbasaur,Charmander,Squirtle pixel sprites; image5 is the real egg. Preserve recognisable crisp proportionalspriteart with nearest-neighbour pixel edges; do not turn creatures into 3Dtoys or smoothillustrations.\nTarget1488\u00d71056landscape,straight-on complete native window. CurrentdateFriday18September2026;nodateneeded. No externalbrowser,number,posterlabels,annotations or multipledesigns.\nApproved left appnavigation about240px expanded: PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collection,Usage,Settingsbottom. Collection selectedneutralfill. Native trafficlights,back/forward,compactCollectionpagetab,sidebarcollapsecontrols.\nCollection title and local Bag / Storage / Pok\u00e9dex / Shop tabs, STORAGEselected. Do not put Storage into rootnavigation or add Pok\u00e9dex/Catchlogtabshere.\nContinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,whitegroupedsurfacesonlywhereuseful,#242528text,#73757Bmetadata,quietbluefocusanddarkneutralprimaryactions. SFPro-like14\u201316ptinterface,28\u201332ptheading. Avoidpermanentverticalsidebarstrokes,fullheightrules,edge-to-edgesectionlinesandresizegripdots. Open gutters, whitespace and tonal panels distinguish areas. No gradients,heavyglass,gloworbattleframes.\nExisting purpose: store eggs and Pok\u00e9mon between training, with exactly ONE current trainee. Choosing Train swaps selectedstoredentry into training and banks thecurrenttrainee; preserve progress. Train is not a focus-session Startbutton and does not sell,release,trade or deleteanything.\nIllustrative current trainee: Lapras,Level32,as in approvedBag. Lapras is currently in training, not a storedlistentry.\nIllustrative storedentries are EXACTLY four: Bulbasaur,Charmander,Squirtle,FreshEgg. ThethreePok\u00e9mon eachshow 'Stage1/3 \u00b7 stored' ifmetadataisvisible; eggshows 'Stored egg'. No inventeddifficultytypes,rarities,combatstats,levels,XPnumbers,futurehatchdatesorpokemonweapons. Bulbasaur is selected wherea selection isneeded.\nPreserve existing storageinformation and Train action. First Train action opens an INLINEconfirmation 'Swap with Lapras?' with explicit Train/Cancel and short explanation 'Lapras will move to Storage. Its progress is kept.' If showing restingstate, confirmation appears onlyafterTrain. Selecting arow/card isnot itselfaswap. ForFreshEgg the sameTrainconfirmationapplies; no Hatchnow orfakeincubationprogress. Use Train textwithoutPlayicon.\nMaincontentmustmake currenttrainee and selectednexttraineedistinct, never show twocurrenttrainingbadges. Whenextrascollapse, maincanvasstillhasidentity,trainingactionandconfirmationcontext. Supportsidebaronlyprovidesoptionalcontext. Resizable/collapsiblesidebars withnoguidesatrest.\nDo not add inventorysearch,filters,sorting,partypositions,boxeslimits,storagesize,capacitycounters,bulkselect,purchases ornewgamefeatures forfourentries. Shop remainsexistingtab. Generouswhitespace,artfulspriteplacementandreadabledataoverornament. ThePok\u00e9monprovidevisualpersonalitybutcontrolsandhierarchyremaincalm.\nDirection: Storage Gallery.\nExpanded mainappnav, pale insetmaincanvas about870pxwide, optionalrightextrasrail about280px withoutdivider.\nCollectiontitleandStorage-selectedlocaltabs. Storage headingbelowwithshort 'Choose who to train next.' Maincanvas has a compact currenttrainee line with40pxLaprasthumbnail and 'Currently training \u00b7 Lapras' so this context remainswhenextrascollapse.\nShow exactlyfourstoredentries as a balanced2column\u00d72rowgallery ofwhite roundedtiles, eachabout360pxwideand250pxhigh, with generousgaps. Bulbasaurtop-leftselectedsoftneutralblue,Charmandertop-right,Squirtlebottom-left,FreshEggbottom-right. Each Pok\u00e9mon sprite around100pxhigh, name, 'Stage1/3 \u00b7 stored', a modest Trainbuttonbelow. Eggspriteabout70px, FreshEgg,Stored egg,Trainbutton. SelectedBulbasaurTrainis darkprimary; otherTrainbuttonsquiet. No nestedframes, no raritybadges orpagewidecounts.\nRightoptionalpanelshowcurrentLaprasabout150pxsprite, 'Currently training', Lapras,Level32, then smallplaincopy 'When you choose another Pok\u00e9mon, Lapras moves to Storage with its progress kept.' No Train or swapping action inthissupportpanel.\nThis is a restingstate before confirmation. Each Trainfirstopens INLINEconfirmationinitsowncard, notimmediateswap. Allessentialactionsremainmain. No dividersbetweenregions, lowvisualnoise, friendlycrispPok\u00e9mongalleryinapprovedLinear-likenativechrome.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-exploration-2.png",
+      "status": "unselected",
+      "sha256": "a1240c4d23df2626b3e7b874954e100cc7e76da64361d0961b238f46eabd96aa",
+      "dimensions": [
+        1489,
+        1056
+      ]
+    },
+    {
+      "option": 3,
+      "name": "Pok\u00e9mon Preview Workspace",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-1086bda0-7420-44f7-a90a-9d89b37ec92d.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS COLLECTION \u2192 STORAGE page, continuing the approved app redesign.\nAttached image1 is the approved Bag with Pok\u00e9mon hero and the shared shell; images2/3/4 are the real Bulbasaur,Charmander,Squirtle pixel sprites; image5 is the real egg. Preserve recognisable crisp proportionalspriteart with nearest-neighbour pixel edges; do not turn creatures into 3Dtoys or smoothillustrations.\nTarget1488\u00d71056landscape,straight-on complete native window. CurrentdateFriday18September2026;nodateneeded. No externalbrowser,number,posterlabels,annotations or multipledesigns.\nApproved left appnavigation about240px expanded: PokeTaskBar,Cody,Search,Today,Focus,Issues,Projects,Initiatives,Collection,Usage,Settingsbottom. Collection selectedneutralfill. Native trafficlights,back/forward,compactCollectionpagetab,sidebarcollapsecontrols.\nCollection title and local Bag / Storage / Pok\u00e9dex / Shop tabs, STORAGEselected. Do not put Storage into rootnavigation or add Pok\u00e9dex/Catchlogtabshere.\nContinuous#EFF0F2shell,pale#F8F8FAroundedmaincanvasinsetonallfouredges,whitegroupedsurfacesonlywhereuseful,#242528text,#73757Bmetadata,quietbluefocusanddarkneutralprimaryactions. SFPro-like14\u201316ptinterface,28\u201332ptheading. Avoidpermanentverticalsidebarstrokes,fullheightrules,edge-to-edgesectionlinesandresizegripdots. Open gutters, whitespace and tonal panels distinguish areas. No gradients,heavyglass,gloworbattleframes.\nExisting purpose: store eggs and Pok\u00e9mon between training, with exactly ONE current trainee. Choosing Train swaps selectedstoredentry into training and banks thecurrenttrainee; preserve progress. Train is not a focus-session Startbutton and does not sell,release,trade or deleteanything.\nIllustrative current trainee: Lapras,Level32,as in approvedBag. Lapras is currently in training, not a storedlistentry.\nIllustrative storedentries are EXACTLY four: Bulbasaur,Charmander,Squirtle,FreshEgg. ThethreePok\u00e9mon eachshow 'Stage1/3 \u00b7 stored' ifmetadataisvisible; eggshows 'Stored egg'. No inventeddifficultytypes,rarities,combatstats,levels,XPnumbers,futurehatchdatesorpokemonweapons. Bulbasaur is selected wherea selection isneeded.\nPreserve existing storageinformation and Train action. First Train action opens an INLINEconfirmation 'Swap with Lapras?' with explicit Train/Cancel and short explanation 'Lapras will move to Storage. Its progress is kept.' If showing restingstate, confirmation appears onlyafterTrain. Selecting arow/card isnot itselfaswap. ForFreshEgg the sameTrainconfirmationapplies; no Hatchnow orfakeincubationprogress. Use Train textwithoutPlayicon.\nMaincontentmustmake currenttrainee and selectednexttraineedistinct, never show twocurrenttrainingbadges. Whenextrascollapse, maincanvasstillhasidentity,trainingactionandconfirmationcontext. Supportsidebaronlyprovidesoptionalcontext. Resizable/collapsiblesidebars withnoguidesatrest.\nDo not add inventorysearch,filters,sorting,partypositions,boxeslimits,storagesize,capacitycounters,bulkselect,purchases ornewgamefeatures forfourentries. Shop remainsexistingtab. Generouswhitespace,artfulspriteplacementandreadabledataoverornament. ThePok\u00e9monprovidevisualpersonalitybutcontrolsandhierarchyremaincalm.\nDirection: Pok\u00e9mon Preview Workspace.\nOptionalrightextrascollapsed. Use the approved Bag's two-area arrangement insidewideinsetmaincanvas.\nCollectiontitleandStorage-selectedlocaltabs. Below localtabs, a compactcurrenttrainee contextline acrossmaincanvas with40pxLapras sprite, 'Currently training \u00b7 Lapras \u00b7 Level32'. This isquietanddistinctfromstoredselection.\nInsidecanvas, leftbrowserabout330px wide with small 'Stored Pok\u00e9mon' label. Fourcompactunboxedrows: Bulbasaurselectedneutralbluefill, Charmander,Squirtle,FreshEgg. Eachhas40pxsprite,name, and stage1/3\u00b7storedforPok\u00e9monorStoredeggforegg. NoinlineTrainbuttonsintheleftbrowser; selectionupdatestherightdetailswithoutswapping. Keepallfour visiblewithopenspacebelow.\nRightmainworkspaceabouth650pxwide: Bulbasaur title, small 'Stored Pok\u00e9mon \u00b7 Stage1/3'. A prominentcrispBulbasaurheroabout245pxhighcentredinuppermiddle; use attachedrealBulbasaurshape. This is the selectedstoredPok\u00e9mon, NOTthecurrentlytrainingone.\nBelowhero showshortline 'Train Bulbasaur next' and a muted 'Lapras will move to Storage. Its progress is kept.' Then single darktext-only Trainbutton. ThisfirstclickopensINLINEconfirmationwithTrain/Cancel, notinstantswap; showtherestingstatebeforeconfirmation. No modal,doublesprite,redundantstatsoroversizedprogresstrack.\nOne meaningfullygroupedwhitepreviewareaallowed, browsercanbeflatonpalecanvas. No rulesbetweenbrowserandprevieworbehindmainnav. Noheavyborders orcardsinsidecards. The currenttraineecontextandselectedpreviewbothremaininmaincanvaswhenexternalsidebarshide.\nKeepgenerousbreathingroomaroundBulbasaur,consistentproportionsandtypography,clearactionhierarchy. Do not addtheBagitemsummaryorconsumableshere.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-exploration-3.png",
+      "status": "approved",
+      "sha256": "1002acbf483c76b89cbd93b7ae9902c03f0a94eabc44ae4020dc5169df0b5ddf",
+      "dimensions": [
+        1489,
+        1056
+      ],
+      "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/storage-approved.png"
+    }
+  ],
+  "mockData": {
+    "currentTrainee": {
+      "name": "Lapras",
+      "level": 32
+    },
+    "storedEntries": [
+      {
+        "name": "Bulbasaur",
+        "stage": 1,
+        "totalStages": 3
+      },
+      {
+        "name": "Charmander",
+        "stage": 1,
+        "totalStages": 3
+      },
+      {
+        "name": "Squirtle",
+        "stage": 1,
+        "totalStages": 3
+      },
+      {
+        "name": "Fresh Egg",
+        "state": "stored"
+      }
+    ],
+    "selection": "Bulbasaur"
+  },
+  "existingSourceFiles": [
+    "Sources/PokeTaskBar/UI/PokemonStorageView.swift",
+    "Sources/PokeTaskBar/UI/CollectionTabView.swift",
+    "Sources/PokeTaskBar/Core/CompanionStore.swift",
+    "Sources/PokeTaskBar/Core/Localization.swift"
+  ],
+  "implementationNotes": [
+    "Keep current trainee distinct from selected stored Pok\u00e9mon. There is only one training slot.",
+    "Selecting a row/card changes the preview without swapping. Train first opens inline confirmation; explicit Train applies the existing swap, Cancel preserves state.",
+    "The current trainee banks through the existing storage path and keeps progress; no release, delete, trade or Focus-start action is introduced.",
+    "Eggs use the same Train and confirmation flow; do not add immediate hatch or invented incubation progress.",
+    "Real species names, sprites, stage metadata, entries and IDs must come from actual saved data. Mock quantities and species are illustrative.",
+    "Keep identity, actions and confirmation context in the main canvas when optional extras collapse.",
+    "Preserve the existing quiet Ditto empty-storage state; that state is not separately mocked here.",
+    "All approved resting sidebar/major section boundaries remain line-free even if incidental local component strokes appear in generated references.",
+    "Option 1 depicts an expanded confirmation. Options 2 and 3 depict the resting state before confirmation."
+  ],
+  "selectionMapping": "User chose 4, mapping to the fourth image in the preceding response: revised Bag followed by Storage 1, 2 and 3. As in their earlier numbering clarification, this selects the last image.",
+  "activeLinearProject": {
+    "id": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+    "name": "PokeTasks",
+    "url": "https://linear.app/spawn-audio/project/poketasks-cedf1ccdaeb7/overview"
+  },
+  "approvalDestination": {
+    "id": "2a850889-2316-45c1-ba25-74df3164731f",
+    "title": "UI Overhaul v2 - Collection: Pok\u00e9dex & Bag",
+    "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-collection-pokedex-and-bag-20fb94c02bdb"
+  },
+  "approvedInCurrentProject": true
+}

@@ -4,27 +4,32 @@ import SwiftUI
 @MainActor
 struct ScoreBoard: View {
     let store: CompanionStore
+    var compact: Bool = false
 
     private var l: L { store.l }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+            let layout = compact ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            layout {
                 Text(l.scoreLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(TokenFormatter.compact(store.lifetimeXP))
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: compact ? 12 : 24, weight: compact ? .medium : .bold,
+                                  design: compact ? .default : .rounded))
                     .monospacedDigit()
                     .accessibilityLabel(l.scoreValue(TokenFormatter.compact(store.lifetimeXP)))
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 2) {
+            let trailingLayout = compact ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(alignment: .trailing, spacing: 2))
+            trailingLayout {
                 Text(l.coinsLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(TokenFormatter.compact(store.availableCoins))
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: compact ? 12 : 24, weight: compact ? .medium : .bold,
+                                  design: compact ? .default : .rounded))
                     .monospacedDigit()
                     .accessibilityLabel(l.coinsValue(TokenFormatter.compact(store.availableCoins)))
             }

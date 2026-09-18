@@ -160,6 +160,7 @@ enum SaveTransfer {
         // 그 보증으로 미리 뽑아둔 종(pendingHatchID)도 함께 버린다 — 보증만 지우면 다음 육성 알이
         // 그 pre-roll 로 부화해, 아무도 사지 않은 프리미엄 결과가 나온다.
         if s.active != nil { s.eggTier = nil; s.pendingHatchID = nil }
+        s.pendingUnownForm = UnownForm.resolved(speciesID: s.pendingHatchID ?? 0, form: s.pendingUnownForm)
         // 만족시킬 수 없는 보증은 알을 영구히 못 깨게 만든다 — 전설은 capture_rate 로 표현할 수 없어
         // (captureRateCeiling == nil) 두 롤 경로 모두 후보를 0개로 만들고, 부화가 없으니 보증도 소비되지
         // 않는다. 상점 알은 보관함으로 가서 육성 슬롯을 바꾸지 않으므로, 깨진 보증을 여기서 떨어
@@ -184,7 +185,7 @@ enum SaveTransfer {
     ///
     /// `CompanionState` 의 필드는 이전 관점에서 세 부류다.
     ///  - **진행**: 어느 기기에서든 참(`usedSinceInstall`·`dex`·`inventory`·`active`·`eggUsage`·`eggTier`·
-    ///    `representativeSpeciesID`…)
+    ///    `pendingHatchID`·`pendingUnownForm`·`representativeSpeciesID`·`representativeUnownForm`…)
     ///    → 그대로. 알 보증(`eggTier`)은 산 물건이지 이 기기의 장부가 아니라 기기를 옮겨도 따라간다.
     ///  - **로컬 장부**: *그 기기가* 어디까지 적립했나(`claimedTodayTokensByProvider`·`lastDate`·`installBaselineSet`)
     ///    → 새 기기 기준으로 다시 잡는다. 그대로 들여오면 옛 기기의 오늘 총량이 문턱이 되어

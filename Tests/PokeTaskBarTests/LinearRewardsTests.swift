@@ -227,6 +227,17 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertTrue(dashboard.initiatives.isEmpty)
     }
 
+    func testInitiativeRetainsProjectRelationshipsWithoutOpenIssues() throws {
+        let data = Data("""
+        {"data":{"completedRecent":{"nodes":[]},"inProgress":{"nodes":[]},
+          "initiatives":{"nodes":[{"id":"initiative","name":"Build","status":"Active",
+            "projects":{"nodes":[{"id":"empty-project","name":"Empty","issues":{"nodes":[]}}]}}]}}}
+        """.utf8)
+        let initiative = try XCTUnwrap(LinearClient.parseIssueDashboard(data).initiatives.first)
+        XCTAssertEqual(initiative.projectIDs, ["empty-project"])
+        XCTAssertTrue(initiative.issues.isEmpty)
+    }
+
     func testParseIssueDashboardKeepsInProgressProjectsAndInitiatives() throws {
         let json = """
         {"data":{

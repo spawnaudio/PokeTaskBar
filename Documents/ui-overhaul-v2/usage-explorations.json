@@ -1,0 +1,138 @@
+{
+  "page": "Usage",
+  "status": "Overview approved as default; Provider Workspace and Limits First approved as alternatives",
+  "generatedWith": "Built-in image_gen",
+  "nextPageAfterApproval": "Settings",
+  "approvalWorkflow": "On selection, attach the exact approved image and layout decisions to UI Overhaul v2, verify, then immediately generate the next page's mockups.",
+  "remainingPageSequence": [
+    "Usage",
+    "Settings"
+  ],
+  "selectedOption": 1,
+  "approvedPrecedents": {
+    "issues": 2,
+    "projects": {
+      "default": 1,
+      "alternate": 3,
+      "control": "List / Grid"
+    },
+    "initiatives": {
+      "default": 2,
+      "alternate": 3,
+      "control": "Expanded / Overview"
+    },
+    "collection": 3
+  },
+  "mockData": {
+    "date": "2026-09-18",
+    "todayTokensM": 12.4,
+    "thisWeekTokensM": 48.6,
+    "thisMonthTokensM": 174.3,
+    "providers": {
+      "Codex": {
+        "tokensM": 8.1,
+        "inputM": 1.6,
+        "outputM": 0.5,
+        "cacheWriteM": 0,
+        "cacheReadM": 6
+      },
+      "Claude Code": {
+        "tokensM": 4.3,
+        "inputM": 0.9,
+        "outputM": 0.4,
+        "cacheWriteM": 0.2,
+        "cacheReadM": 2.8
+      }
+    },
+    "dailyTokensM": [
+      7.2,
+      8.1,
+      10.5,
+      9.8,
+      6.4,
+      7,
+      11.1,
+      10.2,
+      8.6,
+      12.2,
+      11.4,
+      10.1,
+      13.1,
+      8.2,
+      9.6,
+      10.4,
+      8,
+      12.4
+    ],
+    "codexLimits": {
+      "fiveHourRemainingPercent": 65,
+      "weeklyRemainingPercent": 42
+    },
+    "timeXP": {
+      "todayM": 5,
+      "capM": 144,
+      "enabled": true
+    }
+  },
+  "referenceImages": [
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/today-approved.png",
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/initiatives-overview-approved.png",
+    "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/adaptive-panel-mockup/source-assets/usage-light.png"
+  ],
+  "displayOrder": [
+    {
+      "option": 1,
+      "name": "Usage Overview",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-aacf89d7-4dc1-419b-aa22-b0b11b2a5a97.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS desktop USAGE page. Attached image 1 is the approved Today shell, image 2 is an approved compact data-list layout, image 3 is the current small Usage panel showing existing usage and Time XP content. Use their actual attached visual references, translating Usage into the large approved desktop window.\nTarget 1488 x 1056 landscape, straight-on single complete native app window. Current date Friday 18 September 2026. Values below are coherent illustrative mock data, not actual account readings. No presentation title, option number, annotations or surrounding browser frame.\nPreserve expanded left navigation about 240px wide: PokeTaskBar identity, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection, Usage, Settings at bottom. Usage selected. Native traffic lights, back/forward, compact Usage page tab and left/right sidebar-collapse buttons. Sidebars independently resizable and collapsible.\nApproved visual language: continuous #EFF0F2 shell, pale #F8F8FA rounded main content canvas visibly inset on every edge including bottom, #FFFFFF supporting panels, ink #242528, muted #73757B, restrained blue accents, neutral selection backgrounds. Readable SF Pro-like 14-16pt UI, 28-32pt headings, stable aligned digits. NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules or resize grip dots. Hover guides are hidden at rest. Whitespace and meaningful grouped surfaces establish structure. No Pok\u00e9mon on Usage.\nPurpose: understand token consumption by provider and available official usage limits. Preserve totals, daily trend, provider selection and token breakdown, official quota windows and reset times, refresh, and existing Time XP settings. Do not invent budgets, billing amounts, forecasts, token goals, export features, purchases, new metrics or reward calculations. Higher consumption is neutral, not an achievement; avoid green up-arrows, congratulatory copy or implied productivity scores.\nMock totals: Today 12.4M tokens, This week 48.6M, This month 174.3M. Providers: Codex 8.1M and Claude Code 4.3M, totaling 12.4M. Selected provider Codex. Its token breakdown is Input 1.6M, Output 0.5M, Cache read 6.0M (sum 8.1M). Do not call the 6.0M a cost saving. If Claude detail is shown: Input 0.9M, Output 0.4M, Cache write 0.2M, Cache read 2.8M (sum 4.3M).\nOfficial limits belong to the SELECTED PROVIDER only: Codex 5-hour window 65% REMAINING, resets in 2h 10m; Weekly 42% REMAINING, resets Mon 21 Sep. Bars must represent remaining capacity: fill 65% and 42% respectively. Never label these as used. Keep official limits distinct from locally counted token totals.\nIf a daily chart is included, show September 2026 to date (1-18 Sep), units tokens in millions, 18 modest bars with these values: 7.2,8.1,10.5,9.8,6.4,7.0,11.1,10.2,8.6,12.2,11.4,10.1,13.1,8.2,9.6,10.4,8.0,12.4. Axes 0,10M,20M; sparse date ticks. No future bars or trend arrows. These sum to 174.3M and Mon14-Fri18 sums to 48.6M.\nIf Time XP is visible, keep it secondary: toggle On; '5M of 144M today', '+1M XP every 10 min', and small explanation 'Does not count toward token usage.' It is XP, never another token provider. Otherwise provide a compact Time XP disclosure in main content. Show quiet Updated just now and a small Refresh control. Clean readable composition, no clipped text or chart decoration.\n\nDirection: Usage Overview.\nExpanded right extras rail about 295px; wide main canvas. Usage page heading and Friday 18 September 2026 with a quiet Refresh control. Main top has an UNBOXED summary line: 12.4M as dominant Today token figure, with smaller This week 48.6M and This month 174.3M alongside, spaced not separated by strokes.\nBelow, a single spacious white rounded panel contains the September daily token bar chart with a quiet title 'Daily usage'. Modest blue bars and sparse axis labels, no gradients. Below that a clean provider area with two compact rows Codex 8.1M and Claude Code 4.3M; Codex selected with neutral fill. Its Input / Output / Cache read values sit immediately below. A small 'View limits' link stays beside Codex so limits remain reachable when extras hide.\nRight rail: one 'Codex limits' panel shows the 5-hour and Weekly windows, explicit 65% remaining and 42% remaining, thin proportional available-capacity bars and reset times. Below, a smaller Time XP panel with On toggle, 5M of 144M today, reward rate and explanation. These are optional supporting panels, not one full-height walled sidebar. Keep token overview dominant with lots of open space, no section separators, zero Pok\u00e9mon imagery.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-exploration-1.png",
+      "status": "approved default",
+      "sha256": "65e0865757a36d8412b54364d0b6567c9aad2cc9b5e334f7bfa0eacad990cb6e",
+      "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-overview-approved.png"
+    },
+    {
+      "option": 2,
+      "name": "Provider Workspace",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-9f410672-4fa8-4939-9ea2-a27dbc57034a.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS desktop USAGE page. Attached image 1 is the approved Today shell, image 2 is an approved compact data-list layout, image 3 is the current small Usage panel showing existing usage and Time XP content. Use their actual attached visual references, translating Usage into the large approved desktop window.\nTarget 1488 x 1056 landscape, straight-on single complete native app window. Current date Friday 18 September 2026. Values below are coherent illustrative mock data, not actual account readings. No presentation title, option number, annotations or surrounding browser frame.\nPreserve expanded left navigation about 240px wide: PokeTaskBar identity, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection, Usage, Settings at bottom. Usage selected. Native traffic lights, back/forward, compact Usage page tab and left/right sidebar-collapse buttons. Sidebars independently resizable and collapsible.\nApproved visual language: continuous #EFF0F2 shell, pale #F8F8FA rounded main content canvas visibly inset on every edge including bottom, #FFFFFF supporting panels, ink #242528, muted #73757B, restrained blue accents, neutral selection backgrounds. Readable SF Pro-like 14-16pt UI, 28-32pt headings, stable aligned digits. NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules or resize grip dots. Hover guides are hidden at rest. Whitespace and meaningful grouped surfaces establish structure. No Pok\u00e9mon on Usage.\nPurpose: understand token consumption by provider and available official usage limits. Preserve totals, daily trend, provider selection and token breakdown, official quota windows and reset times, refresh, and existing Time XP settings. Do not invent budgets, billing amounts, forecasts, token goals, export features, purchases, new metrics or reward calculations. Higher consumption is neutral, not an achievement; avoid green up-arrows, congratulatory copy or implied productivity scores.\nMock totals: Today 12.4M tokens, This week 48.6M, This month 174.3M. Providers: Codex 8.1M and Claude Code 4.3M, totaling 12.4M. Selected provider Codex. Its token breakdown is Input 1.6M, Output 0.5M, Cache read 6.0M (sum 8.1M). Do not call the 6.0M a cost saving. If Claude detail is shown: Input 0.9M, Output 0.4M, Cache write 0.2M, Cache read 2.8M (sum 4.3M).\nOfficial limits belong to the SELECTED PROVIDER only: Codex 5-hour window 65% REMAINING, resets in 2h 10m; Weekly 42% REMAINING, resets Mon 21 Sep. Bars must represent remaining capacity: fill 65% and 42% respectively. Never label these as used. Keep official limits distinct from locally counted token totals.\nIf a daily chart is included, show September 2026 to date (1-18 Sep), units tokens in millions, 18 modest bars with these values: 7.2,8.1,10.5,9.8,6.4,7.0,11.1,10.2,8.6,12.2,11.4,10.1,13.1,8.2,9.6,10.4,8.0,12.4. Axes 0,10M,20M; sparse date ticks. No future bars or trend arrows. These sum to 174.3M and Mon14-Fri18 sums to 48.6M.\nIf Time XP is visible, keep it secondary: toggle On; '5M of 144M today', '+1M XP every 10 min', and small explanation 'Does not count toward token usage.' It is XP, never another token provider. Otherwise provide a compact Time XP disclosure in main content. Show quiet Updated just now and a small Refresh control. Clean readable composition, no clipped text or chart decoration.\n\nDirection: Provider Workspace.\nCollapse the optional right extras sidebar entirely, retaining its small reopen button in title bar. Expanded left navigation plus one wide inset main canvas. This concept concentrates on inspecting one provider at a time.\nHeading Usage, date and compact Refresh control. Quiet global summary across top reads 'All providers today 12.4M tokens', 'This week 48.6M', 'This month 174.3M'; keep these compact so the provider workspace dominates.\nBelow put a segmented horizontal provider selector with 'Codex 8.1M' selected and 'Claude Code 4.3M' unselected. A large white rounded selected-provider panel with Codex logo, title 'Codex', subtitle 'Today', and large '8.1M tokens'. Beside it show three aligned columns 'Input 1.6M', 'Output 0.5M', 'Cache read 6.0M'. A calm open gutter separates the next content group; no divider strokes.\nWithin this same main canvas, place a clear 'Official Codex limits' section beneath, two equally weighted white subpanels side by side: '5-hour window', '65% remaining', bar filled 65%, 'Resets in 2h 10m'; and 'Weekly', '42% remaining', bar filled 42%, 'Resets Mon 21 Sep'. This is provider capacity, visibly distinguished from counted tokens.\nLower down, a slim 'All-provider daily usage' disclosure row with 'September \u00b7 174.3M tokens' and a chevron; no expanded chart in this option. At bottom, a compact horizontal Time XP settings surface: 'Time XP', '5M of 144M today', '+1M XP every 10 min', On toggle, and 'Does not count toward token usage.' No duplicate right rail. Use generous whitespace and calm hierarchy, all content readable in one complete window.",
+      "refinementPrompt": "Edit this exact Usage Provider Workspace mockup, preserving the whole layout, typography, numbers, bars, controls, canvas insets and proportions. Remove ALL separator line strokes: the faint full-height vertical rule to the right of the left navigation, the horizontal rule under Cody, the vertical rules between the three top totals, vertical rules between Input/Output/Cache read, the vertical rule in Time XP. Replace those rule pixels with the matching flat background. Do not create new rules. The open gutter beside the sidebar must be completely smooth and unbroken with the #EFF0F2 shell; the main canvas remains inset with rounded corners and tonal background only. Eliminate panel outline strokes, retaining white rounded surfaces differentiated by subtle tone. No resting resize guides or hairline borders anywhere. Keep exact data, labels, icons, plot bars, segmented provider control, and all other elements unchanged. This is the corrected option 2.",
+      "supersededSource": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-8038552c-7fe2-4c80-85fe-122037a7a869.png",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-exploration-2.png",
+      "status": "approved alternate",
+      "sha256": "066ce7edc81c913feac27c933ba46b68f02b6d54d325bf8d23e1bf032899ba3a",
+      "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-provider-approved.png"
+    },
+    {
+      "option": 3,
+      "name": "Limits First",
+      "source": "/Users/squeakyvermin/.codex/generated_images/01a0b269-3b7a-71a0-ae64-ec0f4fc45e10/exec-69f6e512-a951-48f7-bede-1ec992fc55a2.png",
+      "prompt": "Use case: ui-mockup. Create a realistic, production-quality PokeTaskBar macOS desktop USAGE page. Attached image 1 is the approved Today shell, image 2 is an approved compact data-list layout, image 3 is the current small Usage panel showing existing usage and Time XP content. Use their actual attached visual references, translating Usage into the large approved desktop window.\nTarget 1488 x 1056 landscape, straight-on single complete native app window. Current date Friday 18 September 2026. Values below are coherent illustrative mock data, not actual account readings. No presentation title, option number, annotations or surrounding browser frame.\nPreserve expanded left navigation about 240px wide: PokeTaskBar identity, Cody, Search, Today, Focus, Issues, Projects, Initiatives, Collection, Usage, Settings at bottom. Usage selected. Native traffic lights, back/forward, compact Usage page tab and left/right sidebar-collapse buttons. Sidebars independently resizable and collapsible.\nApproved visual language: continuous #EFF0F2 shell, pale #F8F8FA rounded main content canvas visibly inset on every edge including bottom, #FFFFFF supporting panels, ink #242528, muted #73757B, restrained blue accents, neutral selection backgrounds. Readable SF Pro-like 14-16pt UI, 28-32pt headings, stable aligned digits. NO permanent sidebar separator strokes, full-height lines, edge-to-edge section rules or resize grip dots. Hover guides are hidden at rest. Whitespace and meaningful grouped surfaces establish structure. No Pok\u00e9mon on Usage.\nPurpose: understand token consumption by provider and available official usage limits. Preserve totals, daily trend, provider selection and token breakdown, official quota windows and reset times, refresh, and existing Time XP settings. Do not invent budgets, billing amounts, forecasts, token goals, export features, purchases, new metrics or reward calculations. Higher consumption is neutral, not an achievement; avoid green up-arrows, congratulatory copy or implied productivity scores.\nMock totals: Today 12.4M tokens, This week 48.6M, This month 174.3M. Providers: Codex 8.1M and Claude Code 4.3M, totaling 12.4M. Selected provider Codex. Its token breakdown is Input 1.6M, Output 0.5M, Cache read 6.0M (sum 8.1M). Do not call the 6.0M a cost saving. If Claude detail is shown: Input 0.9M, Output 0.4M, Cache write 0.2M, Cache read 2.8M (sum 4.3M).\nOfficial limits belong to the SELECTED PROVIDER only: Codex 5-hour window 65% REMAINING, resets in 2h 10m; Weekly 42% REMAINING, resets Mon 21 Sep. Bars must represent remaining capacity: fill 65% and 42% respectively. Never label these as used. Keep official limits distinct from locally counted token totals.\nIf a daily chart is included, show September 2026 to date (1-18 Sep), units tokens in millions, 18 modest bars with these values: 7.2,8.1,10.5,9.8,6.4,7.0,11.1,10.2,8.6,12.2,11.4,10.1,13.1,8.2,9.6,10.4,8.0,12.4. Axes 0,10M,20M; sparse date ticks. No future bars or trend arrows. These sum to 174.3M and Mon14-Fri18 sums to 48.6M.\nIf Time XP is visible, keep it secondary: toggle On; '5M of 144M today', '+1M XP every 10 min', and small explanation 'Does not count toward token usage.' It is XP, never another token provider. Otherwise provide a compact Time XP disclosure in main content. Show quiet Updated just now and a small Refresh control. Clean readable composition, no clipped text or chart decoration.\n\nDirection: Limits First.\nExpanded left navigation and an optional right extras rail 270px, with no visible separator whatsoever. The main canvas is wide enough for two large quota blocks. Start with compact Usage heading, Friday 18 September 2026, Updated just now and Refresh. Under it a subdued one-line global token summary: Today 12.4M \u00b7 This week 48.6M \u00b7 This month 174.3M. These numbers are lower emphasis than remaining capacity.\nMain focal section is titled 'Available capacity', with a compact provider picker 'Codex' and small text 'Official limits'. Two large white rounded surfaces side by side: left '5-hour window', massive 65%, label 'remaining', thin bar filled exactly65%, 'Resets in 2h 10m'; right 'Weekly', massive 42%, label 'remaining', bar filled42%, 'Resets Mon 21 Sep'. No rings or gauges. No urgency or badges; these are calm capacity readings.\nBelow place a secondary chart inside a single white rounded surface titled 'All-provider daily usage' with month September2026 and total174.3M tokens.18 very modest blue bars for1-18Sep per the supplied data, axes0/10M/20M, sparse date labels. Chart modest height, quota blocks dominate.\nRight extras rail contains two compact meaningful white surfaces spaced in shell. 'Providers \u00b7 Today' lists Codex 8.1M selected and Claude Code 4.3M. Beneath selected Codex, smaller Input1.6M, Output0.5M, Cache read6.0M. Then Time XP surface On,5M of144Mtoday,+1MXPevery10min,Does not count toward token usage. Never place official quota controls solely in extras.\nCRITICAL FINAL STYLING: no full-height vertical divider beside either sidebar, no horizontal rule under account identity, no separator strokes between sections or individual summary values, no border outlines around white panels. Use tonal surfaces and open gutters only. Main pale canvas has rounded corners and is inset from window edges. Preserve the generous approved Linear-like light shell, subtle native typography and quiet data hierarchy.",
+      "localPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-exploration-3.png",
+      "status": "approved alternate",
+      "sha256": "b3a323f18eb9c55efcc1ec0db055b11044608410dce84a281b4982c115b3b438",
+      "approvedLocalPath": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/Documents/ui-overhaul-v2/mockups/usage-limits-approved.png"
+    }
+  ],
+  "implementationNotes": [
+    "All sample data is illustrative, not actual account usage.",
+    "Official remaining quotas and reset times are provider-specific and distinct from local token totals.",
+    "Time XP is separate from token usage.",
+    "The global no-resting-sidebar-separator rule remains authoritative over faint incidental strokes in generated mockups.",
+    "Provider values and limits remain reachable in the main canvas when optional extras collapse.",
+    "Unavailable, stale, auth-expired and loading states must remain distinct from zero usage or zero capacity."
+  ],
+  "alternateOptions": [
+    2,
+    3
+  ],
+  "viewSwitch": {
+    "default": "Overview",
+    "alternates": [
+      "Provider",
+      "Limits"
+    ],
+    "control": "Overview / Provider / Limits",
+    "rememberPreference": true
+  },
+  "selectionClarification": "User confirmed 4 means the last displayed image, Limits First. The refined Provider image produced an additional displayed image."
+}

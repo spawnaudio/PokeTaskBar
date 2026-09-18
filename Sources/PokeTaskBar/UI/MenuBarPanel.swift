@@ -18,9 +18,10 @@ final class MenuBarPanelWindow: NSWindow {
     /// still use `PopoverMetrics.width` (360).
 enum MenuBarPanelMetrics {
     static let defaultWidth: CGFloat = 400
-    static let defaultHeight: CGFloat = 240
+    static let defaultHeight: CGFloat = 640
     static let minWidth: CGFloat = 400
-    static let minHeight: CGFloat = 240
+    /// Safety floor for attached chrome; page content determines the actual height.
+    static let minHeight: CGFloat = 180
     static let attachedMaxWidth: CGFloat = 500
     static let attachedMaxHeight: CGFloat = 660
     static let detachedMinHeight: CGFloat = 400
@@ -81,8 +82,8 @@ enum MenuBarPanelMetrics {
     static var chipFill: NSColor {
         dynamicColor(
             name: "PTBChipFill",
-            light: NSColor.black.withAlphaComponent(0.04),
-            dark: NSColor.white.withAlphaComponent(0.06))
+            light: NSColor.black.withAlphaComponent(0.18),
+            dark: NSColor.white.withAlphaComponent(0.16))
     }
 
     static var selectedFill: NSColor {
@@ -161,6 +162,19 @@ enum MenuBarPanelMetrics {
             height: min(max(size.height, minHeight(detached: detached)), maxHeight(detached: detached)))
     }
 
+    /// Keep the top edge still while the bottom follows the measured page. The
+    /// usable area below the anchor can be smaller than the normal height cap.
+    static func contentFittedFrame(current: NSRect, preferredHeight: CGFloat,
+                                   button: NSRect?, screen: NSRect) -> NSRect {
+        let top = min(button.map { $0.minY - statusItemGap } ?? current.maxY, screen.maxY)
+        let availableHeight = max(1, top - screen.minY)
+        let height = min(max(ceil(preferredHeight), minHeight), attachedMaxHeight, availableHeight)
+        var frame = NSRect(x: current.minX, y: top - height, width: current.width, height: height)
+        if let button { frame.origin.x = button.midX - frame.width / 2 }
+        frame.origin.x = min(max(frame.minX, screen.minX), max(screen.minX, screen.maxX - frame.width))
+        return frame
+    }
+
     /// Place `size` under the status item, clamped to `visibleScreen`.
     static func frame(below buttonScreenRect: NSRect, size: NSSize, visibleScreen: NSRect) -> NSRect {
         let width = min(max(size.width, 1), max(visibleScreen.width, 1))
@@ -217,6 +231,8 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
     private let navigation: PopoverNavigation
     private var window: NSWindow?
     private weak var statusButton: NSStatusBarButton?
+    private var preferredContentHeight: CGFloat?
+    private var contentFitTask: Task<Void, Never>?
     var onVisibilityChange: (() -> Void)?
 
     init(
@@ -233,7 +249,6 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         self.navigation = navigation
         super.init()
         observeDetach()
-        observeNavigation()
     }
 
     var isShown: Bool { window?.isVisible == true }
@@ -264,24 +279,24 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         applyTitle()
         applyChrome()
         clampContentSize()
-        hugAttachedContent()
         if let button, MenuBarPanelMetrics.shouldPlaceBelowStatusItem(detached: usage.menuBarPanelDetached) {
             place(below: button)
         }
         window?.makeKeyAndOrderFront(nil)
-        DispatchQueue.main.async { [weak self] in
-            self?.hugAttachedContent()
-        }
         onVisibilityChange?()
     }
 
     func close() {
+        contentFitTask?.cancel()
+        preferredContentHeight = nil
         window?.orderOut(nil)
         window?.contentView = nil
         onVisibilityChange?()
     }
 
     func windowWillClose(_ notification: Notification) {
+        contentFitTask?.cancel()
+        preferredContentHeight = nil
         window?.contentView = nil
         onVisibilityChange?()
     }
@@ -293,6 +308,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
 
     func windowDidEndLiveResize(_ notification: Notification) {
         clampContentSize()
+        fitContentHeight(animated: false)
         window?.invalidateShadow()
     }
 
@@ -309,7 +325,9 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
 
     private func hostedView() -> NSView {
         let view = NSHostingView(rootView:
-            PopoverView()
+            PopoverView(onPreferredHeightChange: { [weak self] height in
+                self?.scheduleContentFit(height)
+            })
                 .environment(usage)
                 .environment(companion)
                 .environment(updater)
@@ -317,7 +335,6 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
                 .environment(session)
                 .environment(\.locale, companion.language.displayLocale)
         )
-        view.sizingOptions = [.preferredContentSize]
         MenuBarPanelMetrics.applyAttachedClip(view, detached: usage.menuBarPanelDetached)
         return view
     }
@@ -360,6 +377,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
                 {
                     self.place(below: statusButton)
                 }
+                self.fitContentHeight(animated: false)
                 self.observeDetach()
             }
         }
@@ -375,40 +393,6 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         }
     }
 
-    /// Attached panel hugs SwiftUI content instead of stretching to a 520pt floor.
-    private func hugAttachedContent() {
-        guard let window, !usage.menuBarPanelDetached else { return }
-        window.layoutIfNeeded()
-        let fitting = window.contentView?.fittingSize
-            ?? window.contentRect(forFrameRect: window.frame).size
-        let preferred = window.contentView?.intrinsicContentSize ?? .zero
-        let height = max(fitting.height, preferred.height)
-        let width = max(fitting.width, preferred.width, MenuBarPanelMetrics.minWidth)
-        let size = MenuBarPanelMetrics.clampedContentSize(
-            NSSize(width: width, height: height), detached: false)
-        if size != window.contentRect(forFrameRect: window.frame).size {
-            window.setContentSize(size)
-        }
-        if let statusButton, MenuBarPanelMetrics.shouldPlaceBelowStatusItem(detached: false) {
-            place(below: statusButton)
-        }
-    }
-
-    private func observeNavigation() {
-        withObservationTracking {
-            _ = navigation.tab
-            _ = navigation.showSettings
-            _ = navigation.collectionSegment
-            _ = navigation.showingCollectionLog
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
-                self.hugAttachedContent()
-                self.observeNavigation()
-            }
-        }
-    }
-
     private func place(below button: NSStatusBarButton) {
         guard let window, let buttonWindow = button.window else { return }
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
@@ -417,5 +401,44 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         window.setFrame(
             MenuBarPanelMetrics.frame(below: buttonRect, size: size, visibleScreen: screen),
             display: false)
+    }
+
+    private func scheduleContentFit(_ height: CGFloat) {
+        guard height.isFinite, height > 0, !usage.menuBarPanelDetached else { return }
+        let cappedHeight = min(height, MenuBarPanelMetrics.attachedMaxHeight)
+        guard preferredContentHeight != cappedHeight else { return }
+        preferredContentHeight = cappedHeight
+        contentFitTask?.cancel()
+        contentFitTask = Task { @MainActor [weak self] in
+            // Coalesce layout passes during navigation/loading before resizing.
+            try? await Task.sleep(for: .milliseconds(40))
+            guard !Task.isCancelled else { return }
+            self?.fitContentHeight(animated: true)
+        }
+    }
+
+    private func fitContentHeight(animated: Bool) {
+        guard !usage.menuBarPanelDetached, let window, window.isVisible,
+              !window.inLiveResize, let preferredContentHeight else { return }
+        let buttonRect: NSRect? = statusButton.flatMap { button in
+            button.window?.convertToScreen(button.convert(button.bounds, to: nil))
+        }
+        guard let screen = statusButton?.window?.screen ?? window.screen ?? NSScreen.main else { return }
+        let target = MenuBarPanelMetrics.contentFittedFrame(
+            current: window.frame, preferredHeight: preferredContentHeight,
+            button: buttonRect, screen: screen.visibleFrame)
+        guard abs(target.height - window.frame.height) >= 1
+                || abs(target.minY - window.frame.minY) >= 1
+                || abs(target.minX - window.frame.minX) >= 1 else { return }
+        let shouldAnimate = animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        if shouldAnimate {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.28
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(target, display: true)
+            }
+        } else {
+            window.setFrame(target, display: true)
+        }
     }
 }

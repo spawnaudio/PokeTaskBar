@@ -10,7 +10,7 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertEqual(MenuBarPanelMetrics.attachedMaxWidth, 500)
         XCTAssertLessThan(MenuBarPanelMetrics.attachedMaxWidth, TodayDeskMetrics.defaultWidth)
         XCTAssertLessThan(MenuBarPanelMetrics.attachedMaxHeight, TodayDeskMetrics.defaultHeight)
-        XCTAssertEqual(MenuBarPanelMetrics.minHeight, 240, "attached panel hugs short tabs instead of a 520pt floor")
+        XCTAssertLessThan(MenuBarPanelMetrics.minHeight, 290, "Short pages can fit below the old minimum")
         XCTAssertEqual(MenuBarPanelMetrics.shellGap, 8)
         XCTAssertGreaterThan(MenuBarPanelMetrics.detachedMaxWidth, MenuBarPanelMetrics.attachedMaxWidth)
     }
@@ -70,7 +70,7 @@ final class MenuBarPanelTests: XCTestCase {
     func testClampedContentSizePinsToMinAndMax() {
         XCTAssertEqual(
             MenuBarPanelMetrics.clampedContentSize(NSSize(width: 200, height: 100), detached: false),
-            NSSize(width: 400, height: 240))
+            NSSize(width: 400, height: 180))
         XCTAssertEqual(
             MenuBarPanelMetrics.clampedContentSize(NSSize(width: 200, height: 100), detached: true),
             NSSize(width: 400, height: 400))
@@ -141,25 +141,26 @@ final class MenuBarPanelTests: XCTestCase {
         let chrome = try String(
             contentsOf: root.appendingPathComponent("PopoverChrome.swift"), encoding: .utf8)
         XCTAssertTrue(popover.contains("PopoverShellToolbar"))
-        XCTAssertTrue(popover.contains("canvasFill"))
-        XCTAssertTrue(popover.contains("shellFill"))
+        XCTAssertTrue(popover.contains("theme.canvas"))
+        XCTAssertTrue(popover.contains("theme.shell"))
         XCTAssertTrue(popover.contains("attachedCornerRadius"))
         XCTAssertTrue(popover.contains("shellGap"))
         XCTAssertTrue(chrome.contains("struct PopoverShellToolbar"))
         XCTAssertTrue(chrome.contains("chevron.left"))
         XCTAssertTrue(chrome.contains("ViewThatFits"))
         XCTAssertTrue(popover.contains("ignoresSafeArea"))
-        XCTAssertTrue(popover.contains("fixedSize(horizontal: false, vertical: !detached)"))
         XCTAssertTrue(popover.contains("padding(.bottom, gap)"))
         XCTAssertTrue(popover.contains("padding(.trailing, gap)"))
         let panel = try String(
             contentsOf: root.appendingPathComponent("MenuBarPanel.swift"), encoding: .utf8)
-        XCTAssertTrue(panel.contains("sizingOptions"))
-        XCTAssertTrue(panel.contains("hugAttachedContent") || panel.contains("preferredContentSize"))
+        XCTAssertFalse(panel.contains("hugAttachedContent"))
+        XCTAssertFalse(panel.contains("preferredContentSize"))
     }
 
-    func testShellBottomInsetStaysOutsideScrollingContent() throws {
+    func testAttachedMenuBarWindowRetainsShellWhileAllowingContentSizing() throws {
         XCTAssertEqual(MenuBarPanelMetrics.shellGap, 8)
+        XCTAssertEqual(MenuBarPanelMetrics.defaultHeight, 640)
+        XCTAssertEqual(MenuBarPanelMetrics.minHeight, 180)
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -167,20 +168,14 @@ final class MenuBarPanelTests: XCTestCase {
             .appendingPathComponent("Sources/PokeTaskBar/UI")
         let popover = try String(
             contentsOf: root.appendingPathComponent("PopoverView.swift"), encoding: .utf8)
-        let companion = try String(
-            contentsOf: root.appendingPathComponent("CompanionView.swift"), encoding: .utf8)
-        let usage = try String(
-            contentsOf: root.appendingPathComponent("UsageTabView.swift"), encoding: .utf8)
-        XCTAssertTrue(popover.contains("let panelHeight = min(geo.size.height"))
+        let panel = try String(
+            contentsOf: root.appendingPathComponent("MenuBarPanel.swift"), encoding: .utf8)
+        XCTAssertTrue(popover.contains("height: geo.size.height"))
         XCTAssertTrue(popover.contains("padding(.bottom, gap)"))
         XCTAssertTrue(popover.contains("padding(.trailing, gap)"))
-        XCTAssertFalse(
-            companion.contains("contentHeight: CGFloat = 520"),
-            "a 520pt Collection minHeight pushes the shell inset off the window")
-        XCTAssertFalse(companion.contains("minHeight: Self.contentHeight"))
-        XCTAssertFalse(
-            usage.contains("minHeight: 420"),
-            "Usage must not force a content floor that eats the bottom inset")
+        XCTAssertFalse(popover.contains("fixedSize(horizontal: false, vertical: !detached)"))
+        XCTAssertFalse(panel.contains("sizingOptions"))
+        XCTAssertFalse(panel.contains("observeNavigation()"))
     }
 
     func testStatusItemPillDrawsCapsuleHairline() {
@@ -189,6 +184,10 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertEqual(MenuBarLinearCountGlyph.completedSymbol, "checkmark.circle.fill")
         XCTAssertEqual(MenuBarLinearCountGlyph.inProgressColor, NSColor.systemYellow)
         XCTAssertEqual(MenuBarLinearCountGlyph.completedColor, NSColor.systemBlue)
+        let light = Self.snapshot(MenuBarPanelMetrics.chipFill, for: NSAppearance(named: .aqua)!)
+        let dark = Self.snapshot(MenuBarPanelMetrics.chipFill, for: NSAppearance(named: .darkAqua)!)
+        XCTAssertEqual(light.alphaComponent, 0.18, accuracy: 0.01)
+        XCTAssertEqual(dark.alphaComponent, 0.16, accuracy: 0.01)
     }
 
     func testFocusTabKeepsPomodoroUsageAndTimeXPSeparate() throws {
@@ -205,7 +204,9 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(focus.contains("l.pomoTimer"))
         XCTAssertTrue(focus.contains("l.focusIssueOrTimerPrompt"))
         XCTAssertTrue(focus.contains("l.openLinearTab"))
-        XCTAssertTrue(focus.contains("l.todayDeskMenuOpen"))
+        let chrome = try String(contentsOf: root.appendingPathComponent("PopoverChrome.swift"), encoding: .utf8)
+        XCTAssertTrue(chrome.contains("struct PopoverFooter"))
+        XCTAssertTrue(chrome.contains("l.todayDeskMenuOpen"))
         XCTAssertFalse(focus.contains("pomodoroSection"))
         XCTAssertFalse(focus.contains("idleLinearPrompt"))
         XCTAssertFalse(focus.contains("l.focusIdlePrompt"))
@@ -290,12 +291,13 @@ final class MenuBarPanelTests: XCTestCase {
         let source = try String(contentsOf: app, encoding: .utf8)
         XCTAssertTrue(source.contains("MenuBarStatusItemChrome.apply"))
         XCTAssertTrue(source.contains("MenuBarLines.attributedTitle"))
-        XCTAssertTrue(source.contains("MenuBarLines.pillText"))
-        XCTAssertTrue(source.contains("MenuBarLines.focusedIssueTitle"))
-        XCTAssertTrue(source.contains("MenuBarLines.pillTrailing"))
-        XCTAssertTrue(source.contains("showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil"))
-        XCTAssertTrue(source.contains("store.menuLinearIssueCounts") || source.contains("store.menuLinearIssuesLine"))
-        XCTAssertTrue(source.contains("_ = store.showScoreInMenu"))
+        XCTAssertTrue(source.contains("MenuBarLines.doneTodayPill"))
+        XCTAssertTrue(source.contains("?? .doneToday(0)"))
+        XCTAssertTrue(source.contains("title: nil"))
+        XCTAssertTrue(source.contains("store.menuLinearIssueCounts"))
+        XCTAssertFalse(source.contains("MenuBarLines.focusedIssueTitle(sessionStore.session)"))
+        XCTAssertFalse(source.contains("showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil"))
+        XCTAssertFalse(source.contains("_ = store.showScoreInMenu"))
         XCTAssertTrue(source.contains("_ = store.menuLinearIssuesLine"))
         XCTAssertTrue(source.contains("_ = sessionStore.session?.issue.title"))
     }

@@ -155,6 +155,8 @@ struct LinearInitiativeSummary: Equatable, Sendable, Identifiable {
     var targetDate: Date?
     var descriptionText: String?
     var issues: [LinearIssueSummary]
+    /// Retain explicit relationships even when a linked project has no open issues.
+    var projectIDs: [String] = []
 }
 
 struct LinearIssueDashboard: Equatable, Sendable {
@@ -1028,7 +1030,8 @@ struct LinearClient: Sendable {
                 ownerName: (node["owner"] as? [String: Any])?["name"] as? String,
                 targetDate: parseDate(node["targetDate"]),
                 descriptionText: node["description"] as? String,
-                issues: sortedByPriority(issues))
+                issues: sortedByPriority(issues),
+                projectIDs: projectNodes.compactMap { $0["id"] as? String })
         }
     }
 

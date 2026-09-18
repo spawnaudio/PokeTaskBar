@@ -27,6 +27,7 @@ enum TahoeHairline {
 }
 
 /// Fill + stroke on one shape so  hairlines stay closed (sibling overlays clip corners).
+@MainActor
 struct TahoeStrokedFill<S: InsettableShape>: View {
     var shape: S
     var fill: Color
@@ -44,6 +45,8 @@ struct TahoeStrokedFill<S: InsettableShape>: View {
 /// Ultra-thin divider between Linear tab chrome and the list. Hidden until the pointer is near it.
 @MainActor
 struct HoverHairlineSeparator: View {
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.colorScheme) private var scheme
     @State private var hovering = false
 
     var body: some View {
@@ -51,9 +54,9 @@ struct HoverHairlineSeparator: View {
             .frame(height: 12)
             .overlay {
                 Rectangle()
-                    .fill(TahoeHairline.idle)
+                    .fill(menuBarChrome ? MenuBarTheme(scheme: scheme).divider : TahoeHairline.idle)
                     .frame(height: TahoeHairline.width)
-                    .opacity(hovering ? 1 : 0)
+                    .opacity(menuBarChrome || hovering ? 1 : 0)
             }
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
@@ -64,13 +67,46 @@ struct HoverHairlineSeparator: View {
 /// Opaque card: 12pt continuous corners + hairline.
 @MainActor
 struct PopoverCardModifier: ViewModifier {
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.mainWindowChrome) private var mainWindowChrome
+    @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
         content
             .padding(12)
             .background {
+                if mainWindowChrome {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(MainWindowTheme(scheme: scheme).surface)
+                } else {
                 TahoeStrokedFill(
-                    shape: RoundedRectangle(cornerRadius: 12, style: .continuous),
-                    fill: Color(nsColor: MenuBarPanelMetrics.cardFill))
+                    shape: RoundedRectangle(cornerRadius: menuBarChrome ? 8 : 12, style: .continuous),
+                    fill: menuBarChrome ? MenuBarTheme(scheme: scheme).surface : Color(nsColor: MenuBarPanelMetrics.cardFill),
+                    stroke: menuBarChrome ? MenuBarTheme(scheme: scheme).divider : TahoeHairline.idle)
+                }
+            }
+    }
+}
+
+/// Focus pop-outs use the shared palette without changing the timer underneath.
+/// Scope rectangular control chrome to the card's descendants only.
+@MainActor
+struct FocusPromptChromeModifier: ViewModifier {
+    var cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let theme = MenuBarTheme(scheme: scheme)
+        content
+            .font(.system(size: 12))
+            .foregroundStyle(theme.text)
+            .tint(theme.accent)
+            .environment(\.menuBarChrome, true)
+            .background {
+                TahoeStrokedFill(
+                    shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                    fill: theme.canvas,
+                    stroke: contrast == .increased ? theme.secondary : theme.border)
             }
     }
 }
@@ -84,7 +120,11 @@ enum TahoeButtonKind {
 
 /// Capsule fill + hairline + `contentShape` around a label. Buttons wrap this in a
 /// `ButtonStyle` so padding hits; Menu labels apply it directly on the label.
+@MainActor
 struct TahoeCapsuleChrome<Content: View>: View {
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var enabled
     var kind: TahoeButtonKind
     var expands: Bool = false
     var tint: Color? = nil
@@ -92,7 +132,7 @@ struct TahoeCapsuleChrome<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        let shape = Capsule()
+        let shape = RoundedRectangle(cornerRadius: menuBarChrome ? 7 : 100, style: .continuous)
         content
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
@@ -101,7 +141,7 @@ struct TahoeCapsuleChrome<Content: View>: View {
                 TahoeStrokedFill(shape: shape, fill: fill, stroke: stroke)
             }
             .contentShape(shape)
-            .opacity(pressed ? 0.72 : 1)
+            .opacity(enabled ? (pressed ? 0.72 : 1) : 0.45)
     }
 
     private var horizontalPadding: CGFloat {
@@ -120,6 +160,14 @@ struct TahoeCapsuleChrome<Content: View>: View {
     }
 
     private var fill: Color {
+        if menuBarChrome {
+            let theme = MenuBarTheme(scheme: scheme)
+            switch kind {
+            case .prominent: return theme.selected
+            case .regular: return tint?.opacity(0.10) ?? theme.surface
+            case .accessory: return .clear
+            }
+        }
         switch kind {
         case .prominent: return Color(nsColor: MenuBarPanelMetrics.selectedFill)
         case .regular: return tint?.opacity(0.16) ?? Color(nsColor: MenuBarPanelMetrics.chipFill)
@@ -128,6 +176,9 @@ struct TahoeCapsuleChrome<Content: View>: View {
     }
 
     private var stroke: Color {
+        if menuBarChrome {
+            return tint?.opacity(0.30) ?? MenuBarTheme(scheme: scheme).border
+        }
         switch kind {
         case .prominent: return TahoeHairline.selected
         case .regular: return tint.map(TahoeHairline.tinted) ?? TahoeHairline.idle
@@ -156,11 +207,14 @@ struct TahoeChromeButtonStyle: ButtonStyle {
 
 /// Segmented tab / duration chips. Selected fill + full-capsule hit target.
 struct LinearSegmentButtonStyle: ButtonStyle {
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.colorScheme) private var scheme
     var selected: Bool
     var expands: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = Capsule()
+        let shape = RoundedRectangle(cornerRadius: menuBarChrome ? 7 : 100, style: .continuous)
+        let theme = MenuBarTheme(scheme: scheme)
         configuration.label
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -168,8 +222,8 @@ struct LinearSegmentButtonStyle: ButtonStyle {
             .background {
                 TahoeStrokedFill(
                     shape: shape,
-                    fill: selected ? Color(nsColor: MenuBarPanelMetrics.selectedFill) : Color.clear,
-                    stroke: selected ? TahoeHairline.selected : TahoeHairline.idle)
+                    fill: selected ? (menuBarChrome ? theme.selected : Color(nsColor: MenuBarPanelMetrics.selectedFill)) : Color.clear,
+                    stroke: menuBarChrome ? theme.border : (selected ? TahoeHairline.selected : TahoeHairline.idle))
             }
             .contentShape(shape)
             .opacity(configuration.isPressed ? 0.72 : 1)
@@ -233,21 +287,13 @@ extension View {
         buttonStyle(TahoeChromeButtonStyle(kind: kind))
     }
 
-    /// Overlay island / prompt chrome: filled panel.
-    func tahoeFloatingChrome(cornerRadius: CGFloat = 12) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return self
-            .background {
-                TahoeStrokedFill(shape: shape, fill: Color.primary.opacity(0.08))
-            }
+    /// Floating note composer. The timer strip owns its separate, unchanged chrome.
+    func tahoeFloatingChrome(cornerRadius: CGFloat = 8) -> some View {
+        modifier(FocusPromptChromeModifier(cornerRadius: cornerRadius))
     }
 
-    func tahoePromptChrome(cornerRadius: CGFloat = 10) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return self
-            .background {
-                TahoeStrokedFill(shape: shape, fill: Color.primary.opacity(0.08))
-            }
+    func tahoePromptChrome(cornerRadius: CGFloat = 8) -> some View {
+        modifier(FocusPromptChromeModifier(cornerRadius: cornerRadius))
     }
 
     func tahoeIconChrome(selected: Bool = false) -> some View {
@@ -283,6 +329,8 @@ struct TahoeMenuLabel: View {
 /// Menu-styled picker as a quiet bordered chip with a chevron.
 @MainActor
 struct TahoePopupMenu<Selection: Hashable, Content: View>: View {
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.colorScheme) private var scheme
     let accessibilityLabel: String
     let selectionTitle: String
     @Binding var selection: Selection
@@ -300,7 +348,7 @@ struct TahoePopupMenu<Selection: Hashable, Content: View>: View {
             .labelsHidden()
         } label: {
             TahoeMenuLabel(text: selectionTitle, expands: expands)
-                .foregroundStyle(tint ?? Color.primary)
+                .foregroundStyle(menuBarChrome ? MenuBarTheme(scheme: scheme).text : (tint ?? Color.primary))
                 .linearChipChrome(expands: expands, tint: tint)
         }
         .menuIndicator(.hidden)
@@ -510,95 +558,142 @@ struct FocusMarkDoneButton: View {
 @MainActor
 struct PopoverShellToolbar: View {
     @Environment(PopoverNavigation.self) private var nav
-    @Environment(FocusSessionStore.self) private var session
     @Environment(CompanionStore.self) private var companion
     @Environment(UsageStore.self) private var store
+    @Environment(\.colorScheme) private var scheme
 
     private var l: L { companion.l }
+    private var theme: MenuBarTheme { MenuBarTheme(scheme: scheme) }
 
     var body: some View {
-        @Bindable var nav = nav
-        HStack(spacing: 8) {
-            if nav.canGoBack {
-                Button {
-                    nav.goBack()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                if nav.canGoBack {
+                    iconButton("chevron.left", title: l.goBack) { nav.goBack() }
+                } else if !store.menuBarPanelDetached {
+                    Image(nsImage: MenuBarIcon.pokeBall)
+                        .resizable().interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 22, height: 22)
+                        .accessibilityHidden(true)
                 }
-                .tahoeIconChrome()
-                .help(l.goBack)
-                .accessibilityLabel(l.goBack)
+                Text(nav.showSettings ? l.settings : "PokeTaskBar")
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                iconButton(
+                    store.menuBarPanelDetached ? "menubar.arrow.up.rectangle" : "macwindow.on.rectangle",
+                    title: store.menuBarPanelDetached ? l.attachMenuBarPanel : l.detachMenuBarPanel
+                ) { store.menuBarPanelDetached.toggle() }
+                iconButton("gearshape", title: l.settings, selected: nav.showSettings) {
+                    nav.showSettings.toggle()
+                }
             }
+            .padding(.leading, store.menuBarPanelDetached ? MenuBarPanelMetrics.detachedTrafficLightInset - 8 : 8)
+            .padding(.trailing, 6)
 
-            ViewThatFits(in: .horizontal) {
-                tabRow(showTitle: true)
-                    .fixedSize(horizontal: true, vertical: false)
-                tabRow(showTitle: false)
-            }
-            Spacer(minLength: 8)
-
-            iconButton(
-                systemName: store.menuBarPanelDetached ? "menubar.arrow.up.rectangle" : "macwindow.on.rectangle",
-                help: store.menuBarPanelDetached ? l.attachMenuBarPanel : l.detachMenuBarPanel,
-                label: store.menuBarPanelDetached ? l.attachMenuBarPanel : l.detachMenuBarPanel,
-                selected: store.menuBarPanelDetached
-            ) {
-                store.menuBarPanelDetached.toggle()
-            }
-            iconButton(systemName: "calendar", help: l.todayDeskMenuOpen, label: l.todayDeskWindowTitle) {
-                session.openDesk()
-            }
-            iconButton(systemName: "gearshape", help: l.settings, label: l.settings, selected: nav.showSettings) {
-                nav.showSettings = true
+            if !nav.showSettings {
+                ViewThatFits(in: .horizontal) {
+                    tabRow(showSymbols: true, showTitles: true).fixedSize(horizontal: true, vertical: false)
+                    tabRow(showSymbols: false, showTitles: true).fixedSize(horizontal: true, vertical: false)
+                    tabRow(showSymbols: true, showTitles: false)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
             }
         }
+        .padding(.bottom, 4)
     }
 
-    private func iconButton(
-        systemName: String,
-        help: String,
-        label: String,
-        selected: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
+    private func iconButton(_ symbol: String, title: String, selected: Bool = false,
+                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.body)
-                .foregroundStyle(selected ? Color.primary : Color.secondary)
-                .frame(width: 32, height: 32)
+            Image(systemName: symbol)
+                .font(.system(size: 14))
+                .frame(width: 16, height: 16)
         }
-        .tahoeIconChrome(selected: selected)
-        .help(help)
-        .accessibilityLabel(label)
+        .buttonStyle(MenuBarButtonStyle(prominent: selected, bordered: false))
+        .foregroundStyle(selected ? theme.text : theme.secondary)
+        .help(title)
+        .accessibilityLabel(title)
     }
 
-    private func tabRow(showTitle: Bool) -> some View {
-        HStack(spacing: 4) {
+    private func tabRow(showSymbols: Bool, showTitles: Bool) -> some View {
+        HStack(spacing: 2) {
             ForEach(PopoverTab.allCases, id: \.self) { tab in
-                let selected = !nav.showSettings && nav.tab == tab
+                let selected = nav.tab == tab
+                // Short visual label leaves room for all four tabs; VoiceOver keeps the full title.
+                let title = tab == .usage ? l.menuBarUsage : tab.title(l)
                 Button {
-                    nav.showSettings = false
                     nav.tab = tab
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.symbol)
-                        if showTitle {
-                            Text(tab.title(l))
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
+                    HStack(spacing: 5) {
+                        if showSymbols { Image(systemName: tab.symbol) }
+                        if showTitles { Text(title).lineLimit(1) }
                     }
-                    .font(.system(size: 13, weight: selected ? .medium : .regular))
-                    .foregroundStyle(selected ? Color.primary : Color.secondary)
+                    .font(.system(size: 12, weight: selected ? .medium : .regular))
+                    .padding(.horizontal, 9)
+                    .frame(height: 32)
+                    .frame(maxWidth: showTitles ? nil : .infinity)
+                    .foregroundStyle(selected ? theme.text : theme.secondary)
+                    .background(selected ? theme.selected : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
-                .linearSegmentChrome(selected: selected)
+                .buttonStyle(.plain)
                 .help(tab.title(l))
                 .accessibilityLabel(tab.title(l))
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
+    }
+}
+
+@MainActor
+struct PopoverFooter: View {
+    @Environment(FocusSessionStore.self) private var session
+    @Environment(CompanionStore.self) private var companion
+    @Environment(UsageStore.self) private var store
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let l = companion.l
+        HStack(spacing: 12) {
+            Button { session.openDesk() } label: {
+                Label(l.todayDeskMenuOpen, systemImage: "calendar")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .help(l.todayDeskMenuOpen)
+            Button {
+                store.floatingPetEnabled.toggle()
+            } label: {
+                Image(systemName: store.floatingPetEnabled ? "eye" : "eye.slash")
+            }
+            .buttonStyle(.plain)
+            .help(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
+            .accessibilityLabel(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
+            Spacer(minLength: 4)
+            if store.linearIntegrationEnabled && store.linearAPIKeyConfigured {
+                if store.isRefreshingLinearIssues {
+                    ProgressView().controlSize(.mini).accessibilityLabel(l.refresh)
+                } else if store.linearIssuesError != nil {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                        .help(l.linearIssuesSyncFailed)
+                        .accessibilityLabel(l.linearIssuesSyncFailed)
+                } else if let date = store.linearIssuesUpdatedAt {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle")
+                        RelativeTimestampText(date: date)
+                    }
+                    .help(l.linearLastSynced)
+                    .accessibilityLabel(l.linearLastSynced)
+                }
+            }
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(MenuBarTheme(scheme: scheme).secondary)
+        .frame(minHeight: 22)
     }
 }

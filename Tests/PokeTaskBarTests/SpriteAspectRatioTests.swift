@@ -72,15 +72,15 @@ final class SpriteAspectRatioTests: XCTestCase {
 
     // MARK: Menu bar canvas
 
-    /// The menu bar canvas is 22pt tall always, and only as wide as the fitted sprite (+1pt padding
-    /// per side). A fixed 22×22 canvas would pad a tall sprite with dead space that pushes the usage
-    /// number away from it.
+    /// The menu bar canvas is 22pt tall always, and only as wide as the fitted sprite (+4pt padding
+    /// per side). A fixed 22×22 canvas would pad a tall sprite with dead space while the larger
+    /// side padding gives the capsule enough breathing room around the Pokémon.
     func testMenuBarCanvasTracksFittedWidthAndKeepsFixedHeight() {
         let tall = AppDelegate.menuBarLayout(for: Self.spoinkGIF, up: false)
         XCTAssertEqual(tall.canvas.height, 22, accuracy: 0.001)
         XCTAssertEqual(tall.rect.height, 20, accuracy: 0.001, "tall sprite fills the 20pt content box")
         XCTAssertEqual(tall.rect.width, 20 * (36.0 / 66.0), accuracy: 0.001)
-        XCTAssertEqual(tall.canvas.width, tall.rect.width + 2, accuracy: 0.001)
+        XCTAssertEqual(tall.canvas.width, tall.rect.width + 8, accuracy: 0.001)
         XCTAssertLessThan(tall.canvas.width, 22, "a 36×66 sprite must not claim the full square width")
 
         let wide = AppDelegate.menuBarLayout(for: Self.pikachuGIF, up: false)
@@ -89,11 +89,11 @@ final class SpriteAspectRatioTests: XCTestCase {
         XCTAssertEqual(wide.canvas.height, 22, accuracy: 0.001, "height is fixed so the baseline cannot jitter")
     }
 
-    /// Square static sprites keep the exact pre-fix menu bar geometry (22×22 canvas, 20×20 at x=1).
+    /// Square static sprites keep the fitted 20×20 drawing area, with larger capsule padding.
     func testMenuBarGeometryUnchangedForSquareSprites() {
         let layout = AppDelegate.menuBarLayout(for: Self.staticPNG, up: false)
-        XCTAssertEqual(layout.canvas, NSSize(width: 22, height: 22))
-        XCTAssertEqual(layout.rect, NSRect(x: 1, y: 0, width: 20, height: 20))
+        XCTAssertEqual(layout.canvas, NSSize(width: 28, height: 22))
+        XCTAssertEqual(layout.rect, NSRect(x: 5, y: 0, width: 20, height: 20))
     }
 
     /// The bob offset still lifts the sprite by 1pt, and the sprite stays inside the canvas.

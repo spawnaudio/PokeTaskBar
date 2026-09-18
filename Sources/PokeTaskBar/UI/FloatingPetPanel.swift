@@ -24,6 +24,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private let defaults: UserDefaults
     private var panel: NSPanel?
     private var hoverPanel: NSPanel?
+    private var rewardPanel: XPRewardPanel?
     private var displayAwake = true
     private var builtAnimated: Bool?
     private var powerObserver: NSObjectProtocol?
@@ -47,14 +48,16 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     /// headroom-only guard stays green for 3-line copy that still fits 70pt (#167).
     static let bubbleBodyLineLimit = 2
     static let islandWidth: CGFloat = 228
-    static let islandHeight: CGFloat = 108
-    static let setupIslandHeight: CGFloat = 132
+    static let islandHeight: CGFloat = FloatingTimerMetrics.height
+    static let setupIslandHeight = FloatingTimerMetrics.height
     static let islandGap: CGFloat = 8
     /// Chevron *hit* target. Glyph stays smaller inside this frame.
     static let islandFoldChevronSize: CGFloat = 32
     /// Folded countdown (`50:00` + compact OT capsule). Wider than digits-only so OT is not clipped.
     static let islandFoldedClockWidth: CGFloat = 88
-    static let islandFoldedClockHeight: CGFloat = 18
+    static let islandFoldedClockHeight: CGFloat = 34
+    static let compactNewIssueWidth: CGFloat = 25 // 23 pt button + 2 pt spacing
+    static let compactTimerWidth = islandFoldedClockWidth + islandGap + islandFoldChevronSize + compactNewIssueWidth
     static let promptHeightZeroTime: CGFloat = 152
     static let promptHeightCheckIn: CGFloat = 176
     static let promptHeightForfeit: CGFloat = 168
@@ -135,6 +138,28 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         sync()
     }
 
+    var rewardScreen: NSScreen? { panel?.isVisible == true ? panel?.screen : nil }
+
+    func showXPReward(_ reward: XPReward?) {
+        rewardPanel?.orderOut(nil)
+        rewardPanel?.contentView = nil
+        rewardPanel?.close()
+        rewardPanel = nil
+        guard let reward, store.floatingPetEnabled, displayAwake,
+              let panel, panel.isVisible else { return }
+        let receipt = XPRewardPanel(reward: reward)
+        rewardPanel = receipt
+        positionXPReward()
+        receipt.orderFrontRegardless()
+    }
+
+    private func positionXPReward() {
+        guard let panel, let screen = panel.screen, let rewardPanel else { return }
+        let size = CGFloat(store.floatingPetSize)
+        let pet = NSRect(x: panel.frame.maxX - size, y: panel.frame.minY, width: size, height: size)
+        rewardPanel.follow(pet: pet, screen: screen)
+    }
+
     private func observeSettings() {
         observeLayout()
         observeHoverTooltip()
@@ -146,6 +171,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             _ = store.floatingPetEnabled
             _ = store.floatingPetSize
             _ = store.floatingPetIslandFolded
+            _ = store.floatingTimerWidth
             _ = store.currentSpeechBubble
             _ = companion.language
             _ = session.isActive
@@ -212,7 +238,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
                           confirm: OverlayConfirmPrompt = .none,
                           islandFolded: Bool = false,
                           showsTimerToggle: Bool = false,
-                          setupIsland: Bool = false) -> NSSize {
+                          setupIsland: Bool = false,
+                          timerWidth: CGFloat = FloatingTimerMetrics.defaultWidth) -> NSSize {
         if !hasIsland, !showsTimerToggle, !setupIsland, prompt == .none, confirm == .none {
             if showingBubble {
                 return NSSize(width: max(petSize, bubbleMinWidth),
@@ -236,10 +263,11 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let composerH = (hasIsland && composingNote) ? noteComposerHeight : 0
         let showsToggle = islandOn || showsTimerToggle
         let chevronW: CGFloat = showsToggle ? islandFoldChevronSize + islandGap : 0
-        let foldedClockW: CGFloat = (hasIsland && folded) ? islandFoldedClockWidth + islandGap : 0
+        let foldedClockW: CGFloat = (hasIsland && folded) ? islandFoldedClockWidth + islandGap + compactNewIssueWidth : 0
         let showChrome = islandOn && !folded
         let needsPromptColumn = promptH > 0 || composerH > 0
-        let contentW: CGFloat = (showChrome || needsPromptColumn) ? islandWidth + islandGap : 0
+        let contentWidth = islandOn && !folded ? FloatingTimerMetrics.width(timerWidth) : islandWidth
+        let contentW: CGFloat = (showChrome || needsPromptColumn) ? contentWidth + islandGap : 0
         let islandW = contentW + foldedClockW + chevronW
         let chromeH: CGFloat = showChrome ? (setupIsland ? setupIslandHeight : islandHeight) : 0
         let foldedClockH: CGFloat = (hasIsland && folded) ? islandFoldedClockHeight : 0
@@ -337,7 +365,9 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let wantAnimated = Self.shouldAnimate(lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
         if p.contentView == nil || builtAnimated != wantAnimated {
             let hosting = PetHostingView(rootView: AnyView(
-                FloatingPetView(animated: wantAnimated)
+                FloatingPetView(animated: wantAnimated, onResizeTimer: { [weak self] width, anchor in
+                    self?.resizeTimer(to: width, keepingRightEdge: anchor)
+                })
                     .environment(store).environment(companion).environment(session)))
             hosting.onOpenPopover = onOpenPopover
             hosting.onHide = onHide
@@ -377,11 +407,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             p.makeKeyAndOrderFront(nil)
         }
         textInputArmed = needsKey
+        positionXPReward()
         if hoverPanel?.isVisible == true { showHoverCallout() }
     }
 
     private func hide() {
         hideHoverCallout()
+        showXPReward(nil)
         textInputArmed = false
         guard let p = panel else { return }
         p.orderOut(nil)
@@ -477,7 +509,23 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
                        confirm: overlayConfirm,
                        islandFolded: store.floatingPetIslandFolded,
                        showsTimerToggle: true,
-                       setupIsland: session.pomodoroSetupOpen && !session.isActive)
+                       setupIsland: session.pomodoroSetupOpen && !session.isActive,
+                       timerWidth: CGFloat(store.floatingTimerWidth))
+    }
+
+    /// The left resize rail follows the pointer while the right edge and pet stay
+    /// anchored. Persist that anchor before observation runs another sync.
+    func resizeTimer(to proposedWidth: CGFloat, keepingRightEdge anchor: NSPoint) {
+        guard let panel, session.isActive || session.pomodoroSetupOpen,
+              !store.floatingPetIslandFolded else { return }
+        let extraWidth = panel.frame.width - CGFloat(store.floatingTimerWidth)
+        let screen = NSScreen.screens.first { $0.visibleFrame.intersects(panel.frame) } ?? NSScreen.main
+        let available = screen.map { anchor.x - $0.visibleFrame.minX - extraWidth } ?? FloatingTimerMetrics.maximumWidth
+        store.floatingTimerWidth = Double(FloatingTimerMetrics.width(proposedWidth, available: available))
+        let size = overlayPanelSize(petSize: CGFloat(store.floatingPetSize), showingBubble: store.currentSpeechBubble != nil)
+        let frame = NSRect(x: anchor.x - size.width, y: anchor.y, width: size.width, height: size.height)
+        panel.setFrame(screen.map { FloatingTimerMetrics.constrained(frame, to: $0.visibleFrame) } ?? frame, display: true)
+        persistPetOrigin()
     }
 
     private func targetFrame(petSize: CGFloat, showingBubble: Bool) -> NSRect {
@@ -496,6 +544,9 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             let fallbackPet = Self.defaultPetOrigin(petSize: petSize)
             frame.origin = Self.panelOrigin(petOrigin: fallbackPet, petSize: petSize,
                                             panelSize: size, hasIsland: true)
+        }
+        if let screen = NSScreen.screens.first(where: { $0.visibleFrame.intersects(frame) }) {
+            frame = FloatingTimerMetrics.constrained(frame, to: screen.visibleFrame)
         }
         return frame
     }
@@ -525,13 +576,17 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     func windowDidMove(_ notification: Notification) {
+        persistPetOrigin()
+    }
+
+    private func persistPetOrigin() {
         guard let p = panel, p.isVisible else { return }
         let petSize = CGFloat(store.floatingPetSize)
-        let size = overlayPanelSize(petSize: petSize, showingBubble: store.currentSpeechBubble != nil)
         let pet = Self.petOrigin(panelOrigin: p.frame.origin, petSize: petSize,
-                                 panelSize: size, hasIsland: true)
+                                 panelSize: p.frame.size, hasIsland: true)
         defaults.set(Double(pet.x), forKey: Self.originXKey)
         defaults.set(Double(pet.y), forKey: Self.originYKey)
+        positionXPReward()
         if hoverPanel?.isVisible == true { showHoverCallout() }
     }
 }
@@ -551,6 +606,7 @@ final class PetHostingView: NSHostingView<AnyView> {
     private var originAtDown: NSPoint?
     private var didDrag = false
     private var forwardingToSwiftUI = false
+    private var petHoverTrackingArea: NSTrackingArea?
 
     override var mouseDownCanMoveWindow: Bool { false }
 
@@ -563,16 +619,25 @@ final class PetHostingView: NSHostingView<AnyView> {
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        for area in trackingAreas { removeTrackingArea(area) }
-        addTrackingArea(NSTrackingArea(
+        // Keep SwiftUI's own tracking areas: the strip and its buttons use onHover.
+        if let petHoverTrackingArea { removeTrackingArea(petHoverTrackingArea) }
+        let area = NSTrackingArea(
             rect: bounds,
             options: [.activeAlways, .mouseEnteredAndExited, .inVisibleRect],
             owner: self,
-            userInfo: nil))
+            userInfo: nil)
+        petHoverTrackingArea = area
+        addTrackingArea(area)
     }
 
-    override func mouseEntered(with event: NSEvent) { onHoverChange?(true) }
-    override func mouseExited(with event: NSEvent) { onHoverChange?(false) }
+    override func mouseEntered(with event: NSEvent) {
+        if event.trackingArea === petHoverTrackingArea { onHoverChange?(true) }
+        else { super.mouseEntered(with: event) }
+    }
+    override func mouseExited(with event: NSEvent) {
+        if event.trackingArea === petHoverTrackingArea { onHoverChange?(false) }
+        else { super.mouseExited(with: event) }
+    }
 
     private var spriteRect: NSRect {
         NSRect(x: bounds.width - petSize, y: 0, width: petSize, height: petSize)
@@ -666,6 +731,7 @@ final class PetHostingView: NSHostingView<AnyView> {
 @MainActor
 struct FloatingPetView: View {
     var animated: Bool = true
+    var onResizeTimer: (CGFloat, NSPoint) -> Void = { _, _ in }
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(FocusSessionStore.self) private var session
@@ -683,16 +749,18 @@ struct FloatingPetView: View {
             HStack(alignment: .bottom, spacing: FloatingPetController.islandGap) {
                 if session.isActive || session.pomodoroSetupOpen {
                     if showsIslandColumn {
-                        SessionIslandView()
+                        SessionIslandView(onResizeTimer: onResizeTimer)
                     }
                     if store.floatingPetIslandFolded && session.isActive {
-                        foldedMiniClock
+                        FloatingCompactTimer()
                     }
                 }
-                islandFoldChevron
+                if !store.floatingPetIslandFolded || !session.isActive {
+                    islandFoldChevron
+                }
                 SpriteView(speciesID: subject.speciesID, size: size, animated: animated,
                            shiny: subject.isShiny,
-                           minFrameDelay: store.animationQuality.frameFloor)
+                           minFrameDelay: store.animationQuality.frameFloor, unownForm: subject.unownForm)
                     .frame(width: size, height: size)
                     .zIndex(0)
             }
@@ -712,42 +780,6 @@ struct FloatingPetView: View {
             || session.isComposingNote
     }
 
-    private var foldedMiniClock: some View {
-        let clock = session.clockDisplay()
-        let l = companion.l
-        return Button {
-            store.floatingPetIslandFolded = false
-        } label: {
-            HStack(spacing: 3) {
-                Text(clock.text)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                if clock.overtime {
-                    Text(l.overtimeAbbrev)
-                        .font(.system(size: 8, weight: .bold))
-                        .padding(.horizontal, 3)
-                        .padding(.vertical, 1)
-                        .background(Color.orange.opacity(0.2))
-                        .foregroundStyle(.orange)
-                        .clipShape(Capsule())
-                }
-            }
-            .frame(
-                width: FloatingPetController.islandFoldedClockWidth,
-                height: FloatingPetController.islandFoldedClockHeight,
-                alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(
-            width: FloatingPetController.islandFoldedClockWidth,
-            height: FloatingPetController.islandFoldedClockHeight)
-        .contentShape(Rectangle())
-        .help(l.expandTimer)
-        .accessibilityLabel(l.expandTimer)
-    }
-
     private var islandFoldChevron: some View {
         let l = companion.l
         let setup = session.pomodoroSetupOpen
@@ -757,7 +789,9 @@ struct FloatingPetView: View {
             if setup { return l.cancel }
             return l.pomoTimer
         }()
-        return Button {
+        let symbol = session.isActive ? (folded ? "chevron.left" : "chevron.right")
+            : setup ? "xmark" : "timer"
+        return FloatingPetTimerToggle(symbol: symbol, label: help) {
             if session.isActive {
                 store.floatingPetIslandFolded.toggle()
             } else if setup {
@@ -766,26 +800,7 @@ struct FloatingPetView: View {
                 session.openPomodoroSetup()
                 store.floatingPetIslandFolded = false
             }
-        } label: {
-            Image(systemName: folded ? "chevron.left" : "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(
-                    width: FloatingPetController.islandFoldChevronSize,
-                    height: FloatingPetController.islandFoldChevronSize)
-                .background(Color.primary.opacity(0.08), in: Circle())
-                .overlay {
-                    Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
-                }
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .frame(
-            width: FloatingPetController.islandFoldChevronSize,
-            height: FloatingPetController.islandFoldChevronSize)
-        .contentShape(Rectangle())
-        .help(help)
-        .accessibilityLabel(help)
     }
 
     static func hoverTooltip(todayTokens: Int, limitUtilization: Double?,

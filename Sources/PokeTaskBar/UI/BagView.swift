@@ -10,7 +10,7 @@ struct BagView: View {
         if store.ownedItems.isEmpty && store.storedCompanions.filter(\.isEgg).isEmpty {
             emptyState
         } else {
-            ScrollView {
+            ContentFittingScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(store.ownedItems, id: \.kind) { item in
                         ItemCard(store: store, nav: nav, kind: item.kind, count: item.count)
@@ -40,12 +40,15 @@ struct BagView: View {
 /// 확인은 인라인(버튼 morph) — .sheet/.alert 금지: 창이 닫힐 때 고아 시트가
 /// 이후 클릭을 먹통내는 기존 결함(PopoverView 주석) 회피.
 @MainActor
-private struct ItemCard: View {
+struct ItemCard: View {
     let store: CompanionStore
     let nav: PopoverNavigation
     let kind: ItemKind
     let count: Int
     @State private var confirming = false
+    @State private var candyCount = 1
+
+    private var selectedCandyCount: Int { min(candyCount, max(1, store.maxRareCandyUseCount)) }
 
     var body: some View {
         let l = store.l
@@ -59,18 +62,41 @@ private struct ItemCard: View {
                             Text("×\(count)").font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary).monospacedDigit()
                         }
+                        Spacer(minLength: 4)
+                        if kind == .rareCandy, store.canUseRareCandy {
+                            Stepper(value: $candyCount, in: 1...max(1, store.maxRareCandyUseCount)) {
+                                Text("×\(selectedCandyCount)").font(.callout.weight(.semibold)).monospacedDigit()
+                            }
+                            .fixedSize()
+                            .accessibilityLabel(l.itemName(.rareCandy))
+                            .accessibilityValue("\(selectedCandyCount)")
+                        }
                     }
                     Text(l.itemDescription(kind))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+            }
+            if kind == .rareCandy, let preview = store.planRareCandyUse(count: selectedCandyCount) {
+                if preview.graduates {
+                    Text(l.candyGraduates).font(.caption2).foregroundStyle(.secondary)
+                }
+                if preview.discardedXP > 0 {
+                    Text(l.candyDiscardedXP(TokenFormatter.compact(preview.discardedXP)))
+                        .font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                } else if preview.evolves && !preview.graduates {
+                    Text(l.candyCarryoverXP(TokenFormatter.compact(preview.carryoverXP)))
+                        .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
             }
             useControls(l)
         }
         .padding(10)
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onChange(of: store.maxRareCandyUseCount) { _, _ in
+            candyCount = selectedCandyCount
+        }
     }
 
     /// 이 아이템을 지금 쓸 수 있나 (kind 별 — 사탕은 라인 로딩 필요, 민트는 활성 포켓몬만).
@@ -84,14 +110,14 @@ private struct ItemCard: View {
     /// 사용 컨트롤 효과 힌트 ("+XP" / "2× XP for 30 minutes").
     private func effectHint(_ l: L) -> String {
         switch kind {
-        case .rareCandy: return "+\(TokenFormatter.compact(RareCandy.xp)) XP"
+        case .rareCandy: return "+\(TokenFormatter.compact(selectedCandyCount * RareCandy.xp)) XP"
         case .mint:      return l.mintEffectHint
         case .shinyCharm: return l.shinyCharmEffectHint
         }
     }
     private func performUse() {
         switch kind {
-        case .rareCandy: _ = store.useRareCandy()
+        case .rareCandy: _ = store.useRareCandy(count: selectedCandyCount)
         case .mint:      _ = store.useMint()
         case .shinyCharm: break   // 보유형 — 사용 동작 없음
         }
@@ -112,7 +138,7 @@ private struct ItemCard: View {
                     Text(l.useOnCurrent(store.displayName))
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()
-                    Button(l.use) { useNow() }
+                    Button(kind == .rareCandy ? "\(l.use) ×\(selectedCandyCount)" : l.use) { useNow() }
                         .tahoeButtonStyle(.prominent).controlSize(.small)
                     Button(l.cancel) { confirming = false }
                         .tahoeButtonStyle(.accessory).controlSize(.small)

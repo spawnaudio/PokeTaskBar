@@ -102,12 +102,14 @@ enum MenuBarLinearCountGlyph {
 enum MenuBarPillTrailing: Equatable {
     case clock(String)
     case linearCounts(Int, Int)
+    case doneToday(Int)
     case score(String)
 
     var plainFallback: String {
         switch self {
         case .clock(let text), .score(let text): return text
         case .linearCounts(let open, let done): return "\(open) · \(done)"
+        case .doneToday(let done): return "\(done)"
         }
     }
 }
@@ -188,6 +190,11 @@ enum MenuBarLines {
         return nil
     }
 
+    static func doneTodayPill(linearCounts: (Int, Int)?) -> MenuBarPillTrailing? {
+        guard let linearCounts else { return nil }
+        return .doneToday(linearCounts.1)
+    }
+
     /// Compact `title | trailing`. Omits a dangling pipe when either side is empty.
     static func pillText(title: String?, trailing: String?) -> String {
         let lead = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -221,6 +228,9 @@ enum MenuBarLines {
             result.append(countRun(open, symbol: MenuBarLinearCountGlyph.inProgressSymbol,
                                    color: MenuBarLinearCountGlyph.inProgressColor, font: font))
             result.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+            result.append(countRun(done, symbol: MenuBarLinearCountGlyph.completedSymbol,
+                                   color: MenuBarLinearCountGlyph.completedColor, font: font))
+        case .doneToday(let done):
             result.append(countRun(done, symbol: MenuBarLinearCountGlyph.completedSymbol,
                                    color: MenuBarLinearCountGlyph.completedColor, font: font))
         }
@@ -658,6 +668,21 @@ enum FocusTick {
         s.awaitingChoiceSince = nil
         s.userPaused = false
         s.segmentStartedAt = s.sleepHeld ? nil : now
+        return s
+    }
+
+    /// Replaces the countdown without resetting earned time, XP, or pause/sleep state.
+    /// Reject values beyond the existing total planned-time cap instead of silently changing the request.
+    static func setRemaining(_ session: FocusSession, minutes: Int, now: Date) -> FocusSession? {
+        guard (1...SessionXP.maxMinutes).contains(minutes) else { return nil }
+        var s = freeze(session, now: now)
+        let planned = max(0, s.accumulatedSeconds) + TimeInterval(minutes * 60)
+        guard planned <= TimeInterval(SessionXP.maxMinutes * 60) else { return nil }
+        s.plannedSeconds = planned
+        s.phase = s.userPaused ? .paused : .running
+        s.enteredOvertime = false
+        s.awaitingChoiceSince = nil
+        s.segmentStartedAt = s.isAccruing ? now : nil
         return s
     }
 

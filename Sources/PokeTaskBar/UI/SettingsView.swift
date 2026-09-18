@@ -7,6 +7,10 @@ struct SettingsView: View {
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(UpdateChecker.self) private var updater
+    @Environment(\.menuBarChrome) private var menuBarChrome
+    @Environment(\.mainWindowChrome) private var mainWindowChrome
+    @State private var desktopSection = "General"
+    @State private var settingsQuery = ""
     /// 팝오버 내부 화면 전환 방식 — sheet/dismiss 를 쓰지 않는다 (PopoverView 의 NOTE 참조)
     var onClose: () -> Void
     /// 기존 컬렉션의 도감으로 돌아가 대표 포켓몬을 고르게 한다.
@@ -42,8 +46,7 @@ struct SettingsView: View {
     private var isBundledApp: Bool { AppEnv.isBundledApp }
 
     private var representativeSelectionText: String {
-        guard let selected = companion.representativeSpeciesID,
-              let species = companion.dexSpecies.first(where: { $0.id == selected }) else {
+        guard let species = companion.representativeDexSpecies else {
             return l.representativeFollowCurrent
         }
         return "#\(species.id) \(species.name)\(species.isShiny ? " ✨" : "")"
@@ -70,12 +73,71 @@ struct SettingsView: View {
     // MARK: 레이아웃 — 헤더 고정 / 본문 스크롤 / 푸터 고정
 
     var body: some View {
+        if mainWindowChrome { desktopSettings } else { compactSettings }
+    }
+
+    private var desktopSettings: some View {
         @Bindable var store = store
-        VStack(spacing: 0) {
-            header
-            Divider()
+        return VStack(alignment: .leading, spacing: 18) {
+            TextField("Find a setting…", text: $settingsQuery).textFieldStyle(.roundedBorder)
             ScrollViewReader { proxy in
                 ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        desktopGroup("General", keywords: "language representative pokemon refresh animation limits launch") { generalGroup(store) }
+                        desktopGroup("Desktop", keywords: "menu bar floating pet companion") {
+                            menuBarGroup(store); floatingPetGroup(store)
+                        }
+                        desktopGroup("Notifications", keywords: "alerts sound") { notificationsGroup(store) }
+                        desktopGroup("Connections", keywords: "linear api key sync") { linearGroup(store) }
+                        desktopGroup("Difficulty", keywords: "xp growth coins shop") { difficultyGroup }
+                        desktopGroup("Updates", keywords: "version install") { updateGroup(store) }
+                        desktopGroup("Data & backup", keywords: "import export save restore") { transferGroup(store) }
+                        desktopGroup("Advanced", keywords: "provider session key paths cache") { advancedGroup(store) }
+                        desktopGroup("About & support", keywords: "help report version quit") { aboutSupportGroup }
+                    }
+                }.scrollIndicators(.hidden)
+                    .onChange(of: desktopSection) { _, section in
+                        withAnimation(.easeInOut(duration: 0.15)) { proxy.scrollTo(section, anchor: .top) }
+                    }
+                    .onChange(of: settingsQuery) { _, query in
+                        if !query.isEmpty { advancedExpanded = true }
+                    }
+            }
+            footer
+        }.onAppear {
+            if startExpanded { desktopSection = "Advanced"; advancedExpanded = true; sessionKeyFocused = true }
+        }
+    }
+
+    @ViewBuilder private func desktopGroup<Content: View>(_ title: String, keywords: String,
+                                                         @ViewBuilder content: () -> Content) -> some View {
+        let matches = settingsQuery.isEmpty || (title + " " + keywords).localizedCaseInsensitiveContains(settingsQuery)
+        if matches {
+            VStack(alignment: .leading, spacing: 16) {
+                Button {
+                    desktopSection = desktopSection == title ? "" : title
+                    if title == "Advanced" { advancedExpanded = true }
+                } label: {
+                    HStack {
+                        Text(title).font(.system(size: 16, weight: .semibold)); Spacer()
+                        Image(systemName: desktopSection == title || !settingsQuery.isEmpty ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 11)).foregroundStyle(.secondary)
+                    }.contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                if desktopSection == title || !settingsQuery.isEmpty { content() }
+            }.mainWindowCard().id(title)
+        }
+    }
+
+    private var compactSettings: some View {
+        @Bindable var store = store
+        return VStack(spacing: 0) {
+            if !menuBarChrome {
+                header
+                Divider()
+            }
+            ScrollViewReader { proxy in
+                ContentFittingScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         generalGroup(store)
                         linearGroup(store)
@@ -400,12 +462,21 @@ struct SettingsView: View {
             if didCheckUpdate, !isCheckingUpdate {
                 Divider()
                 groupRow {
-                    if let version = updater.available?.version {
+                    if case .offer(let version) = updater.settingsNotice {
                         Text(l.updateFound(version)).font(.caption).foregroundStyle(.orange)
                         Spacer()
-                        Button(l.updateButton) { updater.applyUpdate() }
-                            .tahoeButtonStyle(.prominent)
-                            .controlSize(.small)
+                        Button(l.updateButton) { updater.applyUpdate() }.tahoeButtonStyle(.prominent).controlSize(.small)
+                    } else if case .skipped(let version) = updater.settingsNotice {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(l.skippedVersion(version))
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack(spacing: 8) {
+                                Button(l.showSkippedAgain) { updater.showSkippedAgain() }.tahoeButtonStyle(.regular).controlSize(.small)
+                                Button(l.updateButton) { updater.applyUpdate() }.tahoeButtonStyle(.prominent).controlSize(.small)
+                            }
+                        }
                     } else {
                         Text(l.upToDate(Self.appVersion)).font(.caption).foregroundStyle(.secondary)
                         Spacer()

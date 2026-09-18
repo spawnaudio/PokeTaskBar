@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var issueComposer: LinearIssueComposerController!
     private var updater: UpdateChecker!
     private var floatingPet: FloatingPetController!
+    private let xpFeedback = XPFeedbackController()
+    private let xpGlow = XPBoundaryGlow()
     private let navigation = PopoverNavigation()
 
     // 메뉴바 캐릭터 애니메이션 — 단일 타이머로 프레임 순환.
@@ -110,10 +112,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.store.announceCompanionBubble(title: title, body: body)
         }
         sessionStore = FocusSessionStore(usage: store, companion: companion)
-        todayDesk = TodayDeskController(usage: store, companion: companion, session: sessionStore)
+        updater = UpdateChecker()
+        todayDesk = TodayDeskController(usage: store, companion: companion, session: sessionStore, updater: updater)
         issueComposer = LinearIssueComposerController(usage: store, companion: companion, session: sessionStore)
         Task { await companion.preparePokemonProfiles() }
-        updater = UpdateChecker()
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
         menuBarPanel = MenuBarPanelController(
@@ -145,10 +147,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePopover)
             button.target = self
             prepareSpriteLayer(on: button)   // 프레임 교체를 레이어 contents 로 — 설정이 먼저다
-            let egg = Self.eggImage(up: false)
-            setStatusImage(egg, cgFrame: Self.cgFrame(from: egg))   // 초기 알도 같은 경로로(불변식)
+            setStatusImage(MenuBarIcon.pokeBall, cgFrame: Self.cgFrame(from: MenuBarIcon.pokeBall))
         }
 
+        companion.onXPEarned = { [weak self] reward in
+            // Let the award finish updating its ledger before refreshing UI state.
+            Task { @MainActor in self?.xpFeedback.receive(reward) }
+        }
+        xpFeedback.onChange = { [weak self] reward in
+            guard let self else { return }
+            self.applyState()
+            self.floatingPet.showXPReward(reward)
+            if let reward {
+                self.xpGlow.show(reward, on: self.floatingPet.rewardScreen ?? self.statusItem.button?.window?.screen ?? NSScreen.main)
+            } else {
+                self.xpGlow.hide()
+            }
+            if XPFeedbackStyle.animates, let layer = self.statusItem.button?.layer {
+                let fade = CATransition()
+                fade.type = .fade
+                fade.duration = 0.2
+                layer.add(fade, forKey: "xp-feedback")
+            }
+        }
+
+        if CommandLine.arguments.contains("--open-main-window")
+            || Bundle.main.object(forInfoDictionaryKey: "PTBOpenMainWindowOnLaunch") as? String == "1" {
+            todayDesk.open()
+        }
         observeStore()
         observeSession()
         observeCompanionSprite()
@@ -160,7 +186,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { false }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        false
+        if Bundle.main.object(forInfoDictionaryKey: "PTBOpenMainWindowOnLaunch") as? String == "1" {
+            todayDesk?.open()
+        }
+        return false
     }
 
     private func closeSwiftUISettingsPlaceholders() {
@@ -179,9 +208,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeStore() {
         withObservationTracking {
             _ = store.menuTitle
-            _ = store.showScoreInMenu
             _ = store.menuLinearIssuesLine
-            _ = companion.lifetimeXP
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -257,29 +284,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             floatingPetEnabled: store.floatingPetEnabled,
             clock: sessionStore.clockDisplay(),
             overtimeAbbrev: companion.l.overtimeAbbrev)
-        let trailing = MenuBarLines.pillTrailing(
-            sessionClock: sessionClock,
-            linearCounts: store.menuLinearIssueCounts,
-            scoreLine: store.showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil)
-        let title = MenuBarLines.focusedIssueTitle(sessionStore.session)
-        let pill = MenuBarLines.pillText(title: title, trailing: trailing?.plainFallback)
+        let trailing = MenuBarLines.doneTodayPill(linearCounts: store.menuLinearIssueCounts) ?? .doneToday(0)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-        if !store.menuFlashLines.isEmpty {
+        if let reward = xpFeedback.current {
+            Self.applyMenuAttributedTitle(XPFeedbackStyle.title(for: reward), to: button)
+        } else if !store.menuFlashLines.isEmpty {
             Self.applyMenuText(
                 MenuBarLines.compose(usageLines: store.menuLines, sessionClock: sessionClock),
                 to: button)
-        } else if !pill.isEmpty {
-            Self.applyMenuAttributedTitle(
-                MenuBarLines.attributedTitle(title: title, trailing: trailing, font: font),
-                to: button)
         } else {
-            Self.applyMenuText(
-                MenuBarLines.compose(usageLines: store.menuLines, sessionClock: nil),
+            Self.applyMenuAttributedTitle(
+                MenuBarLines.attributedTitle(title: nil, trailing: trailing, font: font),
                 to: button)
         }
         button.toolTip = MenuBarLines.toolTip(
             identifier: sessionStore.session?.issue.identifier,
             sessionClock: sessionClock)
+        if let reward = xpFeedback.current {
+            button.toolTip = [reward.exactText, button.toolTip].compactMap { $0 }.joined(separator: "\n")
+        }
         needsSpriteLayout = true   // 텍스트 길이가 바뀌면 버튼 폭이 변해 이미지 자리도 움직인다
         // stale 시각 dim 제거 — 슬립/런치 직후 refresh 완료 전 몇 초간 회색으로 보여 '고장/비활성'
         // 으로 오인되던 것 방지(사용자 반복 지적). 데이터가 오래됐다는 신호가 필요하면 팝오버
@@ -342,8 +365,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.title = ""
             return
         }
-        let spaced = NSMutableAttributedString(string: " ", attributes: [.font: font])
+        let spaced = NSMutableAttributedString(string: "  ", attributes: [.font: font])
         spaced.append(title)
+        spaced.append(NSAttributedString(string: "  ", attributes: [.font: font]))
         button.attributedTitle = spaced
     }
 
@@ -397,62 +421,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 나란히 보면 메뉴바만 느려 보였다(2026-08-20). 코얼레싱은 남기고 늘어짐만 눌러 0.1 로 낮춤.
     static let menuFrameTolerance = 0.1
 
-    /// 대표 포켓몬에 맞춰 메뉴바 프레임을 준비. 종이 바뀐 경우에만 재로딩.
-    /// 정적 스프라이트로 먼저 보여주고, animated GIF 가 받아지면 교체한다(메뉴바도 GIF로 움직임).
-    /// 에너지 통제는 ① delay 하한 `menuFrameFloor` ② 안 보이면 정지(menuShouldAnimate) ③ 저전력 모드
-    /// 에선 하한을 powerSaver 로 강제 캡(`effectiveFrameFloor`)한다 — GIF 를 생략(bob)하는 대신
-    /// 프레임률만 낮춰, 애니메이션을 유지한 채 절전한다(bob 2회/s ↔ powerSaver ≤2.5회/s 로 근접).
+    /// Keep a single coloured icon in the status item. The companion continues
+    /// animating in the floating pet and panels; no menu animation is scheduled.
     private func ensureMenuAnimation() {
-        let subject = companion.representativeSubject
-        let id = subject.speciesID
-        let shiny = subject.isShiny
-        let key = id.map { Self.menuSpriteKey(id: $0, shiny: shiny, floor: menuFrameFloor) }
-        if key == menuSpriteKey, !menuFrames.isEmpty { return }   // 이미 이 개체로 애니메이션 중
-        menuSpriteKey = key
-        menuLoadGen += 1
-        let gen = menuLoadGen
-
-        guard let id else {                  // 알: 2프레임 bob
-            setMenuFrames(Self.eggFrames())
-            return
-        }
-        // 정적 스프라이트 bob 을 먼저(없으면 받아와서). GIF 가 받아지면 아래에서 교체.
-        if let cached = SpriteLoader.cachedImage(speciesID: id, shiny: shiny) {
-            setMenuFrames(Self.bobFrames(from: cached))
-        } else {
-            setMenuFrames(Self.eggFrames())
-            Task { @MainActor [weak self] in
-                guard let self, gen == self.menuLoadGen,
-                      let sprite = await SpriteLoader.image(speciesID: id, shiny: shiny) else { return }
-                guard gen == self.menuLoadGen else { return }
-                self.setMenuFrames(Self.bobFrames(from: sprite))
-            }
-        }
-
-        // 풀 GIF 애니메이션. delay 하한 `menuFrameFloor` 로 redraw 통제 — 저전력 모드에선 이 하한이
-        // powerSaver 로 캡되므로(GIF 생략 대신) 실제 애니메이션을 유지한 채 절전한다.
-        Task { @MainActor [weak self] in
-            guard let self, gen == self.menuLoadGen else { return }
-            // shiny GIF 미제공 종이면 일반 GIF 폴백
-            var data = await SpriteStore.shared.data(speciesID: id, animated: true, shiny: shiny)
-            if data == nil, shiny {
-                data = await SpriteStore.shared.data(speciesID: id, animated: true, shiny: false)
-            }
-            guard let data else { return }
-            let raw = GIFDecoder.frames(from: data)
-            guard raw.count > 1, gen == self.menuLoadGen else { return }
-            // fps 캡 = `menuFrameFloor`. 프레임마다 상태바 재합성(CA 커밋 → 디스플레이 사이클
-            // wakeup)이 붙으므로 네이티브 fps 로는 절대 돌리지 않는다(근거는 상수 주석).
-            // 솎아낸 **뒤** 22px 로 합성한다 — 버려질 프레임까지 합성하지 않게.
-            let capped = GIFDecoder.capFrameRate(raw, floor: self.menuFrameFloor)
-            self.setMenuFrames(capped.map { (Self.menuBarImage(from: $0.image, up: false), $0.delay) })
-        }
+        guard menuFrames.isEmpty else { return }
+        setMenuFrames([(MenuBarIcon.pokeBall, 0)])
     }
 
     private func setMenuFrames(_ frames: [(image: NSImage, delay: TimeInterval)]) {
         menuFrames = frames
         // 레이어용 비트맵은 프레임을 준비할 때 한 번만 만든다 — 프레임마다 변환하면 절감분이 사라진다.
-        let converted = frames.compactMap { Self.cgFrame(from: $0.image) }
+        // Template images must be drawn by AppKit so light/dark and pressed
+        // tints stay correct; a raw CALayer bitmap would lose template behavior.
+        let converted = frames.compactMap { $0.image.isTemplate ? nil : Self.cgFrame(from: $0.image) }
         menuLayerFrames = converted.count == frames.count ? converted : []   // 하나라도 실패하면 폴백
         menuIndex = 0
         advanceMenu()
@@ -590,8 +571,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// **하한(fps 설정)이 반드시 들어가야 한다.** 프레임은 하한에 맞춰 솎아낸 결과물이라, 키가
     /// 종·이로치만 담으면 설정을 바꿔도 다음 진화까지 옛 fps 로 계속 돈다(설계 시 확인된 함정).
     /// 순수·테스트용: `testIdentityKeysIncludeTheFrameFloor`.
-    static func menuSpriteKey(id: Int, shiny: Bool, floor: TimeInterval) -> String {
-        "\(id)-\(shiny)-\(floor)"
+    static func menuSpriteKey(id: Int, shiny: Bool, floor: TimeInterval, unownForm: UnownForm? = nil) -> String {
+        let form = UnownForm.resolved(speciesID: id, form: unownForm)
+        return "\(id)-\(shiny)-\(floor)-\(form?.rawValue ?? "")"
     }
 
     // MARK: 프레임 합성 (22px)
@@ -615,8 +597,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     nonisolated static func menuBarLayout(for pixelSize: CGSize, height h: CGFloat = 22,
                                           up: Bool) -> (canvas: NSSize, rect: NSRect) {
         let fit = SpriteFit.size(for: pixelSize, box: h - 2)
-        return (NSSize(width: fit.width + 2, height: h),
-                NSRect(x: 1, y: up ? 1 : 0, width: fit.width, height: fit.height))
+        return (NSSize(width: fit.width + 8, height: h),
+                NSRect(x: 5, y: up ? 1 : 0, width: fit.width, height: fit.height))
     }
 
     static func menuBarImage(from sprite: NSImage, up: Bool) -> NSImage {
@@ -686,6 +668,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setDisplayAwake(_ awake: Bool) {
         displayAwake = awake
+        xpFeedback.setDisplayAwake(awake)
         syncMenuAnimation()
         floatingPet.setDisplayAwake(awake)   // 슬립 중엔 펫 호스팅 트리 해제(GIF 루프 정지)
         sessionStore.setDisplayAwake(awake)

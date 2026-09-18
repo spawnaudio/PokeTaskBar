@@ -171,7 +171,7 @@ struct LinearIntegrationView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .top)
         .task(id: store.linearIntegrationEnabled && store.linearAPIKeyConfigured) {
             guard store.linearIntegrationEnabled, store.linearAPIKeyConfigured else { return }
             _ = await store.refreshLinearIssues()
@@ -184,10 +184,10 @@ struct LinearIntegrationView: View {
             Text(selectedIssuesTab == .completedToday ? l.linearIssuesEmptyCompleted : l.linearIssuesEmptyInProgress)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
                 .padding(.top, 4)
         } else {
-            ScrollView {
+            ContentFittingScrollView(fillsViewport: visibleIssues.count > 8) {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(visibleIssues) { issue in
                         issueCard(issue)
@@ -211,10 +211,10 @@ struct LinearIntegrationView: View {
                 Text(emptyText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(.top, 4)
             } else {
-                ScrollView {
+                ContentFittingScrollView(fillsViewport: items.count > 8) {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(items) { row in
                             LinearFoldableRow(row: row, openHelp: openHelp) {
@@ -254,7 +254,7 @@ struct LinearIntegrationView: View {
 
 /// Unboxed issue row. The highlighted row toggles fold; dedicated controls stay dedicated.
 @MainActor
-private struct LinearIssueEntityRow: View {
+struct LinearIssueEntityRow: View {
     let issue: LinearIssueSummary
     var nested: Bool = false
     let onPin: () -> Void
@@ -378,7 +378,7 @@ private struct LinearIssueEntityRow: View {
     }
 }
 
-private struct LinearContainerRow: Identifiable {
+struct LinearContainerRow: Identifiable {
     var id: String
     var name: String
     var url: URL?
@@ -419,13 +419,21 @@ private struct LinearContainerRow: Identifiable {
 
 /// Unboxed two-line project/initiative row. Click unfolds metadata, markdown, and issues.
 @MainActor
-private struct LinearFoldableRow<Content: View>: View {
+struct LinearFoldableRow<Content: View>: View {
     let row: LinearContainerRow
     let openHelp: String
     @ViewBuilder let content: () -> Content
 
     @State private var expanded = false
     @State private var hoveringHeader = false
+
+    init(row: LinearContainerRow, openHelp: String, initiallyExpanded: Bool = false,
+         @ViewBuilder content: @escaping () -> Content) {
+        self.row = row
+        self.openHelp = openHelp
+        self.content = content
+        _expanded = State(initialValue: initiallyExpanded)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
