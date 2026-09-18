@@ -14,6 +14,11 @@ menu bar's screen when the pet is hidden).
 - Seed polls, repeated completions, and zero awards produce no receipt.
 - Pet receipts follow dragging, stay on screen, and never take focus or clicks.
   Existing completion and evolution speech bubbles remain available.
+- Newly credited projects also show a six-second "Project complete!" speech
+  bubble with the project name and the same completion flash as issues. Multiple
+  projects use a count; a mixed issue/project poll shares one completion summary
+  while both XP receipts run in sequence. Project names in the menu flash are
+  capped at 24 characters plus an ellipsis; the bubble retains the name.
 - Reduce Motion and Low Power Mode use static text and omit the edge pulse.
   Sleep clears pending feedback; waking does not replay it.
 
@@ -41,3 +46,17 @@ running that suite to render native light/dark samples.
   Award and queue branches were also inspected using region coverage.
 - Installed app bundles were not replaced. Native component previews do not
   constitute a live end-to-end check of a Linear completion on multiple displays.
+
+## Project completion follow-up — 2026-09-19
+
+- Poll handling now passes newly credited projects into completion feedback.
+  Project XP already used the shared green receipt and screen-edge animation;
+  the missing path was the completion bubble/menu flash.
+- The regression failed on the old polling handler (three missing-popup
+  assertions), then passed after the fix. The focused reward, feedback, Linear
+  and focus-session run passed 156 tests with one optional preview skipped.
+- Tests cover project-only and mixed polls, Mint-adjusted amounts, sequential
+  XP notices, first-poll seeding, duplicate suppression, long project names and
+  all seven languages. Newly added branches were inspected with region coverage.
+- Validation uses local completion payloads. A live Linear project was not
+  completed for testing; the wider suite's previously recorded failures remain.

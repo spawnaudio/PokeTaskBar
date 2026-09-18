@@ -59,6 +59,111 @@ final class XPFeedbackTests: XCTestCase {
                                  XPReward(amount: LinearRewards.xpPerProject, source: .project)])
     }
 
+    private func completionStores(state: CompanionState = CompanionState()) throws
+        -> (UsageStore, CompanionStore, FocusSessionStore) {
+        let id = "project-feedback-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: id))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(id + ".json")
+        addTeardownBlock {
+            UserDefaults(suiteName: id)?.removePersistentDomain(forName: id)
+            try? FileManager.default.removeItem(at: url)
+        }
+        let usage = UsageStore(providers: [], autoRefresh: false, defaults: defaults)
+        usage.localizationLanguage = .en
+        let companion = try store(state: state)
+        let session = FocusSessionStore(usage: usage, companion: companion,
+                                       fileURL: url, ticksOnTimer: false)
+        return (usage, companion, session)
+    }
+
+    func testProjectPollShowsMintScaledXPAndCompletionPopupOnlyForNewWork() throws {
+        var state = CompanionState()
+        state.mintExpiresAt = now.addingTimeInterval(600)
+        let (usage, companion, session) = try completionStores(state: state)
+        var rewards: [XPReward] = []
+        companion.onXPEarned = { rewards.append($0) }
+        let old = LinearCompletedProject(id: "old-project", name: "Earlier release", completedAt: now)
+        let fresh = LinearCompletedProject(id: "new-project", name: "Ship the album", completedAt: now)
+
+        AppDelegate.applyLinearCompletions([], projects: [old], store: usage,
+                                           companion: companion, sessionStore: session)
+        XCTAssertTrue(rewards.isEmpty, "First poll only seeds completed project IDs")
+        XCTAssertNil(usage.currentSpeechBubble)
+
+        AppDelegate.applyLinearCompletions([], projects: [old, fresh], store: usage,
+                                           companion: companion, sessionStore: session)
+        XCTAssertEqual(rewards, [XPReward(amount: 2 * LinearRewards.xpPerProject, source: .project)])
+        XCTAssertEqual(usage.currentSpeechBubble?.title, "Project complete!")
+        XCTAssertEqual(usage.currentSpeechBubble?.body, "Ship the album")
+        XCTAssertEqual(usage.menuLines, ["Done", "Ship the album"])
+
+        // A repeated poll must not replace another message with a stale celebration.
+        usage.announceTimesUp("FOCUS-1")
+        let bubble = usage.currentSpeechBubble
+        let lines = usage.menuLines
+        AppDelegate.applyLinearCompletions([], projects: [old, fresh], store: usage,
+                                           companion: companion, sessionStore: session)
+        XCTAssertEqual(rewards.count, 1)
+        XCTAssertEqual(usage.currentSpeechBubble, bubble)
+        XCTAssertEqual(usage.menuLines, lines)
+    }
+
+    func testMixedCompletionPollKeepsBothXPReceiptsAndOneCombinedPopup() async throws {
+        let (usage, companion, session) = try completionStores()
+        AppDelegate.applyLinearCompletions([], projects: [], store: usage,
+                                           companion: companion, sessionStore: session)
+        let controller = XPFeedbackController(duration: 0.02)
+        var shown: [XPReward] = []
+        let drained = expectation(description: "issue and project receipts displayed")
+        controller.onChange = { reward in
+            if let reward { shown.append(reward) }
+            else if shown.count == 2 { drained.fulfill() }
+        }
+        companion.onXPEarned = { controller.receive($0) }
+        let issue = LinearCompletedIssue(id: "issue", identifier: "APP-42", title: "Mix track", completedAt: now)
+        let projects = ["Album", "Website"].map {
+            LinearCompletedProject(id: $0, name: $0, completedAt: now)
+        }
+        AppDelegate.applyLinearCompletions([issue], projects: projects, store: usage,
+                                           companion: companion, sessionStore: session)
+        XCTAssertEqual(usage.currentSpeechBubble?.title, "3 completions!")
+        XCTAssertEqual(usage.currentSpeechBubble?.body, "Album · APP-42")
+        XCTAssertEqual(usage.menuLines, ["3 done", "Album"])
+        await fulfillment(of: [drained], timeout: 2)
+        XCTAssertEqual(shown, [XPReward(amount: LinearRewards.xpPerIssue, source: .issue),
+                               XPReward(amount: 2 * LinearRewards.xpPerProject, source: .project)])
+        XCTAssertEqual(shown.map { XPFeedbackStyle.title(for: $0).string }, ["✓ +2M XP", "✓ +40M XP"])
+        XCTAssertNil(controller.current)
+    }
+
+    func testMultipleProjectPopupLocalizesAndBoundsMenuName() throws {
+        let longName = String(repeating: "🎵 Album ", count: 10)
+        let projects = [longName, "Website"].map {
+            LinearCompletedProject(id: $0, name: $0, completedAt: now)
+        }
+        let (usage, companion, session) = try completionStores()
+        AppDelegate.applyLinearCompletions([], projects: [], store: usage,
+                                           companion: companion, sessionStore: session)
+        AppDelegate.applyLinearCompletions([], projects: projects, store: usage,
+                                           companion: companion, sessionStore: session)
+        XCTAssertEqual(usage.currentSpeechBubble?.title, "2 projects complete!")
+        XCTAssertEqual(usage.currentSpeechBubble?.body, longName)
+        XCTAssertEqual(usage.menuLines, ["2 done", String(longName.prefix(24)) + "…"])
+        for language in AppLanguage.allCases {
+            let l = L(language)
+            let single = try XCTUnwrap(UsageStore.linearCompletionFeedback(
+                issues: [], projects: [projects[0]], l: l))
+            let multiple = try XCTUnwrap(UsageStore.linearCompletionFeedback(
+                issues: [], projects: projects, l: l))
+            XCTAssertNotEqual(single.bubble.title, multiple.bubble.title)
+            XCTAssertTrue(multiple.bubble.title.contains("2"))
+            if language != .en {
+                XCTAssertNotEqual(single.bubble.title, "Project complete!")
+                XCTAssertNotEqual(l.linearMixedCompletedBubbleTitle(3), "3 completions!")
+            }
+        }
+    }
+
     func testSessionFeedbackUsesCappedGrantThenMintAndStopsAtCap() throws {
         var state = CompanionState()
         state.timeOpenAwardDay = "today"

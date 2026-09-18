@@ -61,6 +61,18 @@ read_when:
 
 ## 판정·데이터
 
+- **Validate completion feedback through the polling coordinator, not only the
+  reward emitter.** Project XP correctly emitted a green receipt, but AppDelegate
+  discarded `ProjectOutcome.newlyCredited` and announced only issue completions.
+  The original tests called `creditLinearProjects` directly, proving accounting
+  and animation emission without exercising the missing popup connection.
+  `AppDelegate.applyLinearCompletions` now keeps both outcomes and announces one
+  combined summary. `XPFeedbackTests` reproduces the old project-only failure,
+  checks mixed polls through the same coordinator and receipt controller, and
+  verifies seed/duplicate silence, Mint amounts and localized bounded copy.
+  The sibling sweep covered the issue-control and focus-session completion
+  call sites; those already forward their newly credited issue outcomes.
+
 - **Localized metadata names must not replace persistent API identifiers.** The dex rendered
   ability, move, and type slugs directly, while existing tests covered species names and profile
   metadata rather than these visible labels. All five detail-view name sites now use a shared

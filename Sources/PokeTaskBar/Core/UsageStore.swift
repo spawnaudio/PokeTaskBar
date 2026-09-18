@@ -1692,9 +1692,29 @@ final class UsageStore {
         now.timeIntervalSince(shownAt) >= ttl
     }
 
-    /// Pet bubble + short menubar flash for newly credited Linear issues. Nil when empty
+    /// Pet bubble + short menubar flash for newly credited Linear work. Nil when empty
     /// (seed polls must not celebrate already-done work).
-    static func linearCompletionFeedback(issues: [LinearCompletedIssue], l: L) -> LinearCompletionFeedback? {
+    static func linearCompletionFeedback(
+        issues: [LinearCompletedIssue], projects: [LinearCompletedProject] = [], l: L
+    ) -> LinearCompletionFeedback? {
+        if let project = projects.first {
+            let count = issues.count + projects.count
+            let title: String
+            let body: String
+            if let issue = issues.first {
+                title = l.linearMixedCompletedBubbleTitle(count)
+                body = "\(project.name) · \(issue.identifier)"
+            } else {
+                title = l.linearProjectCompletedBubbleTitle(projects.count)
+                body = project.name
+            }
+            // Project names are free text; keep the status item from taking over the menu bar.
+            let menuName = project.name.count > 24 ? String(project.name.prefix(24)) + "…" : project.name
+            return LinearCompletionFeedback(
+                bubble: SpeechBubble(title: title, body: body),
+                menuLines: [count == 1 ? l.linearCompletedFlashTitle : l.linearCompletedFlashTitleCount(count),
+                            menuName])
+        }
         guard let first = issues.first else { return nil }
         if issues.count == 1 {
             return LinearCompletionFeedback(
@@ -1711,8 +1731,9 @@ final class UsageStore {
     }
 
     /// Show completion feedback on the menubar and floating pet. No-op for empty/seed results.
-    func announceLinearCompletions(_ issues: [LinearCompletedIssue]) {
-        guard let feedback = Self.linearCompletionFeedback(issues: issues, l: L(localizationLanguage))
+    func announceLinearCompletions(_ issues: [LinearCompletedIssue], projects: [LinearCompletedProject] = []) {
+        guard let feedback = Self.linearCompletionFeedback(
+            issues: issues, projects: projects, l: L(localizationLanguage))
         else { return }
         presentTransientFeedback(bubble: feedback.bubble, menuLines: feedback.menuLines)
     }
