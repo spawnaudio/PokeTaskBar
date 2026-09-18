@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creature collection · v1</title>
+<style>
+:root{color-scheme:light;--page:#f6f5f0;--panel:#fffefa;--ink:#252b29;--muted:#69716c;--line:#dfe3da;--stage:#eeeee5;--accent:#3b654e}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body.dark{color-scheme:dark;--page:#181d1b;--panel:#222825;--ink:#eff3ec;--muted:#adb8af;--line:#3b443e;--stage:#303a33;--accent:#a8d8b5}
+header{max-width:1400px;margin:0 auto;padding:42px 28px 25px}.eyebrow{color:var(--accent);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+h1{font-size:clamp(28px,4vw,46px);line-height:1.12;letter-spacing:-.04em;margin:10px 0}header p{color:var(--muted);max-width:650px;margin:12px 0 22px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}button,input{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 12px}
+button{cursor:pointer}button[aria-pressed=true]{background:var(--accent);color:var(--page);border-color:var(--accent)}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #cda653;outline-offset:3px}
+input{min-width:180px;flex:1;max-width:290px}.spacer{flex:1}a{color:var(--accent)}main{max-width:1400px;margin:auto;padding:0 28px 45px}
+.summary{color:var(--muted);font-size:13px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:18px}
+.card{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}.card-head{padding:16px 17px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}.number{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}.tag{font-size:11px;border:1px solid var(--line);border-radius:12px;padding:2px 8px;color:var(--muted)}
+.hero{display:flex;align-items:center;justify-content:center;height:235px;padding:12px}.hero img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.title{padding:0 17px 13px}.title h2{font-size:20px;line-height:1.25;margin:0 0 4px}.title p{margin:0;color:var(--muted);font-size:13px;min-height:39px}
+.faces{margin:0 12px 12px;padding:12px;background:var(--stage);border-radius:9px;display:flex;gap:10px;align-items:center;justify-content:space-between}.face-large{width:68px;height:68px;object-fit:contain;image-rendering:pixelated}.smallset{display:flex;gap:12px;align-items:end;text-align:center}.sample{display:flex;min-width:27px;height:63px;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.sample img{object-fit:contain;image-rendering:pixelated}.sample span{font-size:10px;color:var(--muted)}
+footer{max-width:1400px;margin:auto;padding:0 28px 40px;color:var(--muted);font-size:13px}footer p{max-width:820px}.empty{padding:30px 0;color:var(--muted)}
+@media(max-width:540px){header{padding:25px 17px 20px}main,footer{padding-left:17px;padding-right:17px}.grid{grid-template-columns:1fr 1fr;gap:10px}.hero{height:175px}.faces{flex-direction:column}.title p{min-height:58px}.card-head{padding-left:12px;padding-right:12px}.title{padding-left:12px;padding-right:12px}.smallset{gap:8px}.tag{font-size:10px}.title h2{font-size:18px}}
+@media(max-width:350px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><div class="eyebrow">Original companions / Design collection v1</div>
+<h1>A little world, growing slowly.</h1>
+<p>Fifteen pixel-art creatures, each with a full-body hero and a matching face icon. Browse the new arrivals or compare how each face reads at smaller sizes.</p>
+<div class="tools"><button data-filter="all" aria-pressed="true">All 15</button><button data-filter="new" aria-pressed="false">New 10</button><button data-filter="original" aria-pressed="false">Original 5</button><input id="search" type="search" placeholder="Find a creature or affinity" aria-label="Search creatures"><span class="spacer"></span><button id="theme" aria-pressed="false">Dark background</button></div>
+</header>
+<main><p id="summary" class="summary" aria-live="polite"></p><div class="grid" id="grid"></div></main>
+<footer><p>Static concept mockups. Names and details can evolve as the collection grows. Small previews show the supplied images at 22, 32 and 48 CSS pixels; final menu-bar exports and in-app testing come later.</p><a href="README.md">Collection notes</a> · <a href="production-estimate.md">100-creature estimate</a> · <a href="../../Documents/original-creatures/plan.md">Replacement plan</a></footer>
+<script>
+const creatures=[{"id":"01-mosskip","name":"Mosskip","affinity":"Grove","concept":"Fern-eared woodland companion","batch":"original","status":"concept","hero":"hero/01-mosskip.png","icon":"icons/01-mosskip.png"},{"id":"02-cindillo","name":"Cindillo","affinity":"Ember","concept":"Glowing-armour armadillo","batch":"original","status":"concept","hero":"hero/02-cindillo.png","icon":"icons/02-cindillo.png"},{"id":"03-puddlepip","name":"Puddlepip","affinity":"Tide","concept":"Raindrop-tailed aquatic companion","batch":"original","status":"concept","hero":"hero/03-puddlepip.png","icon":"icons/03-puddlepip.png"},{"id":"04-voltuff","name":"Voltuff","affinity":"Spark","concept":"Fluffy electric spider","batch":"original","status":"concept","hero":"hero/04-voltuff.png","icon":"icons/04-voltuff.png"},{"id":"05-noctuft","name":"Noctuft","affinity":"Dusk","concept":"Crescent-winged moth","batch":"original","status":"concept","hero":"hero/05-noctuft.png","icon":"icons/05-noctuft.png"},{"id":"06-pebblit","name":"Pebblit","affinity":"Stone","concept":"River-stone wombat","batch":"new","status":"concept","hero":"hero/06-pebblit.png","icon":"icons/06-pebblit.png"},{"id":"07-rimelet","name":"Rimelet","affinity":"Frost","concept":"Snow-drift stoat","batch":"new","status":"concept","hero":"hero/07-rimelet.png","icon":"icons/07-rimelet.png"},{"id":"08-breezlet","name":"Breezlet","affinity":"Wind","concept":"Breeze-crested tiny bird","batch":"new","status":"concept","hero":"hero/08-breezlet.png","icon":"icons/08-breezlet.png"},{"id":"09-sprottle","name":"Sprottle","affinity":"Fungi","concept":"Mushroom-quilled hedgehog","batch":"new","status":"concept","hero":"hero/09-sprottle.png","icon":"icons/09-sprottle.png"},{"id":"10-dunebble","name":"Dunebble","affinity":"Dune","concept":"Sand-frilled gecko","batch":"new","status":"concept","hero":"hero/10-dunebble.png","icon":"icons/10-dunebble.png"},{"id":"11-corallop","name":"Corallop","affinity":"Reef","concept":"Coral-crested seahorse","batch":"new","status":"concept","hero":"hero/11-corallop.png","icon":"icons/11-corallop.png"},{"id":"12-bronzle","name":"Bronzle","affinity":"Metal","concept":"Copper-plated baby tapir","batch":"new","status":"concept","hero":"hero/12-bronzle.png","icon":"icons/12-bronzle.png"},{"id":"13-glimwing","name":"Glimwing","affinity":"Gleam","concept":"Golden-lantern firefly","batch":"new","status":"concept","hero":"hero/13-glimwing.png","icon":"icons/13-glimwing.png"},{"id":"14-gloamper","name":"Gloamper","affinity":"Shade","concept":"Velvet-eared small bat","batch":"new","status":"concept","hero":"hero/14-gloamper.png","icon":"icons/14-gloamper.png"},{"id":"15-thistusk","name":"Thistusk","affinity":"Meadow","concept":"Thistle-tufted little boar","batch":"new","status":"concept","hero":"hero/15-thistusk.png","icon":"icons/15-thistusk.png"}];
+let filter="all";
+const grid=document.getElementById("grid"), search=document.getElementById("search");
+function render(){
+ const query=search.value.toLowerCase().trim();
+ const visible=creatures.filter(c=>(filter==="all"||c.batch===filter)&&[c.name,c.affinity,c.concept].join(" ").toLowerCase().includes(query));
+ document.getElementById("summary").textContent=visible.length+" creatures · heroes and matching faces";
+ grid.replaceChildren();
+ for(const c of visible){
+  const card=document.createElement("article");card.className="card";
+  card.innerHTML='<div class="card-head"><span class="number">#'+c.id.slice(0,2)+'</span><span class="tag">'+c.affinity+(c.batch==="new"?" · New":"")+'</span></div><a class="hero" href="'+c.hero+'" aria-label="Open '+c.name+' hero"><img loading="lazy" src="'+c.hero+'" alt="'+c.name+' pixel-art hero"></a><div class="title"><h2>'+c.name+'</h2><p>'+c.concept+'</p></div><div class="faces"><a href="'+c.icon+'" aria-label="Open '+c.name+' face icon"><img class="face-large" loading="lazy" src="'+c.icon+'" alt="'+c.name+' face"></a><div class="smallset">'+[22,32,48].map(n=>'<div class="sample"><img src="'+c.icon+'" alt="" width="'+n+'" height="'+n+'"><span>'+n+' px</span></div>').join("")+'</div></div>';
+  grid.append(card);
+ }
+ if(!visible.length){const p=document.createElement("p");p.className="empty";p.textContent="No creatures match this search.";grid.append(p);}
+}
+for(const button of document.querySelectorAll("[data-filter]"))button.addEventListener("click",()=>{
+ filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));render();
+});
+search.addEventListener("input",render);
+document.getElementById("theme").addEventListener("click",event=>{const dark=document.body.classList.toggle("dark");event.currentTarget.setAttribute("aria-pressed",String(dark));event.currentTarget.textContent=dark?"Light background":"Dark background";});
+render();
+</script></body></html>

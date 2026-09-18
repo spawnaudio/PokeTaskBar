@@ -1,0 +1,391 @@
+{
+  "version": 1,
+  "style": "pixel-art",
+  "tool": "built-in image_gen",
+  "created": "2026-09-18",
+  "heroStyle": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.",
+  "iconStyle": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.",
+  "creatures": [
+    {
+      "id": "01-mosskip",
+      "name": "Mosskip",
+      "affinity": "Grove",
+      "concept": "Fern-eared woodland companion",
+      "head": "Cream pika face, moss-green forehead, large brown eyes, two folded fern ears. Simplify fern ears to two compact leaf clusters; no tail."
+    },
+    {
+      "id": "02-cindillo",
+      "name": "Cindillo",
+      "affinity": "Ember",
+      "concept": "Glowing-armour armadillo",
+      "head": "Apricot armadillo face, round ears, short muzzle, amber eyes, charcoal forehead armour with amber seam."
+    },
+    {
+      "id": "03-puddlepip",
+      "name": "Puddlepip",
+      "affinity": "Tide",
+      "concept": "Raindrop-tailed aquatic companion",
+      "head": "Aqua platypus face, short pale cream bill, large navy eyes and tiny ears. No tail or paws."
+    },
+    {
+      "id": "04-voltuff",
+      "name": "Voltuff",
+      "affinity": "Spark",
+      "concept": "Fluffy electric spider",
+      "head": "Periwinkle cloud-fluff face, cream face patch, two huge amber eyes and two tiny secondary eyes, short amber zigzag antennae. No legs or abdomen."
+    },
+    {
+      "id": "05-noctuft",
+      "name": "Noctuft",
+      "affinity": "Dusk",
+      "concept": "Crescent-winged moth",
+      "head": "Plum moth face, cream cheek fluff, two large dark eyes, short feathery lavender antennae. No wings or body."
+    },
+    {
+      "id": "06-pebblit",
+      "name": "Pebblit",
+      "affinity": "Stone",
+      "concept": "River-stone wombat",
+      "head": "Broad round slate-grey wombat face, large square charcoal nose, rounded small ears and a little pale jade forehead crystal.",
+      "subject": "A stocky baby wombat made of smooth rounded slate-grey river stones, big square charcoal nose, two round ears, gentle amber eyes, four short sturdy legs, cream pebble belly. Two small pale jade crystal plates rise from its broad shoulders, and ONE little jade diamond sits on its forehead. Low compact stance; no spiky rock monster, no shell. Three-quarter view, curious slight head tilt. Palette slate grey, warm cream, pale jade, charcoal."
+    },
+    {
+      "id": "07-rimelet",
+      "name": "Rimelet",
+      "affinity": "Frost",
+      "concept": "Snow-drift stoat",
+      "head": "White stoat face with pale ice-blue mask, round dark eyes, two short pointed icy-blue ears, tiny midnight-blue nose.",
+      "subject": "A little white stoat-like frost creature with a smooth rounded snow-drift body, short ice-blue pointed ears, a pale blue face mask, dark midnight-blue nose and bright navy eyes. Four small paws and ONE thick curling icy-blue tail with a rounded snowball tip. A small three-point frost tuft on its head, soft and geometric, not elaborate crystals. Playful crouch, tail curls beside it fully visible. Palette snow white, pale ice blue, muted periwinkle shadow, navy eyes. No clothing, no scarf, no many tails."
+    },
+    {
+      "id": "08-breezlet",
+      "name": "Breezlet",
+      "affinity": "Wind",
+      "concept": "Breeze-crested tiny bird",
+      "head": "Cream round bird face, mint forehead, short coral beak, navy eyes, one swept-back sky-blue feather curl.",
+      "subject": "A tiny round mint-green bird with a cream face and breast, short coral beak, expressive dark eyes, two rounded wing shapes edged in sky blue, tiny coral feet, and a swept-back blue feather curl on its head shaped like a breeze. Two short rounded tail feathers fan out together. Light hovering pose with wings lifted slightly, no detached wind effects. Palette mint, cream, sky blue, coral. A simple bird sprite with real wing silhouettes, not an owl, not a dragon."
+    },
+    {
+      "id": "09-sprottle",
+      "name": "Sprottle",
+      "affinity": "Fungi",
+      "concept": "Mushroom-quilled hedgehog",
+      "head": "Warm cream hedgehog face, dark nose, small brown ears, russet mushroom tuft across the forehead with two pale spots.",
+      "subject": "A small russet-and-cream hedgehog creature with three broad mushroom-cap-shaped back quills instead of many spikes. Warm cream pointed face, large friendly dark eyes, tiny round chestnut ears, small dark nose, four short chocolate feet. Main mushroom quills russet red with just a few cream spots and muted sage undersides; one small russet cap-shaped forehead tuft provides an icon signature. Slightly shy crouching pose, whole body visible. No parasitic crab, no mushrooms carried as props, no intricate textures. Palette russet, cream, chocolate, muted sage."
+    },
+    {
+      "id": "10-dunebble",
+      "name": "Dunebble",
+      "affinity": "Dune",
+      "concept": "Sand-frilled gecko",
+      "head": "Sandy gold gecko face, wide amber eyes, compact terracotta frilled cheeks, cream muzzle.",
+      "subject": "A cheerful squat desert gecko creature, sandy-gold body with cream belly, enormous friendly amber eyes, two tiny nostril pixels, four short splayed feet, and ONE thick terracotta-banded tail curled loosely beside it. Two broad terracotta cheek frills form a sun-like head outline without individual fine spikes. Only two simple terracotta markings on back. Low four-legged pose, alert head raised. Palette sand gold, cream, terracotta, deep brown. No fox ears, no wings, no desert scene."
+    },
+    {
+      "id": "11-corallop",
+      "name": "Corallop",
+      "affinity": "Reef",
+      "concept": "Coral-crested seahorse",
+      "head": "Turquoise seahorse face, short cream tubular snout, round dark eyes, two compact coral-pink branching head fins.",
+      "subject": "A chubby turquoise seahorse creature with a compact round face, short cream tubular snout, large dark cheerful eyes, two small branching coral-pink head fins like miniature coral antlers, cream segmented tummy, small pink side fins, and one broad spiral-curled tail. Upright floating seahorse pose, tail curl large and readable. Keep coral branches to only two or three blocky tips each. Palette turquoise, coral pink, cream, deep teal. No water scene, no bubbles, no carried shell, no spiny dragon anatomy."
+    },
+    {
+      "id": "12-bronzle",
+      "name": "Bronzle",
+      "affinity": "Metal",
+      "concept": "Copper-plated baby tapir",
+      "head": "Warm copper tapir face, short rounded trunk-like snout, dark oval nose, small round cream ears, one bronze forehead plate.",
+      "subject": "A friendly squat baby tapir creature with smooth warm-copper metal plating across its back and forehead, soft cream muzzle and belly, a short downward-curving tapir snout, large dark brown eyes, rounded cream-lined ears and four chunky copper feet. A single broad bronze forehead plate follows the skull, no horns. A tiny curled nub tail. Plates have simple pale gold pixel highlights and just two bands, never realistic reflections. Palette copper, bronze, cream, dark brown. Low solid stance. No robot joints, no gears, no tools, no armour accessories."
+    },
+    {
+      "id": "13-glimwing",
+      "name": "Glimwing",
+      "affinity": "Gleam",
+      "concept": "Golden-lantern firefly",
+      "head": "Dark teal firefly head, cream heart-shaped face area without a heart symbol, golden eyes, two short pearl-tipped antennae.",
+      "subject": "A small enchanting firefly creature with a dark teal rounded head and upper body, warm cream cheek patches, big friendly golden eyes, two short antennae with tiny pearl tips, two simple pale pearly wings and a plump golden-yellow lantern-like abdomen. Six short dark teal legs folded in a neat hovering pose, simple readable anatomy. Abdomen glow shown as flat bright yellow pixel clusters, not bloom. Palette midnight teal, cream, pearl blue, gold. No hanging lantern prop, no scenery, no many sparkles."
+    },
+    {
+      "id": "14-gloamper",
+      "name": "Gloamper",
+      "affinity": "Shade",
+      "concept": "Velvet-eared small bat",
+      "head": "Round charcoal-plum bat face, two broad lilac-lined scalloped ears, bright amber eyes, tiny lilac button nose.",
+      "subject": "A small round charcoal-plum bat creature, very large broad ears with lilac interiors and two shallow scallops on each ear edge, tiny lilac button nose, big curious amber eyes and a small soft smile with two very tiny cream teeth. Two simple dark purple bat wings extend partly outward; two small tucked feet. Fluffy pear-shaped body, no tail, no heart nose, no skull markings. Gentle hovering pose. Palette charcoal plum, lilac, muted violet, amber. Distinctive bat, sweet and slightly mischievous."
+    },
+    {
+      "id": "15-thistusk",
+      "name": "Thistusk",
+      "affinity": "Meadow",
+      "concept": "Thistle-tufted little boar",
+      "head": "Sage-green boar face, pale cream cheeks, dusty-rose snout, two tiny ivory tusks and one compact plum thistle tuft.",
+      "subject": "A round young boar creature with sage-green bristles forming only a few broad leaf-shaped tufts, pale cream cheeks and belly, a large dusty-rose snout with two dark nostrils, two very small ivory tusks, dark friendly eyes, and a single plum-purple thistle flower tuft on its forehead. Four short dark olive hooves and a little curled leaf tail. Determined jaunty walking pose. Palette sage green, cream, dusty rose, muted plum, dark olive. No armour, no mushrooms, no props."
+    }
+  ],
+  "jobs": [
+    {
+      "id": "06-pebblit",
+      "name": "Pebblit",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A stocky baby wombat made of smooth rounded slate-grey river stones, big square charcoal nose, two round ears, gentle amber eyes, four short sturdy legs, cream pebble belly. Two small pale jade crystal plates rise from its broad shoulders, and ONE little jade diamond sits on its forehead. Low compact stance; no spiky rock monster, no shell. Three-quarter view, curious slight head tilt. Palette slate grey, warm cream, pale jade, charcoal.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "07-rimelet",
+      "name": "Rimelet",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A little white stoat-like frost creature with a smooth rounded snow-drift body, short ice-blue pointed ears, a pale blue face mask, dark midnight-blue nose and bright navy eyes. Four small paws and ONE thick curling icy-blue tail with a rounded snowball tip. A small three-point frost tuft on its head, soft and geometric, not elaborate crystals. Playful crouch, tail curls beside it fully visible. Palette snow white, pale ice blue, muted periwinkle shadow, navy eyes. No clothing, no scarf, no many tails.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "08-breezlet",
+      "name": "Breezlet",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A tiny round mint-green bird with a cream face and breast, short coral beak, expressive dark eyes, two rounded wing shapes edged in sky blue, tiny coral feet, and a swept-back blue feather curl on its head shaped like a breeze. Two short rounded tail feathers fan out together. Light hovering pose with wings lifted slightly, no detached wind effects. Palette mint, cream, sky blue, coral. A simple bird sprite with real wing silhouettes, not an owl, not a dragon.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "09-sprottle",
+      "name": "Sprottle",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A small russet-and-cream hedgehog creature with three broad mushroom-cap-shaped back quills instead of many spikes. Warm cream pointed face, large friendly dark eyes, tiny round chestnut ears, small dark nose, four short chocolate feet. Main mushroom quills russet red with just a few cream spots and muted sage undersides; one small russet cap-shaped forehead tuft provides an icon signature. Slightly shy crouching pose, whole body visible. No parasitic crab, no mushrooms carried as props, no intricate textures. Palette russet, cream, chocolate, muted sage.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "10-dunebble",
+      "name": "Dunebble",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A cheerful squat desert gecko creature, sandy-gold body with cream belly, enormous friendly amber eyes, two tiny nostril pixels, four short splayed feet, and ONE thick terracotta-banded tail curled loosely beside it. Two broad terracotta cheek frills form a sun-like head outline without individual fine spikes. Only two simple terracotta markings on back. Low four-legged pose, alert head raised. Palette sand gold, cream, terracotta, deep brown. No fox ears, no wings, no desert scene.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "11-corallop",
+      "name": "Corallop",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A chubby turquoise seahorse creature with a compact round face, short cream tubular snout, large dark cheerful eyes, two small branching coral-pink head fins like miniature coral antlers, cream segmented tummy, small pink side fins, and one broad spiral-curled tail. Upright floating seahorse pose, tail curl large and readable. Keep coral branches to only two or three blocky tips each. Palette turquoise, coral pink, cream, deep teal. No water scene, no bubbles, no carried shell, no spiny dragon anatomy.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "12-bronzle",
+      "name": "Bronzle",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A friendly squat baby tapir creature with smooth warm-copper metal plating across its back and forehead, soft cream muzzle and belly, a short downward-curving tapir snout, large dark brown eyes, rounded cream-lined ears and four chunky copper feet. A single broad bronze forehead plate follows the skull, no horns. A tiny curled nub tail. Plates have simple pale gold pixel highlights and just two bands, never realistic reflections. Palette copper, bronze, cream, dark brown. Low solid stance. No robot joints, no gears, no tools, no armour accessories.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "13-glimwing",
+      "name": "Glimwing",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A small enchanting firefly creature with a dark teal rounded head and upper body, warm cream cheek patches, big friendly golden eyes, two short antennae with tiny pearl tips, two simple pale pearly wings and a plump golden-yellow lantern-like abdomen. Six short dark teal legs folded in a neat hovering pose, simple readable anatomy. Abdomen glow shown as flat bright yellow pixel clusters, not bloom. Palette midnight teal, cream, pearl blue, gold. No hanging lantern prop, no scenery, no many sparkles.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "14-gloamper",
+      "name": "Gloamper",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A small round charcoal-plum bat creature, very large broad ears with lilac interiors and two shallow scallops on each ear edge, tiny lilac button nose, big curious amber eyes and a small soft smile with two very tiny cream teeth. Two simple dark purple bat wings extend partly outward; two small tucked feet. Fluffy pear-shaped body, no tail, no heart nose, no skull markings. Gentle hovering pose. Palette charcoal plum, lilac, muted violet, amber. Distinctive bat, sweet and slightly mischievous.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "15-thistusk",
+      "name": "Thistusk",
+      "kind": "hero",
+      "prompt": "Use case: stylized-concept. Create ONE NEW original collectible creature hero sprite in the approved PIXEL ART style.\nReference images are STYLE references only (Mosskip and Puddlepip); do not duplicate their species. Match their appealing Nintendo DS-era Pokémon front-sprite proportions, confident dark stepped outlines, limited color ramps, and visible blocky pixel clusters. Approximately 64–80 logical pixels tall on a 96x96 logical grid, enlarged with crisp nearest-neighbour square pixels for inspection. No smooth cartoon lines, no vector look, no watercolor, no anti-aliased edges, no soft gradients, no glossy 3D. Use 12–18 colors and 2–3 shade steps per material. One clean full-body three-quarter idle-pose sprite, centered, all appendages visible, consistent optical scale about 70% of a square canvas. Background MUST be genuinely transparent alpha (not black/white, not a checkerboard drawn into the image). No text, labels, frame, drop shadow, UI, other creatures, scenic background, or decorative props. This is an original creature with Pokémon-inspired pixel rendering, not an existing Pokémon.\nSubject: A round young boar creature with sage-green bristles forming only a few broad leaf-shaped tufts, pale cream cheeks and belly, a large dusty-rose snout with two dark nostrils, two very small ivory tusks, dark friendly eyes, and a single plum-purple thistle flower tuft on its forehead. Four short dark olive hooves and a little curled leaf tail. Determined jaunty walking pose. Palette sage green, cream, dusty rose, muted plum, dark olive. No armour, no mushrooms, no props.",
+      "refs": [
+        "hero/01-mosskip.png",
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "01-mosskip",
+      "name": "Mosskip",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nIdentity details: Cream pika face, moss-green forehead, large brown eyes, two folded fern ears. Simplify fern ears to two compact leaf clusters; no tail.",
+      "refs": [
+        "hero/01-mosskip.png"
+      ]
+    },
+    {
+      "id": "02-cindillo",
+      "name": "Cindillo",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nIdentity details: Apricot armadillo face, round ears, short muzzle, amber eyes, charcoal forehead armour with amber seam.",
+      "refs": [
+        "hero/02-cindillo.png"
+      ]
+    },
+    {
+      "id": "03-puddlepip",
+      "name": "Puddlepip",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nIdentity details: Aqua platypus face, short pale cream bill, large navy eyes and tiny ears. No tail or paws.",
+      "refs": [
+        "hero/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "04-voltuff",
+      "name": "Voltuff",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nIdentity details: Periwinkle cloud-fluff face, cream face patch, two huge amber eyes and two tiny secondary eyes, short amber zigzag antennae. No legs or abdomen.",
+      "refs": [
+        "hero/04-voltuff.png"
+      ]
+    },
+    {
+      "id": "05-noctuft",
+      "name": "Noctuft",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nIdentity details: Plum moth face, cream cheek fluff, two large dark eyes, short feathery lavender antennae. No wings or body.",
+      "refs": [
+        "hero/05-noctuft.png"
+      ]
+    },
+    {
+      "id": "06-pebblit",
+      "name": "Pebblit",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Broad round slate-grey wombat face, large square charcoal nose, rounded small ears and a little pale jade forehead crystal.",
+      "refs": [
+        "hero/06-pebblit.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "07-rimelet",
+      "name": "Rimelet",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: White stoat face with pale ice-blue mask, round dark eyes, two short pointed icy-blue ears, tiny midnight-blue nose.",
+      "refs": [
+        "hero/07-rimelet.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "08-breezlet",
+      "name": "Breezlet",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Cream round bird face, mint forehead, short coral beak, navy eyes, one swept-back sky-blue feather curl.",
+      "refs": [
+        "hero/08-breezlet.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "09-sprottle",
+      "name": "Sprottle",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Warm cream hedgehog face, dark nose, small brown ears, russet mushroom tuft across the forehead with two pale spots.",
+      "refs": [
+        "hero/09-sprottle.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "10-dunebble",
+      "name": "Dunebble",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Sandy gold gecko face, wide amber eyes, compact terracotta frilled cheeks, cream muzzle.",
+      "refs": [
+        "hero/10-dunebble.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "11-corallop",
+      "name": "Corallop",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Turquoise seahorse face, short cream tubular snout, round dark eyes, two compact coral-pink branching head fins.",
+      "refs": [
+        "hero/11-corallop.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "12-bronzle",
+      "name": "Bronzle",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Warm copper tapir face, short rounded trunk-like snout, dark oval nose, small round cream ears, one bronze forehead plate.",
+      "refs": [
+        "hero/12-bronzle.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "13-glimwing",
+      "name": "Glimwing",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Dark teal firefly head, cream heart-shaped face area without a heart symbol, golden eyes, two short pearl-tipped antennae.",
+      "refs": [
+        "hero/13-glimwing.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "14-gloamper",
+      "name": "Gloamper",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Round charcoal-plum bat face, two broad lilac-lined scalloped ears, bright amber eyes, tiny lilac button nose.",
+      "refs": [
+        "hero/14-gloamper.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "15-thistusk",
+      "name": "Thistusk",
+      "kind": "icons",
+      "prompt": "Use case: identity-preserve. Create ONE FACE-ONLY PIXEL ART ICON of the exact creature in the supplied hero image. Preserve its species identity, facial colors, eyes, ear/antenna/head-crest shapes and personality. Redraw as a simplified near-front-facing head icon designed to read at 22–32 pixels, about 28x28 logical pixels within a 32x32 logical icon grid, enlarged with visibly chunky crisp nearest-neighbour squares. Only the face/head and essential ears/antennae/crest: NO torso, limbs, tail, wings, full body, shoulders, background disc, frame or text. Crop composition by design, not by cutting off key head appendages. Large readable eyes, simple mouth/nose, strong silhouette, limited palette about 8–12 colors, dark one-logical-pixel stepped outline. Keep all pixel squares on one coarse grid, zero smooth cartoon curves, zero watercolor, zero antialiasing, no gradients, no 3D. Centered with about 10% transparent margin. Background MUST be genuinely transparent alpha, not a painted checkerboard or a black/white block.\nInput roles: Image 1 is the exact hero creature identity to preserve. Image 2 is a face-icon rendering reference only; do not copy its species. Make the face of Image 1.\nIdentity details: Sage-green boar face, pale cream cheeks, dusty-rose snout, two tiny ivory tusks and one compact plum thistle tuft.",
+      "refs": [
+        "hero/15-thistusk.png",
+        "icons/03-puddlepip.png"
+      ]
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "icons",
+      "purpose": "retry",
+      "refs": [
+        "hero/13-glimwing.png",
+        "icons/03-puddlepip.png"
+      ],
+      "prompt": "Create a simple pixel-art face icon of the friendly original firefly creature shown in the first reference image. Preserve its dark teal head, cream cheek patches, golden eyes, small happy mouth and two short curved antennae with pale yellow tips. Draw only the floating head and antennae, front-facing, no body, no wings, no shoulders. The second reference is only the chunky pixel icon rendering style. Crisp square pixels, stepped dark outline, flat limited color palette, clean symmetrical shape, transparent background, generous clear margin. One icon only, no lettering or frame."
+    },
+    {
+      "id": "08-breezlet",
+      "kind": "icons",
+      "purpose": "face-only refinement",
+      "refs": [
+        "icons/08-breezlet.png"
+      ],
+      "prompt": "Edit this pixel-art bird face icon. Remove the two wing-like appendages extending to the left and right of the head. Keep only the central mint green and cream face, dark eyes, coral beak and curling blue feather crest at the top. Preserve the existing face design, expression, colors, chunky square-pixel style and crisp stepped outline. Fill the removed side appendage regions with transparency. One floating head icon, centered, transparent background, no body, no wings, no lettering."
+    }
+  ]
+}

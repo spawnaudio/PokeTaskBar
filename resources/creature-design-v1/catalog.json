@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "style": "pixel-art",
+  "creatures": [
+    {
+      "id": "01-mosskip",
+      "name": "Mosskip",
+      "affinity": "Grove",
+      "concept": "Fern-eared woodland companion",
+      "batch": "original",
+      "status": "concept",
+      "hero": "hero/01-mosskip.png",
+      "icon": "icons/01-mosskip.png"
+    },
+    {
+      "id": "02-cindillo",
+      "name": "Cindillo",
+      "affinity": "Ember",
+      "concept": "Glowing-armour armadillo",
+      "batch": "original",
+      "status": "concept",
+      "hero": "hero/02-cindillo.png",
+      "icon": "icons/02-cindillo.png"
+    },
+    {
+      "id": "03-puddlepip",
+      "name": "Puddlepip",
+      "affinity": "Tide",
+      "concept": "Raindrop-tailed aquatic companion",
+      "batch": "original",
+      "status": "concept",
+      "hero": "hero/03-puddlepip.png",
+      "icon": "icons/03-puddlepip.png"
+    },
+    {
+      "id": "04-voltuff",
+      "name": "Voltuff",
+      "affinity": "Spark",
+      "concept": "Fluffy electric spider",
+      "batch": "original",
+      "status": "concept",
+      "hero": "hero/04-voltuff.png",
+      "icon": "icons/04-voltuff.png"
+    },
+    {
+      "id": "05-noctuft",
+      "name": "Noctuft",
+      "affinity": "Dusk",
+      "concept": "Crescent-winged moth",
+      "batch": "original",
+      "status": "concept",
+      "hero": "hero/05-noctuft.png",
+      "icon": "icons/05-noctuft.png"
+    },
+    {
+      "id": "06-pebblit",
+      "name": "Pebblit",
+      "affinity": "Stone",
+      "concept": "River-stone wombat",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/06-pebblit.png",
+      "icon": "icons/06-pebblit.png"
+    },
+    {
+      "id": "07-rimelet",
+      "name": "Rimelet",
+      "affinity": "Frost",
+      "concept": "Snow-drift stoat",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/07-rimelet.png",
+      "icon": "icons/07-rimelet.png"
+    },
+    {
+      "id": "08-breezlet",
+      "name": "Breezlet",
+      "affinity": "Wind",
+      "concept": "Breeze-crested tiny bird",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/08-breezlet.png",
+      "icon": "icons/08-breezlet.png"
+    },
+    {
+      "id": "09-sprottle",
+      "name": "Sprottle",
+      "affinity": "Fungi",
+      "concept": "Mushroom-quilled hedgehog",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/09-sprottle.png",
+      "icon": "icons/09-sprottle.png"
+    },
+    {
+      "id": "10-dunebble",
+      "name": "Dunebble",
+      "affinity": "Dune",
+      "concept": "Sand-frilled gecko",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/10-dunebble.png",
+      "icon": "icons/10-dunebble.png"
+    },
+    {
+      "id": "11-corallop",
+      "name": "Corallop",
+      "affinity": "Reef",
+      "concept": "Coral-crested seahorse",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/11-corallop.png",
+      "icon": "icons/11-corallop.png"
+    },
+    {
+      "id": "12-bronzle",
+      "name": "Bronzle",
+      "affinity": "Metal",
+      "concept": "Copper-plated baby tapir",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/12-bronzle.png",
+      "icon": "icons/12-bronzle.png"
+    },
+    {
+      "id": "13-glimwing",
+      "name": "Glimwing",
+      "affinity": "Gleam",
+      "concept": "Golden-lantern firefly",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/13-glimwing.png",
+      "icon": "icons/13-glimwing.png"
+    },
+    {
+      "id": "14-gloamper",
+      "name": "Gloamper",
+      "affinity": "Shade",
+      "concept": "Velvet-eared small bat",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/14-gloamper.png",
+      "icon": "icons/14-gloamper.png"
+    },
+    {
+      "id": "15-thistusk",
+      "name": "Thistusk",
+      "affinity": "Meadow",
+      "concept": "Thistle-tufted little boar",
+      "batch": "new",
+      "status": "concept",
+      "hero": "hero/15-thistusk.png",
+      "icon": "icons/15-thistusk.png"
+    }
+  ]
+}

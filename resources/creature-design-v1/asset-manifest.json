@@ -1,0 +1,423 @@
+{
+  "version": 1,
+  "verified": "2026-09-18",
+  "assets": [
+    {
+      "id": "01-mosskip",
+      "kind": "hero",
+      "file": "hero/01-mosskip.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 626267,
+      "sha256": "33416728f32e9af5136fb36b41dc9d0c11d718e3a653416be676855160f3e84c"
+    },
+    {
+      "id": "01-mosskip",
+      "kind": "icon",
+      "file": "icons/01-mosskip.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 639248,
+      "sha256": "785372ed8d6fcbb441659ea18a4cf5319412132afd5b80613441ce7836ca5bde"
+    },
+    {
+      "id": "02-cindillo",
+      "kind": "hero",
+      "file": "hero/02-cindillo.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "alphaRange": null,
+      "bytes": 1046646,
+      "sha256": "d91b22a65d8db0f111b0a52f0af7c41ca8dacba1b9a6f965af85b106d4cfa54a"
+    },
+    {
+      "id": "02-cindillo",
+      "kind": "icon",
+      "file": "icons/02-cindillo.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 705035,
+      "sha256": "791a74a2dbbcdb25547e794960e491ce29f4da4d43b521de50bf02175950ea61"
+    },
+    {
+      "id": "03-puddlepip",
+      "kind": "hero",
+      "file": "hero/03-puddlepip.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 545328,
+      "sha256": "7de7c0b2c727559bdacb0343f30ed508a402cef22e8bd1a32d2695338ee1b7e8"
+    },
+    {
+      "id": "03-puddlepip",
+      "kind": "icon",
+      "file": "icons/03-puddlepip.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 521715,
+      "sha256": "463ecc75523c128cb7bcaa7c136644ca2dab479429bc91d7cc4441d3e531c4af"
+    },
+    {
+      "id": "04-voltuff",
+      "kind": "hero",
+      "file": "hero/04-voltuff.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 552505,
+      "sha256": "fe406151e32e0e4ad3541898478f031676f5c2ca21a5df0eda585b6fb39d6d4f"
+    },
+    {
+      "id": "04-voltuff",
+      "kind": "icon",
+      "file": "icons/04-voltuff.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 649747,
+      "sha256": "b3809d049ffe797badce561127534fa096ec8926ccc935ce37c8155706e8671d"
+    },
+    {
+      "id": "05-noctuft",
+      "kind": "hero",
+      "file": "hero/05-noctuft.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 590159,
+      "sha256": "799a612afaeaa6e31932b99711af713d23bce26860179d66e64b154ffbf73d45"
+    },
+    {
+      "id": "05-noctuft",
+      "kind": "icon",
+      "file": "icons/05-noctuft.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 566901,
+      "sha256": "99a888bfb12164a6cfd715d0972ed4e7ab900bdfab37c695f69f7c616767f0c7"
+    },
+    {
+      "id": "06-pebblit",
+      "kind": "hero",
+      "file": "hero/06-pebblit.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 576591,
+      "sha256": "1766f1b8464cbe4d81775529528dd2035103553918abea1fc50c452583e4be2c"
+    },
+    {
+      "id": "06-pebblit",
+      "kind": "icon",
+      "file": "icons/06-pebblit.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 566884,
+      "sha256": "2c2264babbb66b4677518e7d182a92823b3b25fa671d51716f2e8b11a78e8c78"
+    },
+    {
+      "id": "07-rimelet",
+      "kind": "hero",
+      "file": "hero/07-rimelet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 711780,
+      "sha256": "0394b8d173994bcad02217d92b60bebfe0e811af9af8eb7a4891c0791765ff1d"
+    },
+    {
+      "id": "07-rimelet",
+      "kind": "icon",
+      "file": "icons/07-rimelet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 548983,
+      "sha256": "599074a57c8ecebb9de241e22807a0c492e973d1df84be659175c3f0e335416a"
+    },
+    {
+      "id": "08-breezlet",
+      "kind": "hero",
+      "file": "hero/08-breezlet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 551821,
+      "sha256": "ae068e902a1d4335287271a5acce28e000eb0f31f0a9b2b820f7b803db75f287"
+    },
+    {
+      "id": "08-breezlet",
+      "kind": "icon",
+      "file": "icons/08-breezlet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 507493,
+      "sha256": "e995298d65dbf8e79bff56142bce8b112923a0d2e00f68bf09466a19fbfa0fa8"
+    },
+    {
+      "id": "09-sprottle",
+      "kind": "hero",
+      "file": "hero/09-sprottle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 574755,
+      "sha256": "535e2de349e2e6acd3c31e03ef82f9ad8cf304e06b6dcd181664494144bf1f8e"
+    },
+    {
+      "id": "09-sprottle",
+      "kind": "icon",
+      "file": "icons/09-sprottle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 599060,
+      "sha256": "94e3346cc882e62e1dff9d364fef837ab8dc2adf86f88577bbcad0a43147ca10"
+    },
+    {
+      "id": "10-dunebble",
+      "kind": "hero",
+      "file": "hero/10-dunebble.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 651857,
+      "sha256": "49a7ea48ae017323260ca6946e70ae5afbf4068c0d0d1d7dcca4e882bebf7e10"
+    },
+    {
+      "id": "10-dunebble",
+      "kind": "icon",
+      "file": "icons/10-dunebble.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 643319,
+      "sha256": "16445b395655257ad245912f31630f3d0b5c42f9b0372139664efcd96ef696d2"
+    },
+    {
+      "id": "11-corallop",
+      "kind": "hero",
+      "file": "hero/11-corallop.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 508347,
+      "sha256": "9a73f6710016bd9115ba2316605d1d78f8779f86440d388d7959336b2509bec2"
+    },
+    {
+      "id": "11-corallop",
+      "kind": "icon",
+      "file": "icons/11-corallop.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 583583,
+      "sha256": "a63d5464eaa22397bd74e3467fe4b7d9f34fc53121b3cc720cb4d980f4963a36"
+    },
+    {
+      "id": "12-bronzle",
+      "kind": "hero",
+      "file": "hero/12-bronzle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 697596,
+      "sha256": "02f58ff8bbaf523904edbdf42ac3ad7ba515e08d14bd49840e9d8379f2c22d7e"
+    },
+    {
+      "id": "12-bronzle",
+      "kind": "icon",
+      "file": "icons/12-bronzle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 665268,
+      "sha256": "d42498c7120892d78fb598036e42788348c8e6680a75d836d5c2a1edd70c78c1"
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "hero",
+      "file": "hero/13-glimwing.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 565266,
+      "sha256": "e9bdd3f7a43fc70646515201b31fe9b9c70aa079f506410b6512fa28f71c111a"
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "icon",
+      "file": "icons/13-glimwing.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 462931,
+      "sha256": "99126846693471f1e179534b5bb1683908a2d6f364a97a4e11e634c1a975e7a5"
+    },
+    {
+      "id": "14-gloamper",
+      "kind": "hero",
+      "file": "hero/14-gloamper.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 619602,
+      "sha256": "cfea95959413ae34a54d34a7c994fb9eec03e142607423ee9f312a180a69166e"
+    },
+    {
+      "id": "14-gloamper",
+      "kind": "icon",
+      "file": "icons/14-gloamper.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 546263,
+      "sha256": "7765b586e992116f3a1baf50891fc43a7c410a133aded3c9d35665fa2e25123f"
+    },
+    {
+      "id": "15-thistusk",
+      "kind": "hero",
+      "file": "hero/15-thistusk.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 628802,
+      "sha256": "f9b2fc713c6e751a78d41108848045e0404da7e267624db508e3dd7a19b3344b"
+    },
+    {
+      "id": "15-thistusk",
+      "kind": "icon",
+      "file": "icons/15-thistusk.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bytes": 703269,
+      "sha256": "5d91915728d9af21f1b4fb90f16215e865889fc4b7e51b2ba9e60e6339938820"
+    }
+  ]
+}

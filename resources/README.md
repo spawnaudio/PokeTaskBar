@@ -6,6 +6,8 @@ A design reference collection downloaded on **18 September 2026**: **22,047 imag
 
 ## Useful starting points
 
+Our own original creatures are collected separately in [Creature Design v1](creature-design-v1/index.html), with [full-body heroes](creature-design-v1/hero/), [face icons](creature-design-v1/icons/), and [collection notes](creature-design-v1/README.md).
+
 | For | Start here |
 | --- | --- |
 | Compact Pokémon icons for task rows or menus | [Generation VIII, named regular icons](generation-08/menu-icons/pokesprite/regular/) |

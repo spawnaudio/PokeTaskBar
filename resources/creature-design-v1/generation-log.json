@@ -1,0 +1,236 @@
+{
+  "tool": "built-in image_gen",
+  "created": "2026-09-18",
+  "firstPassAttempts": 25,
+  "correctionAttempts": 2,
+  "successfulGenerations": 26,
+  "selectedNewImages": 25,
+  "retainedOriginalHeroes": 5,
+  "totalSelectedImages": 30,
+  "stage1Seconds": 539,
+  "stage2Seconds": 439,
+  "correctionSeconds": 91,
+  "timingScope": "Sum of generation stage elapsed times, including queueing and file saving; excludes intervening planning, review and publishing.",
+  "stage1": [
+    {
+      "id": "06-pebblit",
+      "kind": "hero",
+      "seconds": 55,
+      "status": "complete",
+      "sourceFile": "exec-43752a23-9ba9-459d-8692-bb6c06d45a63.png",
+      "file": "hero/06-pebblit.png"
+    },
+    {
+      "id": "11-corallop",
+      "kind": "hero",
+      "seconds": 46,
+      "status": "complete",
+      "sourceFile": "exec-6959ae68-c425-41c1-b9e0-6bf70007cf6b.png",
+      "file": "hero/11-corallop.png"
+    },
+    {
+      "id": "08-breezlet",
+      "kind": "hero",
+      "seconds": 154,
+      "status": "complete",
+      "sourceFile": "exec-0b4cf15d-61e2-473f-8b00-34323ba2e4d5.png",
+      "file": "hero/08-breezlet.png"
+    },
+    {
+      "id": "12-bronzle",
+      "kind": "hero",
+      "seconds": 53,
+      "status": "complete",
+      "sourceFile": "exec-9dae21f5-ac0e-4359-9a2a-973676af1277.png",
+      "file": "hero/12-bronzle.png"
+    },
+    {
+      "id": "07-rimelet",
+      "kind": "hero",
+      "seconds": 252,
+      "status": "complete",
+      "sourceFile": "exec-777e57af-28c8-4835-9e39-48bb505af696.png",
+      "file": "hero/07-rimelet.png"
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "hero",
+      "seconds": 150,
+      "status": "complete",
+      "sourceFile": "exec-802f0fb1-7a53-4a4e-a3ac-49d871b3985e.png",
+      "file": "hero/13-glimwing.png"
+    },
+    {
+      "id": "10-dunebble",
+      "kind": "hero",
+      "seconds": 304,
+      "status": "complete",
+      "sourceFile": "exec-1c1aa764-f2a5-4a93-9f11-312097b8a5db.png",
+      "file": "hero/10-dunebble.png"
+    },
+    {
+      "id": "14-gloamper",
+      "kind": "hero",
+      "seconds": 238,
+      "status": "complete",
+      "sourceFile": "exec-c51d6d7c-532b-48c5-8735-fcd6d9bbe4b5.png",
+      "file": "hero/14-gloamper.png"
+    },
+    {
+      "id": "09-sprottle",
+      "kind": "hero",
+      "seconds": 440,
+      "status": "complete",
+      "sourceFile": "exec-9b64c352-4eac-468f-9d53-3c78f17871ed.png",
+      "file": "hero/09-sprottle.png"
+    },
+    {
+      "id": "15-thistusk",
+      "kind": "hero",
+      "seconds": 238,
+      "status": "complete",
+      "sourceFile": "exec-0f860456-b4d9-4b99-8d6b-a07e56aa185c.png",
+      "file": "hero/15-thistusk.png"
+    },
+    {
+      "id": "01-mosskip",
+      "kind": "icons",
+      "seconds": 234,
+      "status": "complete",
+      "sourceFile": "exec-03ecbced-01c5-449c-8d20-db030b96e3cd.png",
+      "file": "icons/01-mosskip.png"
+    },
+    {
+      "id": "02-cindillo",
+      "kind": "icons",
+      "seconds": 234,
+      "status": "complete",
+      "sourceFile": "exec-0dbfe5e8-55f9-4f78-94d1-5f8002ac8591.png",
+      "file": "icons/02-cindillo.png"
+    },
+    {
+      "id": "03-puddlepip",
+      "kind": "icons",
+      "seconds": 146,
+      "status": "complete",
+      "sourceFile": "exec-f74fa9e1-457f-4de1-b5ad-51b17d6f0a96.png",
+      "file": "icons/03-puddlepip.png"
+    },
+    {
+      "id": "04-voltuff",
+      "kind": "icons",
+      "seconds": 98,
+      "status": "complete",
+      "sourceFile": "exec-018a9463-6693-4f32-93f7-80e4f0fe9146.png",
+      "file": "icons/04-voltuff.png"
+    },
+    {
+      "id": "05-noctuft",
+      "kind": "icons",
+      "seconds": 49,
+      "status": "complete",
+      "sourceFile": "exec-a4d6bcf9-5077-41c1-81e3-6592777dc6e8.png",
+      "file": "icons/05-noctuft.png"
+    }
+  ],
+  "stage2": [
+    {
+      "id": "06-pebblit",
+      "kind": "icons",
+      "seconds": 240,
+      "status": "complete",
+      "sourceFile": "exec-14c19350-20bf-4367-904f-461e416568b6.png",
+      "file": "icons/06-pebblit.png"
+    },
+    {
+      "id": "08-breezlet",
+      "kind": "icons",
+      "seconds": 286,
+      "status": "complete",
+      "sourceFile": "exec-3c6cb9e2-9151-42df-82ba-3f038f2b70ba.png",
+      "file": "icons/08-breezlet.png"
+    },
+    {
+      "id": "07-rimelet",
+      "kind": "icons",
+      "seconds": 336,
+      "status": "complete",
+      "sourceFile": "exec-c02f4677-2185-4180-8fab-5c72d36c8ea7.png",
+      "file": "icons/07-rimelet.png"
+    },
+    {
+      "id": "10-dunebble",
+      "kind": "icons",
+      "seconds": 336,
+      "status": "complete",
+      "sourceFile": "exec-a0d90270-8d10-4934-9512-b6f009674cd1.png",
+      "file": "icons/10-dunebble.png"
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "icons",
+      "status": "failed",
+      "error": "Output rejected by image generation service; retried successfully in the correction stage."
+    },
+    {
+      "id": "09-sprottle",
+      "kind": "icons",
+      "seconds": 433,
+      "status": "complete",
+      "sourceFile": "exec-5c0176fc-a8bc-4e4c-a136-8f8494052126.png",
+      "file": "icons/09-sprottle.png"
+    },
+    {
+      "id": "11-corallop",
+      "kind": "icons",
+      "seconds": 194,
+      "status": "complete",
+      "sourceFile": "exec-ccac463d-9bcd-4081-859f-4415de480d86.png",
+      "file": "icons/11-corallop.png"
+    },
+    {
+      "id": "12-bronzle",
+      "kind": "icons",
+      "seconds": 148,
+      "status": "complete",
+      "sourceFile": "exec-f7c8ab39-d8b7-4ded-a708-5f878a6f481f.png",
+      "file": "icons/12-bronzle.png"
+    },
+    {
+      "id": "14-gloamper",
+      "kind": "icons",
+      "seconds": 98,
+      "status": "complete",
+      "sourceFile": "exec-55427a39-681d-4b7b-83f8-5c4364ab2462.png",
+      "file": "icons/14-gloamper.png"
+    },
+    {
+      "id": "15-thistusk",
+      "kind": "icons",
+      "seconds": 49,
+      "status": "complete",
+      "sourceFile": "exec-65f24186-22f7-42fc-9d09-457568ca6a0c.png",
+      "file": "icons/15-thistusk.png"
+    }
+  ],
+  "corrections": [
+    {
+      "id": "08-breezlet",
+      "kind": "icons",
+      "purpose": "face-only refinement",
+      "status": "complete",
+      "seconds": 91,
+      "sourceFile": "exec-65f7c20d-f414-49a8-9c03-401780a095f7.png",
+      "file": "icons/08-breezlet.png"
+    },
+    {
+      "id": "13-glimwing",
+      "kind": "icons",
+      "purpose": "retry",
+      "status": "complete",
+      "seconds": 91,
+      "sourceFile": "exec-8fe07035-6654-4ca2-958e-318cf6608d12.png",
+      "file": "icons/13-glimwing.png"
+    }
+  ]
+}
