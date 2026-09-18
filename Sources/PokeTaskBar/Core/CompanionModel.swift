@@ -445,7 +445,7 @@ enum PokemonOdds {
 }
 
 /// 현재 키우는 포켓몬.
-struct MonState: Codable, Sendable {
+struct MonState: Codable, Equatable, Sendable {
     var baseID: Int
     var pathIDs: [Int]      // 실제 진화 경로(분기 선택 반영)
     var plannedPathIDs: [Int] // 사전에 선택한 전체 진화 경로

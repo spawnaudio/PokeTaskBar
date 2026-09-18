@@ -295,9 +295,9 @@ final class ModelDecodingTests: XCTestCase {
         {"claudeAiOauth":{"accessToken":"tok","expiresAt":9999999999999,
         "subscriptionType":"max","rateLimitTier":"default_claude_max_20x"}}
         """.utf8)
-        let credential = try XCTUnwrap(OAuthCredentialData.credential(from: json))
-        XCTAssertEqual(credential.subscriptionType, "max")
-        XCTAssertEqual(credential.rateLimitTier, "default_claude_max_20x")
+        let parsed = try XCTUnwrap(OAuthCredentialData.credential(from: json))
+        XCTAssertEqual(parsed.subscriptionType, "max")
+        XCTAssertEqual(parsed.rateLimitTier, "default_claude_max_20x")
 
         // 플랜 필드가 없는 구형 자격증명도 파싱은 성공(플랜만 nil)
         let legacy = Data("""

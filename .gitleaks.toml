@@ -1,0 +1,13 @@
+# Gitleaks scans this seed PR as one new-tree commit, so dummy OAuth JSON in
+# XCTest fixtures (accessToken: "tok", plan-tier names next to "credential")
+# trips the default generic-api-key rule. Those strings are not live secrets.
+title = "PokeTaskBar"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Unit-test fixtures use dummy OAuth JSON, not live credentials"
+paths = [
+  '''(^|/)Tests/''',
+]
