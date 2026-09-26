@@ -1,8 +1,9 @@
 # XP feedback
 
 Real XP awards show a brief `+amount XP` receipt in the menu bar and over the
-floating pet, with a soft colour pulse at the edge of the pet's screen (or the
-menu bar's screen when the pet is hidden).
+floating pet, with a soft colour pulse at the edges of every connected display.
+Each pulse uses the current display arrangement; its transparent panels never
+intercept clicks and are all removed when the receipt ends.
 
 - Teal: token, time-open, and focus-session XP.
 - Green with a checkmark: issue and project completions.
@@ -60,3 +61,12 @@ running that suite to render native light/dark samples.
   all seven languages. Newly added branches were inspected with region coverage.
 - Validation uses local completion payloads. A live Linear project was not
   completed for testing; the wider suite's previously recorded failures remain.
+
+## All-display feedback — 2026-09-27
+
+The edge pulse now uses `NSScreen.screens` for each receipt, independently of the
+pet's location. All 15 feedback tests passed on a Mac with two displays, including
+native checks for matching screen frames, visible click-through panels, animation,
+replacement and cleanup. Restricting the implementation to one display made the
+new test fail; restoring all displays passed. This exercises the native presenter
+with local receipts, without changing a live Linear issue.

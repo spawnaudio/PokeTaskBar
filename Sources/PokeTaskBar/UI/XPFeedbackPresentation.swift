@@ -103,39 +103,41 @@ final class XPRewardPanel: NSPanel {
     }
 }
 
-/// A transparent screen-sized window with colour only at its edges. It never
-/// activates or accepts input, and is destroyed when the transient receipt ends.
+/// A transparent, click-through edge glow on every connected display.
+/// All panels are destroyed when the transient receipt ends.
 @MainActor
 final class XPBoundaryGlow {
-    private(set) var panel: NSPanel?
+    private(set) var panels: [NSPanel] = []
 
-    func show(_ reward: XPReward, on screen: NSScreen?) {
+    func show(_ reward: XPReward, on screens: [NSScreen] = NSScreen.screens) {
         hide()
-        guard XPFeedbackStyle.animates, let screen else { return }
-        let panel = NSPanel(contentRect: screen.frame,
-                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
-        panel.hidesOnDeactivate = false
-        panel.ignoresMouseEvents = true
-        panel.isReleasedWhenClosed = false
-        panel.animationBehavior = .none
-        let view = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        view.wantsLayer = true
-        if let layer = view.layer {
-            var color = NSColor.systemTeal.cgColor
-            panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-                color = XPFeedbackStyle.color(for: reward).cgColor
+        guard XPFeedbackStyle.animates else { return }
+        for screen in screens {
+            let panel = NSPanel(contentRect: screen.frame,
+                                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
+            panel.hasShadow = false
+            panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+            panel.hidesOnDeactivate = false
+            panel.ignoresMouseEvents = true
+            panel.isReleasedWhenClosed = false
+            panel.animationBehavior = .none
+            let view = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            view.wantsLayer = true
+            if let layer = view.layer {
+                var color = NSColor.systemTeal.cgColor
+                panel.effectiveAppearance.performAsCurrentDrawingAppearance {
+                    color = XPFeedbackStyle.color(for: reward).cgColor
+                }
+                Self.addEdges(to: layer, bounds: view.bounds, color: color)
+                XPFeedbackStyle.pulse(on: layer, duration: 2.2)
             }
-            Self.addEdges(to: layer, bounds: view.bounds, color: color)
-            XPFeedbackStyle.pulse(on: layer, duration: 2.2)
+            panel.contentView = view
+            panel.orderFrontRegardless()
+            panels.append(panel)
         }
-        panel.contentView = view
-        panel.orderFrontRegardless()
-        self.panel = panel
     }
 
     static func addEdges(to layer: CALayer, bounds: CGRect, color: CGColor) {
@@ -164,9 +166,11 @@ final class XPBoundaryGlow {
     }
 
     func hide() {
-        panel?.orderOut(nil)
-        panel?.contentView = nil
-        panel?.close()
-        panel = nil
+        for panel in panels {
+            panel.orderOut(nil)
+            panel.contentView = nil
+            panel.close()
+        }
+        panels.removeAll()
     }
 }

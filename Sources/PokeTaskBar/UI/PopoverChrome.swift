@@ -77,6 +77,7 @@ struct PopoverCardModifier: ViewModifier {
                 if mainWindowChrome {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(MainWindowTheme(scheme: scheme).surface)
+                        .mainWindowBorder(cornerRadius: 12)
                 } else {
                 TahoeStrokedFill(
                     shape: RoundedRectangle(cornerRadius: menuBarChrome ? 8 : 12, style: .continuous),

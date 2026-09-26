@@ -45,6 +45,8 @@ final class MainWindowNavigation {
     var selectedStorageID: String?
     var selectedItem: ItemKind = .rareCandy
     var workspaceQueries: [MainWindowPage: String] = [:]
+    var issuesTab: LinearIssuesTab = .inProgress
+    var issueSorts: [LinearIssuesTab: LinearIssueSort] = [:]
     var workspaceSecondaryTabs: [MainWindowPage: Bool] = [:]
     var canGoBack: Bool { !backStack.isEmpty }
     var canGoForward: Bool { !forwardStack.isEmpty }
@@ -65,9 +67,13 @@ final class MainWindowNavigation {
         backStack.append(page)
         reveal(next)
     }
-    func showProjectIssues(_ project: LinearProjectSummary) {
+    func showProjectIssues(_ project: LinearProjectSummary, tab: LinearIssuesTab? = nil) {
         projectFilter = project.id
         search = ""
+        workspaceQueries[.issues] = ""
+        issuesTab = tab ?? (project.issues.contains(where: LinearClient.isInProgressIssue) ? .inProgress
+            : project.issues.contains(where: LinearClient.isTodoIssue) ? .todo
+            : project.issues.contains(where: LinearClient.isPlannedIssue) ? .planned : .inProgress)
         select(.issues)
     }
     private func reveal(_ next: MainWindowPage) {
@@ -88,6 +94,7 @@ struct MainWindowTheme {
     var shell: Color { value(0xEFF0F2, 0x17181B) }
     var canvas: Color { value(0xF8F8FA, 0x1F2023) }
     var surface: Color { value(0xFFFFFF, 0x292A2E) }
+    var border: Color { value(0xDDE0E6, 0x383A40) }
     var selected: Color { value(0xE0E1E4, 0x303138) }
     var text: Color { value(0x242528, 0xF1F1F3) }
     var secondary: Color { value(0x696B72, 0xA2A4AD) }
@@ -113,8 +120,30 @@ struct MainWindowCard: ViewModifier {
         content.padding(20)
             .background(MainWindowTheme(scheme: scheme).surface,
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .mainWindowBorder(cornerRadius: 12)
     }
 }
+
+@MainActor
+private struct MainWindowBorder: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let theme = MainWindowTheme(scheme: scheme)
+        content.overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(contrast == .increased ? theme.secondary : theme.border, lineWidth: 1)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
 extension View {
     func mainWindowCard() -> some View { modifier(MainWindowCard()) }
+    func mainWindowBorder(cornerRadius: CGFloat) -> some View {
+        modifier(MainWindowBorder(cornerRadius: cornerRadius))
+    }
 }

@@ -1029,6 +1029,8 @@ final class UsageStore {
     private(set) var updatingLinearIssueID: String?
     private(set) var linearCompletedTodayIssues: [LinearIssueSummary] = []
     private(set) var linearInProgressIssues: [LinearIssueSummary] = []
+    private(set) var linearPlannedIssues: [LinearIssueSummary] = []
+    private(set) var linearTodoIssues: [LinearIssueSummary] = []
     private(set) var linearProjects: [LinearProjectSummary] = []
     private(set) var linearInitiatives: [LinearInitiativeSummary] = []
     private(set) var linearIssuesUpdatedAt: Date?
@@ -1241,6 +1243,8 @@ final class UsageStore {
 
     func linearIssue(id: String) -> LinearIssueSummary? {
         if let issue = linearInProgressIssues.first(where: { $0.id == id }) { return issue }
+        if let issue = linearPlannedIssues.first(where: { $0.id == id }) { return issue }
+        if let issue = linearTodoIssues.first(where: { $0.id == id }) { return issue }
         if let issue = linearCompletedTodayIssues.first(where: { $0.id == id }) { return issue }
         for project in linearProjects {
             if let issue = project.issues.first(where: { $0.id == id }) { return issue }
@@ -1323,6 +1327,8 @@ final class UsageStore {
             return calendar.isDate(completedAt, inSameDayAs: now)
         }
         linearInProgressIssues = dashboard.inProgress
+        linearPlannedIssues = dashboard.planned
+        linearTodoIssues = dashboard.todo
         linearProjects = dashboard.projects
         linearInitiatives = dashboard.initiatives
         linearIssuesUpdatedAt = Date()
@@ -1340,6 +1346,7 @@ final class UsageStore {
             copy.stateId = update.stateId ?? copy.stateId
             copy.stateName = update.stateName ?? copy.stateName
             copy.stateType = update.stateType ?? copy.stateType
+            copy.stateColor = update.stateColor
             if (copy.stateType ?? "").lowercased() == "completed" {
                 copy.completedAt = update.completedAt ?? copy.completedAt ?? now
             } else {
@@ -1350,6 +1357,8 @@ final class UsageStore {
         }
 
         linearInProgressIssues = linearInProgressIssues.map(rewrite)
+        linearPlannedIssues = linearPlannedIssues.map(rewrite)
+        linearTodoIssues = linearTodoIssues.map(rewrite)
         linearCompletedTodayIssues = linearCompletedTodayIssues.map(rewrite)
         linearProjects = linearProjects.map { project in
             var copy = project
@@ -1367,21 +1376,37 @@ final class UsageStore {
         let isClosed = type == "completed" || type == "canceled"
 
         linearInProgressIssues.removeAll { $0.id == issueID }
+        linearPlannedIssues.removeAll { $0.id == issueID }
+        linearTodoIssues.removeAll { $0.id == issueID }
         linearCompletedTodayIssues.removeAll { $0.id == issueID }
         linearProjects = linearProjects.map { project in
             var copy = project
             copy.issues = project.issues.filter { $0.id != issueID || !isClosed }
+            if !isClosed, issue.projectID == project.id, !copy.issues.contains(where: { $0.id == issueID }) {
+                copy.issues = LinearClient.sortedByPriority(copy.issues + [issue])
+            }
             return copy
         }
         linearInitiatives = linearInitiatives.map { initiative in
             var copy = initiative
             copy.issues = initiative.issues.filter { $0.id != issueID || !isClosed }
+            if !isClosed, let projectID = issue.projectID, initiative.projectIDs.contains(projectID),
+               !copy.issues.contains(where: { $0.id == issueID }) {
+                copy.issues = LinearClient.sortedByPriority(copy.issues + [issue])
+            }
             return copy
         }
 
-        if type == "started" {
+        if LinearClient.isInProgressIssue(issue) {
             linearInProgressIssues.append(issue)
             linearInProgressIssues = LinearClient.sortedByPriority(linearInProgressIssues)
+        }
+        if LinearClient.isTodoIssue(issue) {
+            linearTodoIssues = LinearClient.sortedByPriority(linearTodoIssues + [issue])
+        }
+        if LinearClient.isPlannedIssue(issue) {
+            linearPlannedIssues.append(issue)
+            linearPlannedIssues = LinearClient.sortedByPriority(linearPlannedIssues)
         }
         if type == "completed",
            let completedAt = issue.completedAt,
@@ -1400,6 +1425,8 @@ final class UsageStore {
             return copy
         }
         linearInProgressIssues = LinearClient.sortedByPriority(linearInProgressIssues.map(rewrite))
+        linearPlannedIssues = LinearClient.sortedByPriority(linearPlannedIssues.map(rewrite))
+        linearTodoIssues = LinearClient.sortedByPriority(linearTodoIssues.map(rewrite))
         linearCompletedTodayIssues = LinearClient.sortedByPriority(linearCompletedTodayIssues.map(rewrite))
         linearProjects = linearProjects.map { project in
             var copy = project
@@ -1418,6 +1445,8 @@ final class UsageStore {
         linearRecentCompletedProjects = []
         linearCompletedTodayIssues = []
         linearInProgressIssues = []
+        linearPlannedIssues = []
+        linearTodoIssues = []
         linearProjects = []
         linearInitiatives = []
         linearIssuesUpdatedAt = nil

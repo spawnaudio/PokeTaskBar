@@ -40,6 +40,7 @@ struct LinearIssueStateUpdate: Equatable, Sendable {
     var stateName: String?
     var stateType: String?
     var completedAt: Date?
+    var stateColor: String? = nil
 }
 
 /// Rich Linear issue metadata for UI surfaces.
@@ -67,6 +68,15 @@ struct LinearIssueSummary: Equatable, Sendable, Identifiable {
     var dueDate: Date?
     var completedAt: Date?
     var descriptionText: String?
+    var projectID: String? = nil
+    var assigneeAvatarURL: URL? = nil
+    var stateColor: String? = nil
+    var projectColor: String? = nil
+    var labelColors: [String: String] = [:]
+    var startedAt: Date? = nil
+    var cycleName: String? = nil
+    var cycleNumber: Int? = nil
+    var milestoneName: String? = nil
 }
 
 /// Fields the Today inspector (and tests) show from an already-fetched issue. Empty values are omitted.
@@ -164,6 +174,8 @@ struct LinearIssueDashboard: Equatable, Sendable {
     var inProgress: [LinearIssueSummary]
     var projects: [LinearProjectSummary]
     var initiatives: [LinearInitiativeSummary]
+    var planned: [LinearIssueSummary] = []
+    var todo: [LinearIssueSummary] = []
 }
 
 protocol LinearHTTPClient: Sendable {
@@ -278,7 +290,7 @@ struct LinearClient: Sendable {
               identifier
               title
               completedAt
-              state { id name type }
+              state { id name type color }
             }
           }
         }
@@ -376,7 +388,7 @@ struct LinearClient: Sendable {
                 continue
             }
         }
-        dashboard = Self.hydrateTeamStates(dashboard)
+        dashboard = Self.hydrateTeamStates(Self.includingQueuedIssuesInContainers(dashboard))
         dashboard = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: dashboard)
         return dashboard
     }
@@ -419,9 +431,10 @@ struct LinearClient: Sendable {
 
     static let issueNodeFields = """
     id identifier title url description priority estimate \
-    state { id name type } assignee { name email } project { name } \
+    state { id name type color } assignee { name email avatarUrl } project { id name color } \
     team { id name key states { nodes { id name type position } } } \
-    labels { nodes { name } } createdAt updatedAt dueDate completedAt
+    labels { nodes { name color } } createdAt updatedAt dueDate completedAt startedAt \
+    cycle { name number } projectMilestone { name }
     """
 
     /// Nested project issues omit `team.states` (default page 50) so container queries
@@ -429,8 +442,9 @@ struct LinearClient: Sendable {
     /// the issues query via `hydrateTeamStates`, or fetched once per missing team.
     private static let lightIssueNodeFields = """
     id identifier title url description priority estimate \
-    state { id name type } assignee { name email } project { name } \
-    team { id name key } createdAt updatedAt dueDate completedAt
+    state { id name type color } assignee { name email avatarUrl } project { id name color } \
+    team { id name key } createdAt updatedAt dueDate completedAt startedAt \
+    cycle { name number } projectMilestone { name }
     """
 
     /// One lookup for nested issues whose team never appeared on the issues query.
@@ -457,8 +471,14 @@ struct LinearClient: Sendable {
           ) {
             nodes { \(issueFields) }
           }
-          inProgress: issues(first: 100) {
+          inProgress: issues(first: 100, filter: { state: { type: { eq: "started" } } }) {
             nodes { \(issueFields) }
+          }
+          todo: issues(first: 100, filter: { state: { name: { eqIgnoreCase: "Todo" } } }) {
+            nodes { \(lightIssueNodeFields) labels { nodes { name color } } }
+          }
+          planned: issues(first: 100, filter: { state: { name: { eqIgnoreCase: "Planned" } } }) {
+            nodes { \(lightIssueNodeFields) labels { nodes { name color } } }
           }
         }
         """
@@ -592,7 +612,8 @@ struct LinearClient: Sendable {
             stateId: state?["id"] as? String,
             stateName: state?["name"] as? String,
             stateType: state?["type"] as? String,
-            completedAt: parseDate(issue["completedAt"]))
+            completedAt: parseDate(issue["completedAt"]),
+            stateColor: state?["color"] as? String)
     }
 
     static func parseIssuePriorityUpdate(_ data: Data) throws {
@@ -669,7 +690,11 @@ struct LinearClient: Sendable {
         let completed = try completedNodes.map(parseIssueSummary)
         let inProgress = try inProgressNodes
             .map(parseIssueSummary)
-            .filter { $0.stateType?.lowercased() == "started" }
+            .filter(isInProgressIssue)
+        let plannedNodes = (dataObj["planned"] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []
+        let planned = try plannedNodes.map(parseIssueSummary).filter(isPlannedIssue)
+        let todoNodes = (dataObj["todo"] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []
+        let todo = try todoNodes.map(parseIssueSummary).filter(isTodoIssue)
         let projects = parseProjects(dataObj["projects"])
         let initiatives = parseInitiatives(dataObj["initiatives"])
         return hydrateTeamStates(
@@ -677,7 +702,9 @@ struct LinearClient: Sendable {
                 completedRecent: sortedByPriority(completed),
                 inProgress: sortedByPriority(inProgress),
                 projects: keptProjects(projects),
-                initiatives: keptInitiatives(initiatives)))
+                initiatives: keptInitiatives(initiatives),
+                planned: sortedByPriority(planned),
+                todo: sortedByPriority(todo)))
     }
 
     private struct LinearContainerOverlay {
@@ -717,6 +744,30 @@ struct LinearClient: Sendable {
         var copy = dashboard
         copy.projects = overlay.projects
         copy.initiatives = overlay.initiatives
+        return copy
+    }
+
+    /// Container queries return a small preview. Include Todo and Planned issues fetched by the
+    /// status query even when they fall outside that preview, matching stable IDs.
+    static func includingQueuedIssuesInContainers(_ dashboard: LinearIssueDashboard) -> LinearIssueDashboard {
+        func merged(_ issues: [LinearIssueSummary], projectIDs: Set<String>) -> [LinearIssueSummary] {
+            let queued = (dashboard.planned + dashboard.todo).filter { issue in
+                issue.projectID.map { projectIDs.contains($0) } == true
+            }
+            let queuedIDs = Set(queued.map(\.id))
+            return sortedByPriority(issues.filter { !queuedIDs.contains($0.id) } + queued)
+        }
+        var copy = dashboard
+        copy.projects = dashboard.projects.map { project in
+            var next = project
+            next.issues = merged(project.issues, projectIDs: [project.id])
+            return next
+        }
+        copy.initiatives = dashboard.initiatives.map { initiative in
+            var next = initiative
+            next.issues = merged(initiative.issues, projectIDs: Set(initiative.projectIDs))
+            return next
+        }
         return copy
     }
 
@@ -780,6 +831,8 @@ struct LinearClient: Sendable {
         }
         ingest(dashboard.completedRecent)
         ingest(dashboard.inProgress)
+        ingest(dashboard.planned)
+        ingest(dashboard.todo)
         for project in dashboard.projects { ingest(project.issues) }
         for initiative in dashboard.initiatives { ingest(initiative.issues) }
         return assigningTeamStates(dashboard, from: byTeam)
@@ -798,6 +851,8 @@ struct LinearClient: Sendable {
         }
         walk(dashboard.completedRecent)
         walk(dashboard.inProgress)
+        walk(dashboard.planned)
+        walk(dashboard.todo)
         for project in dashboard.projects { walk(project.issues) }
         for initiative in dashboard.initiatives { walk(initiative.issues) }
         return ids
@@ -829,6 +884,8 @@ struct LinearClient: Sendable {
         var copy = dashboard
         copy.completedRecent = fill(dashboard.completedRecent)
         copy.inProgress = fill(dashboard.inProgress)
+        copy.planned = fill(dashboard.planned)
+        copy.todo = fill(dashboard.todo)
         copy.projects = dashboard.projects.map { project in
             var next = project
             next.issues = fill(project.issues)
@@ -911,6 +968,24 @@ struct LinearClient: Sendable {
         guard let nameToken, !nameToken.isEmpty else { return false }
         if blocked.contains(nameToken) { return false }
         return nameToken == "started" || nameToken == "active" || nameToken == "in progress"
+    }
+
+    /// Planned is a workspace status name, not every Todo/backlog workflow state.
+    static func isPlannedIssue(_ issue: LinearIssueSummary) -> Bool {
+        let type = issue.stateType?.lowercased()
+        return type != "completed" && type != "canceled" && type != "cancelled"
+            && statusTokens(name: issue.stateName, type: nil).contains("planned")
+    }
+
+    /// Todo is a named status, not the entire unstarted/backlog category.
+    static func isTodoIssue(_ issue: LinearIssueSummary) -> Bool {
+        let type = issue.stateType?.lowercased()
+        return type != "completed" && type != "canceled" && type != "cancelled"
+            && statusTokens(name: issue.stateName, type: nil).contains("todo")
+    }
+
+    static func isInProgressIssue(_ issue: LinearIssueSummary) -> Bool {
+        issue.stateType?.lowercased() == "started" && !isPlannedIssue(issue) && !isTodoIssue(issue)
     }
 
     /// Linear workspaces often use a custom project status named Production.
@@ -1089,7 +1164,20 @@ struct LinearClient: Sendable {
             updatedAt: parseDate(node["updatedAt"]),
             dueDate: parseDate(node["dueDate"]),
             completedAt: parseDate(node["completedAt"]),
-            descriptionText: node["description"] as? String)
+            descriptionText: node["description"] as? String,
+            projectID: project?["id"] as? String,
+            assigneeAvatarURL: (assignee?["avatarUrl"] as? String).flatMap(URL.init(string:)),
+            stateColor: state?["color"] as? String,
+            projectColor: project?["color"] as? String,
+            labelColors: labels.reduce(into: [:]) { colors, label in
+                if let name = label["name"] as? String, let color = label["color"] as? String {
+                    colors[name] = color
+                }
+            },
+            startedAt: parseDate(node["startedAt"]),
+            cycleName: (node["cycle"] as? [String: Any])?["name"] as? String,
+            cycleNumber: parseInt((node["cycle"] as? [String: Any])?["number"]),
+            milestoneName: (node["projectMilestone"] as? [String: Any])?["name"] as? String)
     }
 
     private static func prioritySortValue(_ priority: Int?) -> Int {
