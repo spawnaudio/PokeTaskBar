@@ -14,7 +14,7 @@ Implemented for the local PokeTaskBar v1.3 build on 18 September 2026. This supe
 
 `TodayDeskController` owns the main `NSWindow`, navigation and hosting lifecycle. Identifier `PokeTaskBar.TodayDesk` and frame autosave `PokeTaskBarTodayDesk` remain stable. Default content size is 1280×860; minimum size comes from `TodayDeskMetrics`. Closing the window releases its view tree and keeps navigation and the shared focus session alive.
 
-The titled, resizable window has a transparent title bar and hidden title. The toolbar leaves space for native traffic lights. An inset rounded content canvas sits inside a light/dark shell with visible outer gutters and bottom corners. There are no permanent sidebar separator lines or resting resize grips. White/dark rounded panels organize content without edge-to-edge rules.
+The titled, resizable window has a transparent title bar and hidden title. The toolbar leaves space for native traffic lights. Its page tab shares the content canvas's leading edge while the navigation sidebar is expanded, following its resolved width during resize. Collapsing navigation retains room for the window controls. An inset rounded content canvas sits inside a light/dark shell with visible outer gutters and bottom corners. There are no permanent sidebar separator lines or resting resize grips. The canvas, rounded panels, custom tabs and search boxes have subtle 1pt borders; custom borders adapt to light/dark and increased contrast without intercepting clicks.
 
 ## Navigation and pages
 

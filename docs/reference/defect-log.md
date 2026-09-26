@@ -16,6 +16,23 @@ read_when:
 
 ## Attached panel sizing
 
+- **Adding issue tabs must preserve single-line labels at minimum window width.**
+  The fourth issue tab compressed “Completed” into two lines in the 860pt window.
+  Logic tests passed because they exercised filtering and navigation without measuring
+  the tab strip. Main-window workspace previews now cover four tabs at that width;
+  the tab row uses its natural width and scrolls when necessary. Inspect both the
+  narrow main window and compact popover after changing tab counts or titles.
+
+- **Main-window tabs must follow the resolved sidebar width.** The toolbar used a
+  fixed 204pt leading offset while the canvas started at 236pt with the default
+  sidebar. Navigation tests exercised routing and resizing but did not compare
+  those rendered edges. The toolbar now uses the same outer gutter, resolved
+  sidebar width and splitter width as the canvas, with compact control spacing
+  at narrow sidebar widths and reserved control space when collapsed. Use
+  `MainWindowTests.testRenderMainWindow` for native light/dark and collapsed
+  comparisons alongside the existing native resize/navigation check; inspect
+  the tab and canvas edges together, not only the page content.
+
 - **Validate each floating-overlay mode through its actual view.** The first Linear-style
   overlay pass rendered only `FloatingTimerStrip`, leaving the folded clock and pet-only
   toggle on their old styling despite a three-state concept. `FloatingCompactTimer` now

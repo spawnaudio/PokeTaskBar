@@ -485,13 +485,29 @@ struct L {
     var linearAPIKeyMalformed: String { t("키 형식이 아닙니다 (lin_api_ 로 시작).", "That isn’t an API key (should start with lin_api_).", "キー形式ではありません（lin_api_ で開始）。", "Eso no es una clave API (debe empezar por lin_api_).", "Ce n’est pas une clé API (doit commencer par lin_api_).", "Isso não é uma chave de API (deve começar com lin_api_).", "Das ist kein API-Schlüssel (sollte mit lin_api_ beginnen).") }
     var linearAPIKeyInvalid: String { t("Linear가 키를 거부했습니다. 권한을 확인하세요.", "Linear rejected that key. Check its permissions.", "Linearがキーを拒否しました。権限を確認してください。", "Linear rechazó esa clave. Revisa sus permisos.", "Linear a rejeté cette clé. Vérifie ses permissions.", "O Linear rejeitou essa chave. Verifique as permissões.", "Linear hat diesen Schlüssel abgelehnt. Berechtigungen prüfen.") }
     var linearIssuesTab: String { t("이슈", "Issues", "課題", "Issues", "Issues", "Issues", "Issues") }
+    var linearCardMetadata: String { t("카드 속성", "Card metadata", "カードのプロパティ", "Metadatos de tarjeta", "Métadonnées des cartes", "Metadados do cartão", "Kartenmetadaten") }
+    var linearCardMinimal: String { t("최소", "Minimal", "最小限", "Mínimos", "Minimales", "Mínimos", "Minimal") }
+    var linearCardAll: String { t("모두 표시", "All available", "すべて表示", "Todos los disponibles", "Toutes les données", "Todos disponíveis", "Alle verfügbaren") }
+    var linearCardCreated: String { t("생성", "Created", "作成", "Creado", "Créé", "Criado", "Erstellt") }
+    var linearCardUpdated: String { t("수정", "Updated", "更新", "Actualizado", "Modifié", "Atualizado", "Aktualisiert") }
     var linearProjectsTab: String { t("프로젝트", "Projects", "プロジェクト", "Proyectos", "Projets", "Projetos", "Projekte") }
     var linearInitiativesTab: String { t("이니셔티브", "Initiatives", "イニシアチブ", "Iniciativas", "Initiatives", "Iniciativas", "Initiativen") }
     var linearInProgressTab: String { t("진행 중", "In progress", "進行中", "En curso", "En cours", "Em andamento", "In Arbeit") }
     var linearProductionTab: String { t("프로덕션", "Production", "本番", "Producción", "Production", "Produção", "Produktion") }
     var linearActiveTab: String { t("활성", "Active", "アクティブ", "Activas", "Actives", "Ativas", "Aktiv") }
     var linearPlannedTab: String { t("예정", "Planned", "予定", "Planificadas", "Planifiées", "Planejadas", "Geplant") }
-    var linearCompletedTodayTab: String { t("오늘 완료", "Completed today", "今日完了", "Completadas hoy", "Terminées aujourd'hui", "Concluídas hoje", "Heute abgeschlossen") }
+    var linearTodoTab: String { "Todo" }
+    var linearIssuesEmptyTodo: String { t("Todo 이슈가 없습니다.", "No Todo issues.", "Todoの課題はありません。", "No hay issues Todo.", "Aucune issue Todo.", "Nenhuma issue Todo.", "Keine Todo-Issues.") }
+    var linearSortIssues: String { t("이슈 정렬", "Sort issues", "課題の並べ替え", "Ordenar issues", "Trier les issues", "Ordenar issues", "Issues sortieren") }
+    var linearSortPriority: String { t("우선순위", "Priority", "優先度", "Prioridad", "Priorité", "Prioridade", "Priorität") }
+    var linearSortDueDate: String { t("마감일순", "Due date · earliest first", "期限が近い順", "Vencimiento más próximo", "Échéance la plus proche", "Prazo mais próximo", "Fälligkeitsdatum · früheste zuerst") }
+    var linearSortUpdated: String { t("최근 수정순", "Recently updated", "更新が新しい順", "Actualizadas recientemente", "Récemment modifiées", "Atualizadas recentemente", "Zuletzt aktualisiert") }
+    var linearSortCreated: String { t("최근 생성순", "Newest created", "作成が新しい順", "Más recientes", "Créées récemment", "Criadas recentemente", "Neueste zuerst") }
+    var linearSortTitle: String { t("제목순", "Title · A–Z", "タイトル順", "Título · A–Z", "Titre · A–Z", "Título · A–Z", "Titel · A–Z") }
+    var focusOneHour: String { t("1시간", "1 hour", "1時間", "1 hora", "1 heure", "1 hora", "1 Stunde") }
+    var focusCustomTime: String { t("사용자 지정 시간", "Custom Time", "カスタム時間", "Tiempo personalizado", "Durée personnalisée", "Tempo personalizado", "Eigene Dauer") }
+    var linearIssuesEmptyPlanned: String { t("예정된 이슈가 없습니다.", "No planned issues.", "予定の課題はありません。", "No hay issues planificadas.", "Aucune issue planifiée.", "Nenhuma issue planejada.", "Keine geplanten Issues.") }
+    var linearCompletedTab: String { t("완료", "Completed", "完了", "Completadas", "Terminées", "Concluídas", "Abgeschlossen") }
     var linearIssuesNeedsSetup: String { t("설정에서 Linear API 키를 저장하고 통합을 켜면 표시됩니다.", "Save your Linear API key and enable Linear integration in Settings to view issues.", "設定でLinear APIキーを保存して連携を有効にすると表示されます。", "Guarda tu clave API de Linear y activa la integración en Ajustes para ver issues.", "Enregistre ta clé API Linear et active l’intégration dans Réglages pour afficher les issues.", "Salve sua chave API do Linear e ative a integração em Ajustes para ver issues.", "Speichere deinen Linear-API-Schlüssel und aktiviere die Integration in den Einstellungen, um Issues zu sehen.") }
     var linearIssuesEmptyCompleted: String { t("오늘 완료된 이슈가 없습니다.", "No issues completed today.", "本日完了した課題はありません。", "No hay issues completadas hoy.", "Aucune issue terminée aujourd'hui.", "Nenhuma issue concluída hoje.", "Heute keine abgeschlossenen Issues.") }
     var linearIssuesEmptyInProgress: String { t("현재 진행 중인 이슈가 없습니다.", "No issues currently in progress.", "現在進行中の課題はありません。", "No hay issues en curso.", "Aucune issue en cours actuellement.", "Nenhuma issue em andamento agora.", "Aktuell keine Issues in Arbeit.") }

@@ -155,6 +155,59 @@ final class MainWindowTests: XCTestCase {
             .write(to: directory.appendingPathComponent("\(name).png"))
     }
 
+    func testRenderPlannedWorkspaces() async throws {
+        guard let path = ProcessInfo.processInfo.environment["PTB_PLANNED_PREVIEW_DIR"] else {
+            throw XCTSkip("Set PTB_PLANNED_PREVIEW_DIR for planned issue visual verification")
+        }
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fixture.nav.issuesTab = .todo
+        fixture.nav.select(.issues)
+        try await render(fixture, name: "todo-issues", directory: directory)
+        fixture.nav.issuesTab = .planned
+        for page in [MainWindowPage.issues, .projects, .initiatives] {
+            fixture.nav.select(page)
+            try await render(fixture, name: "planned-\(page)", directory: directory)
+        }
+        fixture.nav.select(.issues)
+        try await render(fixture, scheme: .dark, name: "planned-issues-dark", width: 860, height: 620, directory: directory)
+
+        let root = VStack(alignment: .leading, spacing: 12) {
+            LinearIntegrationView(store: fixture.usage)
+            Divider()
+            LinearContainerIssuesView(issues: fixture.usage.linearProjects.first?.issues ?? [], nested: true) {}
+        }.padding(16)
+            .background(Color.white)
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+            .environment(fixture.nav.content).environment(UpdateChecker()).defaultAppStorage(fixture.defaults)
+            .environment(\.colorScheme, .light)
+            .frame(width: 400, height: 680)
+        let host = NSHostingView(rootView: root)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 680),
+                              styleMask: .borderless, backing: .buffered, defer: false)
+        window.appearance = NSAppearance(named: .aqua)
+        window.contentView = host
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(180))
+        host.layoutSubtreeIfNeeded()
+        // Exercise the actual compact Planned tab as well as the shared parent issue group.
+        let point = host.convert(NSPoint(x: 113, y: host.isFlipped ? 105 : host.bounds.height - 105), to: nil)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        host.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            .write(to: directory.appendingPathComponent("planned-compact.png"))
+    }
+
     @MainActor private final class Fixture {
         let directory: URL
         let suite = "MainWindowTests-\(UUID().uuidString)"
@@ -203,14 +256,26 @@ final class MainWindowTests: XCTestCase {
 
     private struct PreviewHTTP: LinearHTTPClient {
         func postGraphQL(apiKey: String, body: Data) async throws -> (status: Int, data: Data) {
+            let team: [String: Any] = ["id": "team", "key": "PKT", "name": "PokeTasks", "states": ["nodes": [
+                ["id": "todo-state", "name": "Todo", "type": "unstarted"],
+                ["id": "planned-state", "name": "Planned", "type": "unstarted"],
+                ["id": "started", "name": "In Progress", "type": "started"],
+                ["id": "done", "name": "Done", "type": "completed"],
+            ]]]
             let issue: [String: Any] = ["id": "issue", "identifier": "PKT-142", "title": "Refine the main app window",
                 "state": ["id": "started", "name": "In Progress", "type": "started"],
                 "description": "Bring the approved dashboard and navigation to the native app.",
-                "project": ["id": "project", "name": "PokeTasks"], "priority": 2]
+                "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
             let project: [String: Any] = ["id": "project", "name": "PokeTasks", "status": ["type": "started", "name": "In Progress"],
                 "description": "A calmer place to focus on your work.", "issues": ["nodes": [issue]]]
+            let planned: [String: Any] = ["id": "planned", "identifier": "PKT-143", "title": "Plan the next focus session",
+                "state": ["id": "planned-state", "name": "Planned", "type": "unstarted"],
+                "project": ["id": "project", "name": "PokeTasks"], "priority": 3, "team": team]
+            let todo: [String: Any] = ["id": "todo", "identifier": "PKT-144", "title": "Choose the next small task",
+                "state": ["id": "todo-state", "name": "Todo", "type": "unstarted"],
+                "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
             return (200, try JSONSerialization.data(withJSONObject: ["data": [
-                "inProgress": ["nodes": [issue]], "completedRecent": ["nodes": []],
+                "inProgress": ["nodes": [issue]], "completedRecent": ["nodes": []], "planned": ["nodes": [planned]], "todo": ["nodes": [todo]],
                 "projects": ["nodes": [project]], "initiatives": ["nodes": [["id": "initiative", "name": "Fun Side Projects",
                 "status": "Active", "projects": ["nodes": [project]]]]], "teams": ["nodes": []]]]))
         }

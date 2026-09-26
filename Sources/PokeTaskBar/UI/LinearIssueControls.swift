@@ -6,6 +6,7 @@ import SwiftUI
 struct LinearIssueStatusPicker: View {
     let issue: LinearIssueSummary
     var compact: Bool = true
+    var iconOnly: Bool = false
 
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
@@ -22,7 +23,37 @@ struct LinearIssueStatusPicker: View {
         let title = states.first(where: { $0.id == selectedID })?.name
             ?? issue.stateName
             ?? l.linearStatusUnknown
-        return TahoePopupMenu(
+        return Group {
+            if iconOnly {
+                Menu {
+                    ForEach(states) { state in
+                        Button {
+                            Task { await changeStatus(to: state) }
+                        } label: {
+                            if state.id == selectedID { Label(state.name, systemImage: "checkmark") }
+                            else { Text(state.name) }
+                        }
+                    }
+                } label: {
+                    LinearCardStatusIcon(issue: issue)
+                }
+                .menuIndicator(.hidden)
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(l.linearStatusHelp): \(title)")
+            } else {
+                statusPopup(states: states, selectedID: selectedID, title: title)
+            }
+        }
+        .disabled(states.isEmpty || store.updatingLinearIssueID != nil)
+        .opacity(busy ? 0.45 : 1)
+        .overlay {
+            if busy { ProgressView().controlSize(.mini) }
+        }
+        .help(states.isEmpty ? l.linearStatusUnavailable : title)
+    }
+
+    private func statusPopup(states: [LinearWorkflowState], selectedID: String, title: String) -> some View {
+        TahoePopupMenu(
             accessibilityLabel: l.linearStatusHelp,
             selectionTitle: title,
             selection: Binding(
@@ -42,12 +73,6 @@ struct LinearIssueStatusPicker: View {
                 Text(state.name).tag(state.id)
             }
         }
-        .disabled(states.isEmpty || store.updatingLinearIssueID != nil)
-        .opacity(busy ? 0.45 : 1)
-        .overlay {
-            if busy { ProgressView().controlSize(.mini) }
-        }
-        .help(states.isEmpty ? l.linearStatusUnavailable : l.linearStatusHelp)
     }
 
     private func changeStatus(to state: LinearWorkflowState) async {
@@ -380,6 +405,7 @@ struct LinearMarkdownText: View {
 struct LinearPriorityButton: View {
     let issue: LinearIssueSummary
     var compact: Bool = true
+    var iconOnly: Bool = false
 
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
@@ -395,9 +421,15 @@ struct LinearPriorityButton: View {
                 }
             }
         } label: {
-            TahoeMenuLabel(text: l.linearPriorityChip(issue.priority))
-                .foregroundStyle(tint)
-                .linearChipChrome(tint: tint)
+            if iconOnly {
+                LinearCardPill(symbol: issue.priority == 1 ? "exclamationmark.square.fill" : "cellularbars",
+                               tint: issue.priority == 1 ? .orange : .secondary,
+                               variableValue: issue.priority.flatMap { $0 > 1 ? Double(5 - $0) / 3 : nil } ?? 0)
+            } else {
+                TahoeMenuLabel(text: l.linearPriorityChip(issue.priority))
+                    .foregroundStyle(tint)
+                    .linearChipChrome(tint: tint)
+            }
         }
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
@@ -469,6 +501,7 @@ struct LinearIssueIDButton: View {
     let identifier: String
     var url: URL?
     var style: Font = .caption2
+    var padded: Bool = true
 
     /// Help uses the companion language; English fallback is never shown as a Hangul literal.
     @Environment(CompanionStore.self) private var companion
@@ -480,8 +513,8 @@ struct LinearIssueIDButton: View {
             Text(identifier)
                 .font(style)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+                .padding(.horizontal, padded ? 6 : 0)
+                .padding(.vertical, padded ? 4 : 0)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -598,6 +631,7 @@ struct LinearIssueCompletionStats: View {
 struct LinearFocusButton: View {
     let issue: LinearIssueSummary
     var compact: Bool = true
+    var durationMenu: Bool = false
     /// Today desk keeps the default (open Today). Linear tab passes false.
     var openDeskOnPin: Bool = true
     var onPinned: (() -> Void)? = nil
@@ -611,27 +645,56 @@ struct LinearFocusButton: View {
     private var isPinned: Bool { session.session?.issue.id == issue.id }
 
     var body: some View {
-        Button {
-            if isPinned {
-                if openDeskOnPin { session.openDesk() }
-                onPinned?()
+        Group {
+            if durationMenu {
+                Menu {
+                    ForEach([15, 30, 45, 60], id: \.self) { minutes in
+                        Button(minutes == 60 ? l.focusOneHour : l.minutesValue(minutes)) {
+                            pin(minutes: minutes)
+                        }
+                    }
+                    Divider()
+                    Button(l.focusCustomTime) { choosingDuration = true }
+                } label: {
+                    Image(systemName: "target")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
+                        .frame(width: 18, height: 18)
+                        .contentShape(Rectangle())
+                }
+                .menuIndicator(.hidden)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help(isPinned ? l.focusingNow : l.focusAction)
+                .accessibilityLabel(isPinned ? l.focusingNow : l.focusAction)
+                .accessibilityIdentifier("linear-issue-focus-menu")
             } else {
-                choosingDuration = true
+                Button {
+                    if isPinned {
+                        if openDeskOnPin { session.openDesk() }
+                        onPinned?()
+                    } else {
+                        choosingDuration = true
+                    }
+                } label: {
+                    Text(isPinned ? l.focusingNow : l.focusAction)
+                        .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
+                }
+                .tahoeButtonStyle(.regular)
             }
-        } label: {
-            Text(isPinned ? l.focusingNow : l.focusAction)
-                .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
         }
-        .tahoeButtonStyle(.regular)
         .controlSize(compact ? .mini : .small)
         .popover(isPresented: $choosingDuration, arrowEdge: .bottom) {
             FocusDurationPicker(issueTitle: issue.title, initialMinutes: session.plannedMinutes) { minutes in
                 choosingDuration = false
-                session.pin(issue, openDesk: openDeskOnPin, minutes: minutes)
-                onPinned?()
+                pin(minutes: minutes)
             }
             .environment(companion)
         }
+    }
+    private func pin(minutes: Int) {
+        session.pin(issue, openDesk: openDeskOnPin, minutes: minutes)
+        onPinned?()
     }
 }
 

@@ -528,7 +528,7 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertFalse(issuesQuery.contains("orderBy: priority"))
         XCTAssertTrue(issuesQuery.contains("DateTimeOrDuration!"))
         XCTAssertTrue(issuesQuery.contains("states { nodes { id name type position } }"))
-        XCTAssertTrue(issuesQuery.contains("state { id name type }"))
+        XCTAssertTrue(issuesQuery.contains("state { id name type color }"))
         XCTAssertFalse(issuesQuery.contains("projects("))
         XCTAssertTrue(containersQuery.contains("projects"))
         XCTAssertTrue(containersQuery.contains("initiatives"))

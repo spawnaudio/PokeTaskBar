@@ -17,7 +17,7 @@ struct MainWindowView: View {
             let width = max(0, geometry.size.width - 24)
             let layout = store.todayDeskLayout.resolved(containerWidth: width)
             VStack(spacing: 0) {
-                toolbar
+                toolbar(layout: layout)
                 HStack(alignment: .top, spacing: 0) {
                     if !layout.leftCollapsed {
                         navigation.frame(width: layout.leftWidth)
@@ -59,24 +59,35 @@ struct MainWindowView: View {
         }
     }
 
-    private var toolbar: some View {
-        HStack(spacing: 12) {
-            chromeButton("sidebar.left", title: store.todayDeskLayout.leftCollapsed ? l.expandLeftSidebar : l.collapseLeftSidebar) {
-                store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+    private func toolbar(layout: TodayDeskLayout.Resolved) -> some View {
+        // Match the canvas edge (outer gutter + sidebar + resize boundary).
+        // A collapsed sidebar still leaves room for traffic lights and navigation.
+        let navigationWidth: CGFloat = 90 + 3 * 26 + 12
+        let tabLeading = layout.leftCollapsed ? 204
+            : max(navigationWidth + 4, 12 + layout.leftWidth + TodayDeskMetrics.splitterWidth)
+        let navigationSpacing = min(12, (tabLeading - navigationWidth) / 2)
+        return HStack(spacing: 0) {
+            HStack(spacing: navigationSpacing) {
+                chromeButton("sidebar.left", title: store.todayDeskLayout.leftCollapsed ? l.expandLeftSidebar : l.collapseLeftSidebar) {
+                    store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+                }
+                chromeButton("chevron.left", title: l.back, enabled: nav.canGoBack) { nav.back() }
+                chromeButton("chevron.right", title: "Forward", enabled: nav.canGoForward) { nav.forward() }
             }
-            chromeButton("chevron.left", title: l.back, enabled: nav.canGoBack) { nav.back() }
-            chromeButton("chevron.right", title: "Forward", enabled: nav.canGoForward) { nav.forward() }
+            .padding(.leading, 90)
+            .frame(width: tabLeading, alignment: .leading)
             Label(nav.page.title(l), systemImage: nav.page.symbol)
                 .font(.system(size: 12, weight: .medium))
                 .padding(.horizontal, 14).padding(.vertical, 6)
                 .frame(minWidth: 160, alignment: .leading)
-                .background(theme.surface, in: RoundedRectangle(cornerRadius: 7))
+                .background(theme.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .mainWindowBorder(cornerRadius: 7)
             Spacer()
             chromeButton("sidebar.right", title: store.todayDeskLayout.rightCollapsed ? l.expandRightSidebar : l.collapseRightSidebar) {
                 store.todayDeskLayout = store.todayDeskLayout.togglingRight()
             }
         }
-        .padding(.leading, 90).padding(.trailing, 22).frame(height: 48)
+        .padding(.trailing, 22).frame(height: 48)
     }
 
     private func chromeButton(_ icon: String, title: String, enabled: Bool = true,
@@ -107,7 +118,8 @@ struct MainWindowView: View {
                     }
             }
             .font(.system(size: 13)).padding(9)
-            .background(theme.surface, in: RoundedRectangle(cornerRadius: 7))
+            .background(theme.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .mainWindowBorder(cornerRadius: 7)
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(MainWindowPage.allCases.filter { $0 != .settings &&
@@ -152,6 +164,7 @@ struct MainWindowView: View {
         }
         .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(theme.canvas, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .mainWindowBorder(cornerRadius: 14)
         .clipped()
     }
 
@@ -301,7 +314,8 @@ private struct MainWindowShortcutStyle: ButtonStyle {
     @Environment(\.colorScheme) private var scheme
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.background(configuration.isPressed ? MainWindowTheme(scheme: scheme).selected : MainWindowTheme(scheme: scheme).surface,
-                                       in: RoundedRectangle(cornerRadius: 10))
+                                       in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .mainWindowBorder(cornerRadius: 10)
     }
 }
 

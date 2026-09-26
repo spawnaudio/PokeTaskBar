@@ -25,19 +25,21 @@ struct MainWindowWorkspacesView: View {
         }
     }
     private var issues: [LinearIssueSummary] {
-        let source: [LinearIssueSummary]
-        if let id = nav.projectFilter, let project = store.linearProjects.first(where: { $0.id == id }) {
-            source = project.issues.filter { secondary ? $0.stateType?.lowercased() == "completed" : $0.stateType?.lowercased() != "completed" }
-        } else { source = secondary ? store.linearCompletedTodayIssues : store.linearInProgressIssues }
-        return source.filter { matches($0.title + " " + $0.identifier) }
+        let source = nav.issuesTab.issues(in: store, projectID: nav.projectFilter)
+        return (nav.issueSorts[nav.issuesTab] ?? .priority).sorted(
+            source.filter { matches($0.title + " " + $0.identifier) })
     }
     private func matches(_ text: String) -> Bool { query.isEmpty || text.localizedCaseInsensitiveContains(query) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { tabs; Spacer(); actions }
-                VStack(alignment: .leading, spacing: 12) { tabs; actions }
+                HStack(spacing: 12) { tabs.fixedSize(); Spacer(); actions }
+                VStack(alignment: .leading, spacing: 12) {
+                    ScrollView(.horizontal, showsIndicators: false) { tabs.fixedSize() }
+                        .fixedSize(horizontal: false, vertical: true)
+                    actions
+                }
             }
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -48,7 +50,8 @@ struct MainWindowWorkspacesView: View {
                 if let updated = store.linearIssuesUpdatedAt {
                     RelativeTimestampText(date: updated).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
-            }.padding(10).background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7))
+            }.padding(10).background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .mainWindowBorder(cornerRadius: 7)
             if page == .issues, let filter = nav.projectFilter,
                let project = store.linearProjects.first(where: { $0.id == filter }) {
                 HStack {
@@ -65,7 +68,7 @@ struct MainWindowWorkspacesView: View {
                 if store.linearIssuesError != nil { Text(l.linearIssuesSyncFailed).foregroundStyle(.orange) }
                 ScrollView {
                     switch page {
-                    case .issues: issueList(issues)
+                    case .issues: issueList(issues, emptyText: nav.issuesTab.emptyText(l))
                     case .projects: projectContent
                     case .initiatives: initiativeContent
                     default: EmptyView()
@@ -76,16 +79,29 @@ struct MainWindowWorkspacesView: View {
     }
     private var tabs: some View {
         HStack(spacing: 6) {
-            tab(page == .initiatives ? l.linearActiveTab : l.linearInProgressTab, selected: !secondary) {
-                nav.workspaceSecondaryTabs[page] = false
+            if page == .issues {
+                ForEach(LinearIssuesTab.allCases, id: \.self) { value in
+                    tab(value.title(l), selected: nav.issuesTab == value) { nav.issuesTab = value }
+                }
+            } else {
+                tab(page == .initiatives ? l.linearActiveTab : l.linearInProgressTab, selected: !secondary) {
+                    nav.workspaceSecondaryTabs[page] = false
+                }
+                tab(page == .initiatives ? l.linearPlannedTab : l.linearProductionTab, selected: secondary) {
+                    nav.workspaceSecondaryTabs[page] = true
+                }
             }
-            tab(page == .initiatives ? l.linearPlannedTab : page == .projects ? l.linearProductionTab : l.linearCompletedTodayTab,
-                selected: secondary) { nav.workspaceSecondaryTabs[page] = true }
         }
     }
     private var actions: some View {
         HStack(spacing: 12) {
-            if page == .issues { NewLinearIssueButton(showsTitle: true) }
+            LinearCardDisplayMenu()
+            if page == .issues {
+                LinearIssueSortMenu(selection: Binding(
+                    get: { nav.issueSorts[nav.issuesTab] ?? .priority },
+                    set: { nav.issueSorts[nav.issuesTab] = $0 }))
+                NewLinearIssueButton(showsTitle: true)
+            }
             if page == .projects {
                 Picker("View", selection: $projectGrid) {
                     Text("List").tag(false); Text("Grid").tag(true)
@@ -105,15 +121,16 @@ struct MainWindowWorkspacesView: View {
     private func tab(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(title).font(.system(size: 13, weight: selected ? .medium : .regular))
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(.primary.opacity(selected ? 0.065 : 0), in: RoundedRectangle(cornerRadius: 7))
+            .background(.primary.opacity(selected ? 0.065 : 0), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .mainWindowBorder(cornerRadius: 7)
         }.buttonStyle(.plain)
     }
-    private func issueList(_ values: [LinearIssueSummary]) -> some View {
+    private func issueList(_ values: [LinearIssueSummary], emptyText: String? = nil) -> some View {
         LazyVStack(alignment: .leading, spacing: 12) {
-            if values.isEmpty { Text(query.isEmpty ? l.linearContainerEmptyIssues : "No matching issues.")
+            if values.isEmpty { Text(query.isEmpty ? (emptyText ?? l.linearContainerEmptyIssues) : "No matching issues.")
                 .foregroundStyle(.secondary).padding(.vertical, 24) }
             ForEach(values) { issue in
-                LinearIssueEntityRow(issue: issue) { nav.select(.focus) }.padding(8)
+                LinearIssueEntityRow(issue: issue) { nav.select(.focus) }
             }
         }
     }
@@ -127,7 +144,8 @@ struct MainWindowWorkspacesView: View {
             LazyVStack(spacing: 12) {
                 ForEach(projects) { project in
                     LinearFoldableRow(row: LinearContainerRow(project: project), openHelp: l.linearOpenProject) {
-                        issueList(project.issues).padding(.leading, 22)
+                        LinearContainerIssuesView(issues: project.issues) { nav.select(.focus) }
+                            .padding(.leading, 22)
                     }.padding(12)
                 }
             }
@@ -143,6 +161,11 @@ struct MainWindowWorkspacesView: View {
             }.font(.system(size: 12)).foregroundStyle(.secondary)
             if let date = project.targetDate { Text(date, style: .date).font(.system(size: 12)).foregroundStyle(.secondary) }
             Button("View issues") { nav.showProjectIssues(project) }.buttonStyle(.link)
+            let plannedCount = project.issues.filter(LinearClient.isPlannedIssue).count
+            if plannedCount > 0 {
+                Button("\(l.linearPlannedTab): \(plannedCount)") { nav.showProjectIssues(project, tab: .planned) }
+                    .buttonStyle(.link)
+            }
         }.frame(maxWidth: .infinity, alignment: .leading).mainWindowCard()
     }
     @ViewBuilder private var initiativeContent: some View {
@@ -176,6 +199,10 @@ struct MainWindowWorkspacesView: View {
         let linked = store.linearProjects.filter { projectIDs.contains($0.id) }
         return VStack(alignment: .leading, spacing: 12) {
             ForEach(linked) { project in projectCard(project) }
+            let planned = initiative.issues.filter(LinearClient.isPlannedIssue)
+            if !planned.isEmpty {
+                LinearContainerIssuesView(issues: planned) { nav.select(.focus) }
+            }
             if linked.isEmpty {
                 Text("Project details are available in Linear.").foregroundStyle(.secondary)
                 if let url = initiative.url { Link("Open in Linear", destination: url) }
