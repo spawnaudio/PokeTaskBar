@@ -138,8 +138,6 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         sync()
     }
 
-    var rewardScreen: NSScreen? { panel?.isVisible == true ? panel?.screen : nil }
-
     func showXPReward(_ reward: XPReward?) {
         rewardPanel?.orderOut(nil)
         rewardPanel?.contentView = nil

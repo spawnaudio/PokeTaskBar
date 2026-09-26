@@ -159,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.applyState()
             self.floatingPet.showXPReward(reward)
             if let reward {
-                self.xpGlow.show(reward, on: self.floatingPet.rewardScreen ?? self.statusItem.button?.window?.screen ?? NSScreen.main)
+                self.xpGlow.show(reward)
             } else {
                 self.xpGlow.hide()
             }

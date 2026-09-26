@@ -293,6 +293,35 @@ final class XPFeedbackTests: XCTestCase {
         XCTAssertEqual(tokenReward.exactText, "+\(TokenFormatter.grouped(1_234)) XP")
     }
 
+    func testGlowCoversEveryConnectedDisplayAndReleasesAllPanels() throws {
+        let screens = NSScreen.screens
+        try XCTSkipIf(screens.count < 2, "Requires two connected displays")
+        try XCTSkipUnless(XPFeedbackStyle.animates, "Respects Reduce Motion and Low Power Mode")
+        let glow = XPBoundaryGlow()
+        defer { glow.hide() }
+        glow.show(XPReward(amount: 1_000, source: .issue))
+        XCTAssertEqual(glow.panels.count, screens.count)
+        for (panel, screen) in zip(glow.panels, screens) {
+            XCTAssertEqual(panel.frame, screen.frame)
+            XCTAssertTrue(panel.isVisible)
+            XCTAssertTrue(panel.ignoresMouseEvents)
+            XCTAssertFalse(panel.canBecomeKey)
+            let layer = try XCTUnwrap(panel.contentView?.layer)
+            XCTAssertEqual(layer.sublayers?.compactMap { $0 as? CAGradientLayer }.count, 4)
+            XCTAssertNotNil(layer.animation(forKey: "xp-opacity"))
+        }
+        let previous = glow.panels
+        glow.show(XPReward(amount: 2_000, source: .project))
+        XCTAssertEqual(glow.panels.count, screens.count, "New feedback replaces every previous panel")
+        XCTAssertTrue(previous.allSatisfy { !$0.isVisible && $0.contentView == nil })
+        let current = glow.panels
+        glow.hide()
+        XCTAssertTrue(glow.panels.isEmpty)
+        XCTAssertTrue(current.allSatisfy { !$0.isVisible && $0.contentView == nil })
+        glow.show(XPReward(amount: 1_000, source: .issue), on: [])
+        XCTAssertTrue(glow.panels.isEmpty)
+    }
+
     func testGlowOnlyDrawsEdgesWithAnEmptyCentre() {
         let layer = CALayer()
         let bounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
