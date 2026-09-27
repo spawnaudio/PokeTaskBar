@@ -1,5 +1,26 @@
 import SwiftUI
 
+@MainActor
+struct LinearCardMinimizeButton: View {
+    @Binding var minimized: Bool
+    @Environment(CompanionStore.self) private var companion
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) { minimized.toggle() }
+        } label: {
+            Image(systemName: minimized ? "chevron.down" : "chevron.up")
+                .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                .frame(width: 20, height: 20).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(minimized ? companion.l.linearCardRestore : companion.l.linearCardMinimize)
+        .accessibilityLabel(minimized ? companion.l.linearCardRestore : companion.l.linearCardMinimize)
+        .accessibilityIdentifier("linear-card-minimize")
+    }
+}
+
 /// One preference shared by issue cards in the main window, popover and containers.
 @MainActor
 struct LinearCardDisplayMenu: View {
@@ -57,11 +78,22 @@ struct LinearCardStatusIcon: View {
 
 @MainActor
 struct LinearCardAssignee: View {
-    let issue: LinearIssueSummary
+    let name: String?
+    let avatarURL: URL?
+
+    init(issue: LinearIssueSummary) {
+        name = issue.assigneeName
+        avatarURL = issue.assigneeAvatarURL
+    }
+
+    init(name: String?, avatarURL: URL?) {
+        self.name = name
+        self.avatarURL = avatarURL
+    }
 
     var body: some View {
-        if let name = issue.assigneeName, !name.isEmpty {
-            AsyncImage(url: issue.assigneeAvatarURL) { image in
+        if let name, !name.isEmpty {
+            AsyncImage(url: avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
                 Text(name.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined())
@@ -109,6 +141,7 @@ struct LinearCardPill: View {
 struct LinearCardFlowLayout: Layout {
     var spacing: CGFloat = 4
     var maximumItemWidth: CGFloat = 160
+    var truncatesToRemainingWidth = true
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         arrangement(width: proposal.width ?? 320, subviews: subviews).size
@@ -131,7 +164,7 @@ struct LinearCardFlowLayout: Layout {
         for view in subviews {
             var size = view.sizeThatFits(ProposedViewSize(width: min(width, maximumItemWidth), height: nil))
             // Long project/label names can share a row by truncating to its remaining room.
-            if x > 0, x + size.width > width, width - x >= 110 {
+            if truncatesToRemainingWidth, x > 0, x + size.width > width, width - x >= 110 {
                 size = view.sizeThatFits(ProposedViewSize(width: width - x, height: nil))
             }
             if x > 0, x + size.width > width {

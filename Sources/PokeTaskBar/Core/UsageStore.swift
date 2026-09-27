@@ -692,6 +692,9 @@ final class UsageStore {
         linearIntegrationEnabled = d.object(forKey: "linearIntegrationEnabled") as? Bool ?? false
         linearAPIKeyConfigured = linearAPIKeys.load() != nil
         lastLinearTeamID = d.string(forKey: LinearClient.lastCreatedTeamDefaultsKey) ?? ""
+        pinnedLinearProjectIDs = Set(d.stringArray(forKey: "pinnedLinearProjectIDs") ?? [])
+        pinnedLinearInitiativeIDs = Set(d.stringArray(forKey: "pinnedLinearInitiativeIDs") ?? [])
+        hiddenLinearIssueStatuses = Set(d.stringArray(forKey: "hiddenLinearIssueStatuses") ?? [])
         updateNotificationsEnabled = d.object(forKey: "updateNotificationsEnabled") as? Bool ?? true
         statusChecksEnabled = d.object(forKey: "statusChecksEnabled") as? Bool ?? true
         floatingPetEnabled = d.object(forKey: "floatingPetEnabled") as? Bool ?? false
@@ -1032,7 +1035,17 @@ final class UsageStore {
     private(set) var linearPlannedIssues: [LinearIssueSummary] = []
     private(set) var linearTodoIssues: [LinearIssueSummary] = []
     private(set) var linearProjects: [LinearProjectSummary] = []
+    private(set) var linearProjectStatuses: [LinearWorkflowState] = []
     private(set) var linearInitiatives: [LinearInitiativeSummary] = []
+    private(set) var pinnedLinearProjectIDs: Set<String> = [] {
+        didSet { defaults.set(pinnedLinearProjectIDs.sorted(), forKey: "pinnedLinearProjectIDs") }
+    }
+    private(set) var pinnedLinearInitiativeIDs: Set<String> = [] {
+        didSet { defaults.set(pinnedLinearInitiativeIDs.sorted(), forKey: "pinnedLinearInitiativeIDs") }
+    }
+    var hiddenLinearIssueStatuses: Set<String> = [] {
+        didSet { defaults.set(hiddenLinearIssueStatuses.sorted(), forKey: "hiddenLinearIssueStatuses") }
+    }
     private(set) var linearIssuesUpdatedAt: Date?
     private(set) var linearIssuesError: String?
     private(set) var isCreatingLinearIssue = false
@@ -1168,7 +1181,8 @@ final class UsageStore {
         let since = Calendar.current.date(
             byAdding: .day, value: -LinearRewards.lookbackDays, to: now) ?? now
         do {
-            let dashboard = try await linearClient.fetchIssueDashboard(apiKey: key, completedSince: since)
+            let dashboard = try await linearClient.fetchIssueDashboard(
+                apiKey: key, completedSince: since, pinnedInitiativeIDs: pinnedLinearInitiativeIDs)
             applyLinearDashboard(dashboard, now: now)
             linearRecentCompletedProjects = (try? await linearClient.fetchCompletedProjects(
                 apiKey: key, since: since)) ?? []
@@ -1177,6 +1191,22 @@ final class UsageStore {
             linearIssuesError = "fetch_failed"
             return []
         }
+    }
+
+    func loadLinearProjectIssues(projectID: String) async throws {
+        guard linearIntegrationEnabled, let key = linearAPIKeys.load()?.key else {
+            throw LinearAPIError.unauthorized
+        }
+        let updatedAt = linearIssuesUpdatedAt
+        let issues = try await linearClient.fetchProjectIssues(apiKey: key, projectID: projectID)
+        try Task.checkCancellation()
+        guard linearIntegrationEnabled, linearAPIKeys.load()?.key == key,
+              linearIssuesUpdatedAt == updatedAt,
+              let index = linearProjects.firstIndex(where: { $0.id == projectID }) else {
+            throw CancellationError()
+        }
+        linearProjects[index].issues = issues
+        linearProjects[index].issuesFullyLoaded = true
     }
 
     /// Moves an issue to `stateID` in Linear, then refreshes the local snapshot.
@@ -1202,7 +1232,7 @@ final class UsageStore {
             let since = Calendar.current.date(
                 byAdding: .day, value: -LinearRewards.lookbackDays, to: Date()) ?? Date()
             if let dashboard = try? await linearClient.fetchIssueDashboard(
-                apiKey: key, completedSince: since)
+                apiKey: key, completedSince: since, pinnedInitiativeIDs: pinnedLinearInitiativeIDs)
             {
                 applyLinearDashboard(dashboard, now: Date())
             }
@@ -1312,7 +1342,19 @@ final class UsageStore {
         linearCreateError = nil
     }
 
+    func toggleLinearProjectPin(_ project: LinearProjectSummary) {
+        if pinnedLinearProjectIDs.contains(project.id) { pinnedLinearProjectIDs.remove(project.id) }
+        else if !project.isCompleted { pinnedLinearProjectIDs.insert(project.id) }
+    }
+
+    func toggleLinearInitiativePin(_ initiative: LinearInitiativeSummary) {
+        if pinnedLinearInitiativeIDs.contains(initiative.id) { pinnedLinearInitiativeIDs.remove(initiative.id) }
+        else if !initiative.isCompleted { pinnedLinearInitiativeIDs.insert(initiative.id) }
+    }
+
     private func applyLinearDashboard(_ dashboard: LinearIssueDashboard, now: Date) {
+        pinnedLinearProjectIDs.subtract(dashboard.projects.filter(\.isCompleted).map(\.id))
+        pinnedLinearInitiativeIDs.subtract(dashboard.completedPinnedInitiativeIDs)
         linearRecentCompletedIssues = dashboard.completedRecent.compactMap { issue in
             guard let completedAt = issue.completedAt else { return nil }
             return LinearCompletedIssue(
@@ -1330,6 +1372,7 @@ final class UsageStore {
         linearPlannedIssues = dashboard.planned
         linearTodoIssues = dashboard.todo
         linearProjects = dashboard.projects
+        linearProjectStatuses = dashboard.projectStatuses
         linearInitiatives = dashboard.initiatives
         linearIssuesUpdatedAt = Date()
         linearIssuesError = nil
@@ -1381,8 +1424,9 @@ final class UsageStore {
         linearCompletedTodayIssues.removeAll { $0.id == issueID }
         linearProjects = linearProjects.map { project in
             var copy = project
-            copy.issues = project.issues.filter { $0.id != issueID || !isClosed }
-            if !isClosed, issue.projectID == project.id, !copy.issues.contains(where: { $0.id == issueID }) {
+            copy.issues = project.issues.filter { $0.id != issueID || !isClosed || project.issuesFullyLoaded }
+            if (!isClosed || project.issuesFullyLoaded), issue.projectID == project.id,
+               !copy.issues.contains(where: { $0.id == issueID }) {
                 copy.issues = LinearClient.sortedByPriority(copy.issues + [issue])
             }
             return copy
@@ -1448,6 +1492,7 @@ final class UsageStore {
         linearPlannedIssues = []
         linearTodoIssues = []
         linearProjects = []
+        linearProjectStatuses = []
         linearInitiatives = []
         linearIssuesUpdatedAt = nil
         linearIssuesError = nil

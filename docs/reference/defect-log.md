@@ -16,6 +16,15 @@ read_when:
 
 ## Attached panel sizing
 
+- **Native popover tests must not assume system chrome offsets.** The Issue Filter
+  checkbox test passed locally but its hard-coded popup coordinates missed every
+  checkbox on the macOS 15 CI runner. The test now locates the scroll document and
+  native reset button before sending mouse events. Row offsets are relative to the
+  app's explicit 28pt rows. Queue mouse-up before delivering mouse-down: native AppKit
+  controls may synchronously track until release, blocking a sequential send loop.
+  Keep assertions on repeated selection, persistence and
+  popover visibility; skipping the interaction would hide the regression.
+
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.
   Logic tests passed because they exercised filtering and navigation without measuring
@@ -886,6 +895,23 @@ read_when:
   않는다"는 트리거 명제를 따로 둔다** — 이게 없으면 원본이 애초에 정사각인 케이스로도 전부 통과한다.
 
 ## 외부 GraphQL
+
+- **Initiative health totals are not a count of started projects.** The supplied
+  Linear reference counts reported project health across statuses, including completed
+  projects. Restricting the rollup to `started` silently understated the screenshot's
+  totals (Fun Side Projects: 1 instead of 7). Started-only fixtures missed this.
+  `LinearInitiativeCardTests` now covers reported health on completed/backlog projects,
+  no-update started projects, pagination and duplicate project IDs. Initiative/project
+  issue filters must not be reused for this health rollup.
+
+- **Keep project-card relationships separate from nested issue previews.** Adding
+  teams, initiatives, labels, milestones and customers to the existing 50-project
+  dashboard raised its live complexity to 14,520 and triggered HTTP 400. Parser-only
+  fixtures do not model the server's query cost. The card metadata request now batches
+  at most 50 projects without nested issues; full issue lists load separately on
+  expansion. `LinearProjectCardTests` checks this query boundary and paginated loading,
+  while read-only live validation confirms the requests are accepted. Recheck live
+  complexity when increasing these page sizes or adding another relationship.
 
 - **한 쿼리에 컬렉션을 얹다가 복잡도 상한에 걸리면, 폴백이 형제 컬렉션을 침묵 삭제하면 안 된다.**
   Linear rejects a single request over 10,000 complexity points. Nesting `team.states`

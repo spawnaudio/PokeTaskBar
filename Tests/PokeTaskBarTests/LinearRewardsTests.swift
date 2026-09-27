@@ -238,7 +238,7 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertTrue(initiative.issues.isEmpty)
     }
 
-    func testParseIssueDashboardKeepsInProgressProjectsAndInitiatives() throws {
+    func testParseIssueDashboardKeepsAllProjectStatusesAndActiveInitiatives() throws {
         let json = """
         {"data":{
           "completedRecent":{"nodes":[]},
@@ -285,7 +285,7 @@ final class LinearRewardsTests: XCTestCase {
         """.data(using: .utf8)!
 
         let dashboard = try LinearClient.parseIssueDashboard(json)
-        XCTAssertEqual(dashboard.projects.map(\.id), ["p-prod", "p-active"])
+        XCTAssertEqual(dashboard.projects.map(\.id), ["p-done", "p-planned", "p-prod", "p-active"])
         let ship = try XCTUnwrap(dashboard.projects.first { $0.id == "p-active" })
         XCTAssertEqual(ship.leadName, "Ada")
         XCTAssertEqual(ship.issues.map(\.id), ["issue-9"])
@@ -364,8 +364,6 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertTrue(LinearClient.matchesProjectProduction(name: "In Production", type: "started"))
         XCTAssertFalse(LinearClient.matchesProjectInProgressTab(name: "Production", type: "started"))
         XCTAssertTrue(LinearClient.matchesProjectInProgressTab(name: "In Progress", type: "started"))
-        XCTAssertFalse(LinearClient.shouldKeepProject(name: "Planned", type: "planned"))
-        XCTAssertFalse(LinearClient.shouldKeepProject(name: "Completed", type: "completed"))
 
         XCTAssertTrue(LinearClient.matchesInitiativeActive(name: "Active"))
         XCTAssertTrue(LinearClient.matchesInitiativePlanned(name: "Planned"))
@@ -522,7 +520,7 @@ final class LinearRewardsTests: XCTestCase {
             apiKey: "lin_api_" + String(repeating: "x", count: 40),
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
 
-        XCTAssertEqual(http.bodies.count, 2)
+        XCTAssertEqual(http.bodies.count, 5) // Includes project/initiative metadata and the project-status catalog.
         let issuesQuery = try graphqlQuery(http.bodies[0])
         let containersQuery = try graphqlQuery(http.bodies[1])
         XCTAssertFalse(issuesQuery.contains("orderBy: priority"))
@@ -532,8 +530,8 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertFalse(issuesQuery.contains("projects("))
         XCTAssertTrue(containersQuery.contains("projects"))
         XCTAssertTrue(containersQuery.contains("initiatives"))
-        XCTAssertTrue(containersQuery.contains("status { type name }"))
-        XCTAssertTrue(containersQuery.contains("filter: { status: { type: { in: [\"started\"] } } }"))
+        XCTAssertTrue(containersQuery.contains("status { id type name color position }"))
+        XCTAssertFalse(containersQuery.contains("filter: { status: { type:"))
         XCTAssertTrue(containersQuery.contains("filter: { status: { in: [\"Active\", \"Planned\"] } }"))
         XCTAssertFalse(containersQuery.contains("states { nodes"))
     }
@@ -550,7 +548,7 @@ final class LinearRewardsTests: XCTestCase {
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
 
         XCTAssertEqual(dashboard.inProgress.map(\.id), ["issue-2"])
-        XCTAssertEqual(dashboard.projects.map(\.id), ["p-prod", "p-sae"])
+        XCTAssertEqual(dashboard.projects.map(\.id), ["p-done", "p-planned", "p-prod", "p-sae"])
         XCTAssertTrue(LinearClient.matchesProjectInProgressTab(
             name: dashboard.projects.first { $0.id == "p-sae" }?.statusName,
             type: dashboard.projects.first { $0.id == "p-sae" }?.statusType))
@@ -562,7 +560,7 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertEqual(active.issues.map(\.id), ["issue-nested"])
         XCTAssertEqual(active.issues.first?.completedStateId, "state-done")
         XCTAssertEqual(active.issues.first?.teamStates.map(\.id), ["state-todo", "state-start", "state-done"])
-        XCTAssertEqual(http.bodies.count, 2)
+        XCTAssertEqual(http.bodies.count, 5) // Includes project/initiative metadata and the project-status catalog.
     }
 
     func testUpdateIssueStatePostsStateIdMutation() async throws {
@@ -790,7 +788,7 @@ final class LinearRewardsTests: XCTestCase {
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
         let nested = try XCTUnwrap(dashboard.projects.first { $0.id == "p-sae" }?.issues.first)
         XCTAssertEqual(nested.teamStates.map(\.id), ["ops-todo", "ops-start", "ops-done"])
-        XCTAssertEqual(http.bodies.count, 3)
+        XCTAssertEqual(http.bodies.count, 5) // Includes card metadata and the project-status catalog.
         let lookup = try graphqlQuery(http.bodies[2])
         XCTAssertTrue(lookup.contains("TeamWorkflowStates"))
         XCTAssertTrue(lookup.contains("filter: { id: { in: $ids } }"))
@@ -828,10 +826,10 @@ final class LinearRewardsTests: XCTestCase {
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(dashboard.projects.map(\.id), ["p-sae"])
         XCTAssertTrue(dashboard.projects.first?.issues.first?.teamStates.isEmpty ?? false)
-        XCTAssertEqual(http.bodies.count, 3)
+        XCTAssertEqual(http.bodies.count, 5) // Includes card metadata and the project-status catalog.
     }
 
-    func testFetchIssueDashboardSalvagesContainersWhenFilteredQueryRejected() async throws {
+    func testFetchIssueDashboardSalvagesContainersWhenRichQueryRejected() async throws {
         let http = SequenceLinearHTTPClient(responses: [
             (200, issuesDashboardFixture()),
             (400, Data("too complex".utf8)),
@@ -843,14 +841,14 @@ final class LinearRewardsTests: XCTestCase {
             apiKey: "lin_api_" + String(repeating: "x", count: 40),
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(dashboard.inProgress.map(\.id), ["issue-2"])
-        XCTAssertEqual(dashboard.projects.map(\.id), ["p-prod", "p-sae"])
+        XCTAssertEqual(dashboard.projects.map(\.id), ["p-done", "p-planned", "p-prod", "p-sae"])
         XCTAssertEqual(dashboard.initiatives.map(\.id), ["init-active", "init-planned"])
-        XCTAssertEqual(http.bodies.count, 3)
+        XCTAssertEqual(http.bodies.count, 6) // Includes project/initiative metadata and the project-status catalog.
         let filtered = try graphqlQuery(http.bodies[1])
         let salvage = try graphqlQuery(http.bodies[2])
-        XCTAssertTrue(filtered.contains("in: [\"started\"]"))
+        XCTAssertFalse(filtered.contains("in: [\"started\"]"))
         XCTAssertFalse(salvage.contains("in: [\"started\"]"))
-        XCTAssertTrue(salvage.contains("projects(first: 100)"))
+        XCTAssertTrue(salvage.contains("projects(first: 100, after: $after)"))
         XCTAssertFalse(salvage.contains("issues("))
     }
 
@@ -873,9 +871,9 @@ final class LinearRewardsTests: XCTestCase {
         let dashboard = try await client.fetchIssueDashboard(
             apiKey: "lin_api_" + String(repeating: "x", count: 40),
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
-        XCTAssertEqual(dashboard.projects.map(\.id), ["p-prod", "p-sae"])
+        XCTAssertEqual(dashboard.projects.map(\.id), ["p-done", "p-planned", "p-prod", "p-sae"])
         XCTAssertEqual(dashboard.initiatives.map(\.id), ["init-active", "init-planned"])
-        XCTAssertEqual(http.bodies.count, 3)
+        XCTAssertEqual(http.bodies.count, 6) // Includes project/initiative metadata and the project-status catalog.
     }
 
     func testFetchIssueDashboardBareQueryStillLoadsContainers() async throws {
@@ -904,7 +902,7 @@ final class LinearRewardsTests: XCTestCase {
             completedSince: Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(dashboard.projects.map(\.id), ["p-sae"])
         XCTAssertEqual(dashboard.initiatives.map(\.id), ["init-active"])
-        XCTAssertEqual(http.bodies.count, 4)
+        XCTAssertEqual(http.bodies.count, 7) // Includes project/initiative metadata and the project-status catalog.
         let bare = try graphqlQuery(http.bodies[3])
         XCTAssertTrue(bare.contains("status { name type }"))
         XCTAssertFalse(bare.contains("lead {"))
@@ -925,7 +923,7 @@ final class LinearRewardsTests: XCTestCase {
         XCTAssertEqual(dashboard.inProgress.map(\.id), ["issue-2"])
         XCTAssertTrue(dashboard.projects.isEmpty)
         XCTAssertTrue(dashboard.initiatives.isEmpty)
-        XCTAssertEqual(http.bodies.count, 4)
+        XCTAssertEqual(http.bodies.count, 5)
     }
 
     func testParseLiveLinearWorkspaceStatuses() throws {
@@ -949,7 +947,7 @@ final class LinearRewardsTests: XCTestCase {
               ]}
             }}
             """.data(using: .utf8)!)
-        XCTAssertEqual(dashboard.projects.map(\.id), ["p-prod", "p-sae"])
+        XCTAssertEqual(dashboard.projects.map(\.id), ["p-backlog", "p-prod", "p-sae"])
         XCTAssertEqual(dashboard.initiatives.map(\.id), ["init-active", "init-planned"])
     }
 

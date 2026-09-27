@@ -154,6 +154,41 @@ struct LinearProjectSummary: Equatable, Sendable, Identifiable {
     var targetDate: Date?
     var descriptionText: String?
     var issues: [LinearIssueSummary]
+    var identifier: String? = nil
+    var icon: String? = nil
+    var color: String? = nil
+    var statusColor: String? = nil
+    var health: String? = nil
+    var priority: Int? = nil
+    var leadAvatarURL: URL? = nil
+    var startDate: Date? = nil
+    var startDateResolution: String? = nil
+    var targetDateResolution: String? = nil
+    var issueCount: Int? = nil
+    var teams: [LinearProjectBadge] = []
+    var initiatives: [LinearProjectBadge] = []
+    var labels: [LinearProjectBadge] = []
+    var milestones: [LinearProjectBadge] = []
+    var customers: [LinearProjectBadge] = []
+    var issuesFullyLoaded = false
+    var statusID: String? = nil
+    var statusPosition: Double? = nil
+    var createdAt: Date? = nil
+    var updatedAt: Date? = nil
+
+    var isCompleted: Bool { (statusType ?? statusName)?.lowercased() == "completed" }
+}
+
+/// Small named properties displayed on a project card, retaining Linear's colors and icons.
+struct LinearProjectBadge: Equatable, Sendable, Identifiable {
+    var id: String
+    var name: String
+    var icon: String? = nil
+    var color: String? = nil
+    var imageURL: URL? = nil
+    var date: Date? = nil
+    var status: String? = nil
+    var groupName: String? = nil
 }
 
 struct LinearInitiativeSummary: Equatable, Sendable, Identifiable {
@@ -167,6 +202,19 @@ struct LinearInitiativeSummary: Equatable, Sendable, Identifiable {
     var issues: [LinearIssueSummary]
     /// Retain explicit relationships even when a linked project has no open issues.
     var projectIDs: [String] = []
+    var icon: String? = nil
+    var color: String? = nil
+    var priority: Int? = nil
+    var health: String? = nil
+    var ownerAvatarURL: URL? = nil
+    var leadTeam: LinearProjectBadge? = nil
+    var targetDateResolution: String? = nil
+    var labels: [LinearProjectBadge] = []
+    var projectCount: Int? = nil
+    var completedProjectCount: Int? = nil
+    var activeProjectHealthCounts: [String: Int] = [:]
+
+    var isCompleted: Bool { statusName?.lowercased() == "completed" }
 }
 
 struct LinearIssueDashboard: Equatable, Sendable {
@@ -176,6 +224,8 @@ struct LinearIssueDashboard: Equatable, Sendable {
     var initiatives: [LinearInitiativeSummary]
     var planned: [LinearIssueSummary] = []
     var todo: [LinearIssueSummary] = []
+    var projectStatuses: [LinearWorkflowState] = []
+    var completedPinnedInitiativeIDs: Set<String> = []
 }
 
 protocol LinearHTTPClient: Sendable {
@@ -364,7 +414,8 @@ struct LinearClient: Sendable {
     /// `projects { issues }` and `initiatives { projects { issues } }` blows that cap,
     /// returns HTTP 400, and the old issues-only fallback looked exactly like empty
     /// Projects/Initiatives tabs while Issues still worked.
-    func fetchIssueDashboard(apiKey: String, completedSince: Date) async throws -> LinearIssueDashboard {
+    func fetchIssueDashboard(apiKey: String, completedSince: Date,
+                             pinnedInitiativeIDs: Set<String> = []) async throws -> LinearIssueDashboard {
         let sinceISO = ISO8601DateFormatter().string(from: completedSince)
         let issuesData = try await postGraphQL(
             apiKey: apiKey, query: Self.issuesOnlyQuery, variables: ["since": sinceISO])
@@ -378,7 +429,24 @@ struct LinearClient: Sendable {
         for query in containerQueries {
             do {
                 let data = try await postGraphQL(apiKey: apiKey, query: query, variables: [:])
-                if let overlay = try Self.parseContainerOverlay(data) {
+                if var overlay = try Self.parseContainerOverlay(data) {
+                    var seenCursors = Set<String>()
+                    while let cursor = overlay.nextProjectsCursor {
+                        guard seenCursors.insert(cursor).inserted else { throw LinearAPIError.decoding }
+                        let page = try await postGraphQL(apiKey: apiKey, query: query, variables: ["after": cursor])
+                        guard let next = try Self.parseContainerOverlay(page) else { throw LinearAPIError.decoding }
+                        let known = Set(overlay.projects.map(\.id))
+                        overlay.projects += next.projects.filter { !known.contains($0.id) }
+                        overlay.nextProjectsCursor = next.nextProjectsCursor
+                    }
+                    overlay.initiatives = overlay.initiatives.map { initiative in
+                        var copy = initiative
+                        var seen = Set(copy.issues.map(\.id))
+                        copy.issues += overlay.projects.filter { initiative.projectIDs.contains($0.id) }
+                            .flatMap(\.issues).filter { seen.insert($0.id).inserted }
+                        copy.issues = Self.sortedByPriority(copy.issues)
+                        return copy
+                    }
                     dashboard = Self.merging(dashboard, overlay)
                     break
                 }
@@ -390,7 +458,164 @@ struct LinearClient: Sendable {
         }
         dashboard = Self.hydrateTeamStates(Self.includingQueuedIssuesInContainers(dashboard))
         dashboard = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: dashboard)
+        for offset in stride(from: 0, to: dashboard.projects.count, by: 50) {
+            let ids = dashboard.projects.dropFirst(offset).prefix(50).map(\.id)
+            guard let data = try? await postGraphQL(apiKey: apiKey, query: Self.projectCardMetadataQuery,
+                                                   variables: ["ids": ids]),
+                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let dataObject = root["data"] as? [String: Any] else { continue }
+            let metadata = Self.parseProjects(dataObject["projects"])
+            dashboard.projects = dashboard.projects.map { project in
+                guard var rich = metadata.first(where: { $0.id == project.id }) else { return project }
+                rich.issues = project.issues
+                return rich
+            }
+        }
+        dashboard.projectStatuses = (try? await fetchProjectStatuses(apiKey: apiKey)) ?? []
+        for offset in stride(from: 0, to: dashboard.initiatives.count, by: 10) {
+            let ids = dashboard.initiatives.dropFirst(offset).prefix(10).map(\.id)
+            guard let metadata = try? await fetchInitiativeCardMetadata(apiKey: apiKey, ids: ids) else { continue }
+            dashboard.initiatives = dashboard.initiatives.map { initiative in
+                guard var rich = metadata.first(where: { $0.id == initiative.id }) else { return initiative }
+                var seen = Set(initiative.issues.map(\.id))
+                rich.issues = Self.sortedByPriority(initiative.issues + dashboard.projects
+                    .filter { rich.projectIDs.contains($0.id) }.flatMap(\.issues)
+                    .filter { seen.insert($0.id).inserted })
+                return rich
+            }
+        }
+        // Completed initiatives leave the active/planned feed. Check pins explicitly, and
+        // retain them on missing data or failures rather than treating absence as completion.
+        let pinnedIDs = pinnedInitiativeIDs.sorted()
+        for offset in stride(from: 0, to: pinnedIDs.count, by: 50) {
+            let query = """
+            query PinnedInitiativeStatuses($ids: [ID!]!) {
+              initiatives(first: 50, filter: { id: { in: $ids } }) {
+                nodes { id name status }
+              }
+            }
+            """
+            guard let data = try? await postGraphQL(apiKey: apiKey, query: query,
+                    variables: ["ids": Array(pinnedIDs.dropFirst(offset).prefix(50))]),
+                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let object = root["data"] as? [String: Any] else { continue }
+            dashboard.completedPinnedInitiativeIDs.formUnion(
+                Self.parseInitiatives(object["initiatives"]).filter(\.isCompleted).map(\.id))
+        }
         return dashboard
+    }
+
+    /// Keep relationship metadata separate from issue previews and finish project pages before counting.
+    func fetchInitiativeCardMetadata(apiKey: String, ids: [String]) async throws -> [LinearInitiativeSummary] {
+        let data = try await postGraphQL(apiKey: apiKey, query: Self.initiativeCardMetadataQuery, variables: ["ids": ids])
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["errors"] as? [Any] ?? []).isEmpty,
+              let connection = (root["data"] as? [String: Any])?["initiatives"] as? [String: Any],
+              var nodes = connection["nodes"] as? [[String: Any]] else { throw LinearAPIError.decoding }
+        for index in nodes.indices {
+            guard let id = nodes[index]["id"] as? String,
+                  var projects = nodes[index]["projects"] as? [String: Any],
+                  var projectNodes = projects["nodes"] as? [[String: Any]] else { throw LinearAPIError.decoding }
+            var seen = Set<String>()
+            while let cursor = try Self.nextCursor(projects) {
+                guard seen.insert(cursor).inserted else { throw LinearAPIError.decoding }
+                let page = try await postGraphQL(apiKey: apiKey, query: """
+                query InitiativeCardProjects($id: String!, $after: String!) {
+                  initiative(id: $id) {
+                    projects(first: 100, after: $after) {
+                      nodes { id status { type } health }
+                      pageInfo { hasNextPage endCursor }
+                    }
+                  }
+                }
+                """, variables: ["id": id, "after": cursor])
+                guard let root = try JSONSerialization.jsonObject(with: page) as? [String: Any],
+                      (root["errors"] as? [Any] ?? []).isEmpty,
+                      let initiative = (root["data"] as? [String: Any])?["initiative"] as? [String: Any],
+                      let next = initiative["projects"] as? [String: Any],
+                      let nextNodes = next["nodes"] as? [[String: Any]] else { throw LinearAPIError.decoding }
+                projectNodes += nextNodes
+                projects = next
+            }
+            nodes[index]["projects"] = ["nodes": projectNodes, "pageInfo": ["hasNextPage": false]]
+        }
+        return Self.parseInitiatives(["nodes": nodes])
+    }
+
+    /// Include unused custom statuses, so an empty project tab is still available.
+    func fetchProjectStatuses(apiKey: String) async throws -> [LinearWorkflowState] {
+        var states: [LinearWorkflowState] = []
+        var cursor: String?
+        var seen = Set<String>()
+        repeat {
+            let data = try await postGraphQL(apiKey: apiKey, query: """
+            query ProjectStatuses($after: String) {
+              projectStatuses(first: 100, after: $after) {
+                nodes { id name type position }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+            """, variables: cursor.map { ["after": $0] } ?? [:])
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let connection = (root["data"] as? [String: Any])?["projectStatuses"] as? [String: Any]
+            else { throw LinearAPIError.decoding }
+            states += Self.parseWorkflowStates(from: ["states": connection])
+            cursor = try Self.nextCursor(connection)
+            if let cursor, !seen.insert(cursor).inserted { throw LinearAPIError.decoding }
+        } while cursor != nil
+        return states
+    }
+
+    private static func nextCursor(_ connection: [String: Any]?) throws -> String? {
+        guard let page = connection?["pageInfo"] as? [String: Any], page["hasNextPage"] as? Bool == true else { return nil }
+        guard let cursor = page["endCursor"] as? String, !cursor.isEmpty else { throw LinearAPIError.decoding }
+        return cursor
+    }
+
+    /// Expanded projects include every non-archived issue, including completed/canceled work.
+    /// Fetch separately from the board query to keep nested GraphQL complexity bounded.
+    func fetchProjectIssues(apiKey: String, projectID: String) async throws -> [LinearIssueSummary] {
+        var issues: [LinearIssueSummary] = []
+        var cursor: String?
+        var seenCursors = Set<String>()
+        repeat {
+            try Task.checkCancellation()
+            var variables: [String: Any] = ["id": projectID]
+            if let cursor { variables["after"] = cursor }
+            let data = try await postGraphQL(apiKey: apiKey, query: """
+            query ProjectCardIssues($id: String!, $after: String) {
+              project(id: $id) {
+                issues(first: 100, after: $after) {
+                  nodes { \(Self.lightIssueNodeFields) labels { nodes { name color } } }
+                  pageInfo { hasNextPage endCursor }
+                }
+              }
+            }
+            """, variables: variables)
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let connection = ((root["data"] as? [String: Any])?["project"] as? [String: Any])?["issues"] as? [String: Any],
+                  let nodes = connection["nodes"] as? [[String: Any]],
+                  let page = connection["pageInfo"] as? [String: Any],
+                  let hasNext = page["hasNextPage"] as? Bool
+            else { throw LinearAPIError.decoding }
+            issues += try nodes.map(Self.parseIssueSummary)
+            cursor = nil
+            if hasNext {
+                guard let next = page["endCursor"] as? String, !next.isEmpty,
+                      seenCursors.insert(next).inserted else { throw LinearAPIError.decoding }
+                cursor = next
+            }
+        } while cursor != nil
+        var seen = Set<String>()
+        let dashboard = LinearIssueDashboard(completedRecent: [], inProgress: [],
+            projects: [LinearProjectSummary(id: projectID, name: "", issues: issues.filter { seen.insert($0.id).inserted })],
+            initiatives: [])
+        let hydrated = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: dashboard)
+        return Self.sortedByPriority(hydrated.projects[0].issues)
     }
 
     /// Nested project/initiative issues omit `team.states` (complexity). Copy states
@@ -484,15 +709,14 @@ struct LinearClient: Sendable {
         """
     }
 
-    /// Live workspace: project status type `started` covers both In Progress and Production
-    /// (custom name). Initiative `status` is the `InitiativeStatus` enum scalar.
+    /// All non-archived project statuses are included; initiative status remains an enum scalar.
     private static var containersQuery: String {
         let issueFields = lightIssueNodeFields
         return """
-        query IssueContainers {
+        query IssueContainers($after: String) {
           projects(
             first: 50
-            filter: { status: { type: { in: ["started"] } } }
+            after: $after
           ) {
             nodes {
               id
@@ -500,8 +724,11 @@ struct LinearClient: Sendable {
               url
               description
               targetDate
-              lead { name }
-              status { type name }
+              identifier icon color health priority startDate startDateResolution targetDateResolution
+              currentProgress
+              lead { name avatarUrl }
+              status { id type name color position }
+              createdAt updatedAt
               issues(
                 first: 12
                 filter: { state: { type: { nin: ["completed", "canceled"] } } }
@@ -509,6 +736,7 @@ struct LinearClient: Sendable {
                 nodes { \(issueFields) }
               }
             }
+            pageInfo { hasNextPage endCursor }
           }
           initiatives(
             first: 50
@@ -531,11 +759,47 @@ struct LinearClient: Sendable {
         """
     }
 
-    /// Unfiltered, no nested issues — used when the filtered/nested query is rejected.
+    /// Card relationships are separate from nested issues to stay below the 10,000 point cap.
+    private static let projectCardMetadataQuery = """
+    query ProjectCardMetadata($ids: [ID!]!) {
+      projects(first: 50, filter: { id: { in: $ids } }) {
+        nodes {
+          id name url description identifier icon color health priority
+          startDate startDateResolution targetDate targetDateResolution currentProgress createdAt updatedAt
+          lead { name avatarUrl } status { id type name color position }
+          teams(first: 5) { nodes { id name key icon color } }
+          initiatives(first: 10) { nodes { id name icon color } }
+          labels(first: 20) { nodes { id name color } }
+          projectMilestones(first: 20) { nodes { id name targetDate status } }
+          needs(first: 20) { nodes { customer { id name logoUrl } } }
+        }
+      }
+    }
+    """
+
+    // ponytail: preview up to 30 labels per initiative; paginate if label-heavy workspaces need more.
+    private static let initiativeCardMetadataQuery = """
+    query InitiativeCardMetadata($ids: [ID!]!) {
+      initiatives(first: 10, filter: { id: { in: $ids } }) {
+        nodes {
+          id name url description status icon color priority health targetDate targetDateResolution
+          owner { name avatarUrl }
+          leadTeam { id name key icon color }
+          labels(first: 30) { nodes { id name color parent { name } } }
+          projects(first: 100) {
+            nodes { id status { type } health }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }
+    """
+
+    /// No nested issues — used when the richer query is rejected.
     private static var containersSalvageQuery: String {
         """
-        query IssueContainers {
-          projects(first: 100) {
+        query IssueContainers($after: String) {
+          projects(first: 100, after: $after) {
             nodes {
               id
               name
@@ -543,8 +807,10 @@ struct LinearClient: Sendable {
               description
               targetDate
               lead { name }
-              status { type name }
+              status { id type name position }
+              createdAt updatedAt
             }
+            pageInfo { hasNextPage endCursor }
           }
           initiatives(first: 50) {
             nodes {
@@ -567,14 +833,15 @@ struct LinearClient: Sendable {
     /// Last container attempt: initiative `status` as an object (schema drift from the enum scalar).
     private static var containersBareQuery: String {
         """
-        query IssueContainers {
-          projects(first: 100) {
+        query IssueContainers($after: String) {
+          projects(first: 100, after: $after) {
             nodes {
               id
               name
               url
-              status { type name }
+              status { id type name position }
             }
+            pageInfo { hasNextPage endCursor }
           }
           initiatives(first: 50) {
             nodes {
@@ -710,6 +977,7 @@ struct LinearClient: Sendable {
     private struct LinearContainerOverlay {
         var projects: [LinearProjectSummary]
         var initiatives: [LinearInitiativeSummary]
+        var nextProjectsCursor: String?
     }
 
     /// Nil means this payload is incomplete (field error / missing collections) — try the next query.
@@ -734,7 +1002,8 @@ struct LinearClient: Sendable {
             projectIssuesByID: projectIssueIndex(projects))
         return LinearContainerOverlay(
             projects: keptProjects(projects),
-            initiatives: keptInitiatives(initiatives))
+            initiatives: keptInitiatives(initiatives),
+            nextProjectsCursor: try nextCursor(dataObj["projects"] as? [String: Any]))
     }
 
     private static func merging(
@@ -773,7 +1042,6 @@ struct LinearClient: Sendable {
 
     private static func keptProjects(_ projects: [LinearProjectSummary]) -> [LinearProjectSummary] {
         projects
-            .filter { shouldKeepProject(name: $0.statusName, type: $0.statusType) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
@@ -1008,11 +1276,6 @@ struct LinearClient: Sendable {
         (name ?? "").lowercased() == "planned"
     }
 
-    static func shouldKeepProject(name: String?, type: String?) -> Bool {
-        matchesProjectProduction(name: name, type: type)
-            || isInProgressContainer(name: name, type: type)
-    }
-
     static func shouldKeepInitiative(name: String?) -> Bool {
         matchesInitiativeActive(name: name) || matchesInitiativePlanned(name: name)
     }
@@ -1059,6 +1322,19 @@ struct LinearClient: Sendable {
             else { return nil }
             let status = parsedStatus(node["status"] ?? node["state"])
             let issues = openIssues(from: node["issues"])
+            func badges(_ key: String) -> [LinearProjectBadge] {
+                let nodes = (node[key] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []
+                var seen = Set<String>()
+                return nodes.compactMap { raw in
+                    let value = key == "needs" ? (raw["customer"] as? [String: Any] ?? [:]) : raw
+                    guard let id = value["id"] as? String, let name = value["name"] as? String,
+                          !name.isEmpty, seen.insert(id).inserted else { return nil }
+                    return LinearProjectBadge(id: id, name: key == "teams" ? (value["key"] as? String ?? name) : name,
+                        icon: value["icon"] as? String, color: value["color"] as? String,
+                        imageURL: (value["logoUrl"] as? String).flatMap(URL.init(string:)),
+                        date: parseDate(value["targetDate"]), status: value["status"] as? String)
+                }
+            }
             return LinearProjectSummary(
                 id: id,
                 name: name,
@@ -1068,7 +1344,21 @@ struct LinearClient: Sendable {
                 leadName: (node["lead"] as? [String: Any])?["name"] as? String,
                 targetDate: parseDate(node["targetDate"]),
                 descriptionText: node["description"] as? String,
-                issues: sortedByPriority(issues))
+                issues: sortedByPriority(issues),
+                identifier: node["identifier"] as? String,
+                icon: node["icon"] as? String, color: node["color"] as? String,
+                statusColor: (node["status"] as? [String: Any])?["color"] as? String,
+                health: node["health"] as? String, priority: node["priority"] as? Int,
+                leadAvatarURL: ((node["lead"] as? [String: Any])?["avatarUrl"] as? String).flatMap(URL.init(string:)),
+                startDate: parseDate(node["startDate"]),
+                startDateResolution: node["startDateResolution"] as? String,
+                targetDateResolution: node["targetDateResolution"] as? String,
+                issueCount: (node["currentProgress"] as? [String: Any])?["scopeCount"] as? Int,
+                teams: badges("teams"), initiatives: badges("initiatives"), labels: badges("labels"),
+                milestones: badges("projectMilestones"), customers: badges("needs"),
+                statusID: (node["status"] as? [String: Any])?["id"] as? String,
+                statusPosition: parseDouble((node["status"] as? [String: Any])?["position"]),
+                createdAt: parseDate(node["createdAt"]), updatedAt: parseDate(node["updatedAt"]))
         }
     }
 
@@ -1082,7 +1372,23 @@ struct LinearClient: Sendable {
                   let name = node["name"] as? String, !name.isEmpty
             else { return nil }
             let status = parsedStatus(node["status"] ?? node["state"])
-            let projectNodes = ((node["projects"] as? [String: Any])?["nodes"] as? [[String: Any]]) ?? []
+            let projectConnection = node["projects"] as? [String: Any]
+            var projectIDs = Set<String>()
+            let projectNodes = (projectConnection?["nodes"] as? [[String: Any]] ?? []).filter {
+                guard let id = $0["id"] as? String else { return false }
+                return projectIDs.insert(id).inserted
+            }
+            let complete = (projectConnection?["pageInfo"] as? [String: Any])?["hasNextPage"] as? Bool == false
+            // Linear rolls up reported health even for planned/completed projects; a started
+            // project without an update gets the gray indicator. Unstarted/no-update work is blank.
+            let active = projectNodes.filter { $0["health"] is String || parsedStatus($0["status"]).type == "started" }
+            let healthCounts = Dictionary(grouping: active) { $0["health"] as? String ?? "unknown" }.mapValues(\.count)
+            let team = node["leadTeam"] as? [String: Any]
+            let labels = ((node["labels"] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []).compactMap { label -> LinearProjectBadge? in
+                guard let id = label["id"] as? String, let name = label["name"] as? String else { return nil }
+                return LinearProjectBadge(id: id, name: name, color: label["color"] as? String,
+                    groupName: (label["parent"] as? [String: Any])?["name"] as? String)
+            }
             var issues: [LinearIssueSummary] = []
             var seen = Set<String>()
             for project in projectNodes {
@@ -1106,7 +1412,17 @@ struct LinearClient: Sendable {
                 targetDate: parseDate(node["targetDate"]),
                 descriptionText: node["description"] as? String,
                 issues: sortedByPriority(issues),
-                projectIDs: projectNodes.compactMap { $0["id"] as? String })
+                projectIDs: projectNodes.compactMap { $0["id"] as? String },
+                icon: node["icon"] as? String, color: node["color"] as? String,
+                priority: node["priority"] as? Int, health: node["health"] as? String,
+                ownerAvatarURL: ((node["owner"] as? [String: Any])?["avatarUrl"] as? String).flatMap(URL.init(string:)),
+                leadTeam: (team?["id"] as? String).map { LinearProjectBadge(id: $0,
+                    name: team?["key"] as? String ?? team?["name"] as? String ?? "",
+                    icon: team?["icon"] as? String, color: team?["color"] as? String) },
+                targetDateResolution: node["targetDateResolution"] as? String, labels: labels,
+                projectCount: complete ? projectNodes.count : nil,
+                completedProjectCount: complete ? projectNodes.filter { parsedStatus($0["status"]).type == "completed" }.count : nil,
+                activeProjectHealthCounts: complete ? healthCounts : [:])
         }
     }
 

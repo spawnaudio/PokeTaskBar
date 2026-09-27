@@ -133,6 +133,138 @@ final class MainWindowTests: XCTestCase {
         try await render(fixture, scheme: .dark, name: "focus-paused-dark", directory: directory)
     }
 
+    func testRenderProjectControlsAtNarrowAndWideWindowSizes() async throws {
+        guard let path = ProcessInfo.processInfo.environment["PTB_PROJECT_CONTROLS_PREVIEW_DIR"] else {
+            throw XCTSkip("Set PTB_PROJECT_CONTROLS_PREVIEW_DIR for project toolbar verification")
+        }
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fixture.nav.select(.projects)
+        XCTAssertEqual(fixture.usage.linearProjectStatuses.count, 9)
+        fixture.usage.toggleLinearProjectPin(try XCTUnwrap(fixture.usage.linearProjects.last))
+        fixture.usage.toggleLinearInitiativePin(try XCTUnwrap(fixture.usage.linearInitiatives.last))
+        for scheme in [ColorScheme.light, .dark] {
+            fixture.nav.projectSort = .targetDate
+            fixture.usage.hiddenLinearIssueStatuses = ["completed:done"]
+            fixture.defaults.set(false, forKey: "mainWindowProjectsGrid")
+            try await render(fixture, scheme: scheme, name: "projects-list-\(scheme)", width: 860, height: 680, directory: directory)
+            fixture.defaults.set(true, forKey: "mainWindowProjectsGrid")
+            try await render(fixture, scheme: scheme, name: "projects-grid-\(scheme)", directory: directory)
+        }
+        fixture.nav.projectStatus = "mix"
+        try await render(fixture, name: "projects-empty-status", directory: directory)
+        fixture.nav.select(.initiatives)
+        for scheme in [ColorScheme.light, .dark] {
+            try await render(fixture, scheme: scheme, name: "initiatives-\(scheme)", width: 860, height: 680, directory: directory)
+        }
+    }
+
+    func testNativeStatusHeadersFoldAndNestedInitiativeIssuesStartMinimized() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        try await fixture.usage.loadLinearProjectIssues(projectID: "project")
+        let project = try XCTUnwrap(fixture.usage.linearProjects.first { $0.id == "project" })
+        let initiative = try XCTUnwrap(fixture.usage.linearInitiatives.first { $0.id == "initiative" })
+        var expansionHeights: [CGFloat] = []
+        for nested in [false, true] {
+            let card = nested ? AnyView(LinearInitiativeProjects(initiative: initiative, onPin: {}))
+                : AnyView(LinearProjectCard(project: project, onPin: {}))
+            let host = NSHostingView(rootView: card.padding(10).frame(width: 400)
+                .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+                .defaultAppStorage(fixture.defaults))
+            let window = NSWindow(contentRect: NSRect(x: 400, y: 400, width: 400, height: 500),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = host; window.orderFrontRegardless()
+            defer { window.orderOut(nil); window.contentView = nil }
+            try await Task.sleep(for: .milliseconds(150))
+            host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+            let summaryHeight = host.fittingSize.height
+            try await click(window, in: host, x: 100, top: 56)
+            host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+            let expandedHeight = host.fittingSize.height
+            expansionHeights.append(expandedHeight - summaryHeight)
+            XCTAssertGreaterThan(expandedHeight, summaryHeight + 150)
+            // The first status title sits immediately below the project's summary.
+            try await click(window, in: host, x: 100, top: summaryHeight + 10)
+            XCTAssertLessThan(host.fittingSize.height, expandedHeight - 50)
+            host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+            try await click(window, in: host, x: 100, top: summaryHeight + 10)
+            XCTAssertEqual(host.fittingSize.height, expandedHeight, accuracy: 1)
+            XCTAssertNil(fixture.focus.session)
+        }
+        XCTAssertLessThan(expansionHeights[1], expansionHeights[0] - 30,
+                          "Projects inside initiatives must start with minimized issue cards")
+    }
+
+    func testNativeIssueFilterCheckboxesAllowRepeatedSelectionWithoutClosing() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        let host = NSHostingView(rootView: LinearProjectIssueFilterMenu().padding(20).frame(width: 300, height: 60)
+            .environment(fixture.usage).environment(fixture.companion).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 400, y: 500, width: 300, height: 60),
+                              styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(150))
+        let existing = Set(NSApp.windows.map(\.windowNumber))
+        try await click(window, in: host, x: 150, top: 30)
+        let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
+        defer { popup.orderOut(nil) }
+        let content = try XCTUnwrap(popup.contentView)
+        if let path = ProcessInfo.processInfo.environment["PTB_PROJECT_CONTROLS_PREVIEW_DIR"] {
+            let bitmap = try XCTUnwrap(content.bitmapImageRepForCachingDisplay(in: content.bounds))
+            content.cacheDisplay(in: content.bounds, to: bitmap)
+            try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to:
+                URL(fileURLWithPath: path).appendingPathComponent("issue-filter.png"))
+        }
+        // Popover chrome differs across macOS releases; use the actual scroll document.
+        func descendants(of view: NSView) -> [NSView] {
+            [view] + view.subviews.flatMap { descendants(of: $0) }
+        }
+        let views = descendants(of: content)
+        let document = try XCTUnwrap(views.compactMap { $0 as? NSScrollView }.first?.documentView)
+        let options = LinearProjectIssueFilter.options(fixture.usage.linearProjects,
+            additionalIssues: fixture.usage.linearInitiatives.flatMap(\.issues))
+        let selections: [(String, Set<String>)] = [
+            ("Planned", ["unstarted:planned"]),
+            ("Todo", ["unstarted:planned", "unstarted:todo"]),
+            ("Planned", ["unstarted:todo"]),
+        ]
+        for (label, expected) in selections {
+            let index = try XCTUnwrap(options.firstIndex { $0.name == label })
+            try await click(popup, in: document, x: 10, top: CGFloat(index) * 28 + 14)
+            XCTAssertTrue(popup.isVisible, "Changing a checkbox must leave Issue Filter open")
+            XCTAssertEqual(fixture.usage.hiddenLinearIssueStatuses, expected)
+        }
+        XCTAssertEqual(fixture.usage.hiddenLinearIssueStatuses, ["unstarted:todo"])
+        let reset = try XCTUnwrap(views.compactMap { $0 as? NSButton }.first)
+        try await click(popup, in: reset, x: reset.bounds.midX, top: reset.bounds.midY)
+        XCTAssertTrue(popup.isVisible)
+        XCTAssertTrue(fixture.usage.hiddenLinearIssueStatuses.isEmpty, "Show all statuses resets every checkbox")
+    }
+
+    private func click(_ window: NSWindow, in view: NSView, x: CGFloat, top: CGFloat) async throws {
+        let point = view.convert(NSPoint(x: x, y: view.isFlipped ? top : view.bounds.height - top), to: nil)
+        func event(_ type: NSEvent.EventType) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+        }
+        // AppKit controls can track synchronously inside mouseDown until mouseUp arrives.
+        NSApp.postEvent(try event(.leftMouseUp), atStart: false)
+        window.sendEvent(try event(.leftMouseDown))
+        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            window.sendEvent(release) // SwiftUI gestures do not consume the queued release synchronously.
+        }
+        try await Task.sleep(for: .milliseconds(180))
+    }
+
     private func render(_ fixture: Fixture, scheme: ColorScheme = .light, name: String,
                         width: CGFloat = 1280, height: CGFloat = 860, directory: URL) async throws {
         let host = NSHostingView(rootView: MainWindowView()
@@ -256,6 +388,17 @@ final class MainWindowTests: XCTestCase {
 
     private struct PreviewHTTP: LinearHTTPClient {
         func postGraphQL(apiKey: String, body: Data) async throws -> (status: Int, data: Data) {
+            let projectStatuses: [[String: Any]] = [
+                ["id": "backlog", "name": "Backlog", "type": "backlog", "position": 0],
+                ["id": "planned", "name": "Planned", "type": "planned", "position": 1],
+                ["id": "production", "name": "Production", "type": "started", "position": 2],
+                ["id": "started", "name": "In Progress", "type": "started", "position": 3],
+                ["id": "mix", "name": "Mix & Mastering", "type": "started", "position": 4],
+                ["id": "review", "name": "In Review", "type": "started", "position": 5],
+                ["id": "release", "name": "Release Ready", "type": "completed", "position": 6],
+                ["id": "done", "name": "Completed", "type": "completed", "position": 7],
+                ["id": "canceled", "name": "Canceled", "type": "canceled", "position": 8],
+            ]
             let team: [String: Any] = ["id": "team", "key": "PKT", "name": "PokeTasks", "states": ["nodes": [
                 ["id": "todo-state", "name": "Todo", "type": "unstarted"],
                 ["id": "planned-state", "name": "Planned", "type": "unstarted"],
@@ -266,7 +409,7 @@ final class MainWindowTests: XCTestCase {
                 "state": ["id": "started", "name": "In Progress", "type": "started"],
                 "description": "Bring the approved dashboard and navigation to the native app.",
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
-            let project: [String: Any] = ["id": "project", "name": "PokeTasks", "status": ["type": "started", "name": "In Progress"],
+            let project: [String: Any] = ["id": "project", "name": "PokeTasks", "status": ["id": "started", "type": "started", "name": "In Progress"],
                 "description": "A calmer place to focus on your work.", "issues": ["nodes": [issue]]]
             let planned: [String: Any] = ["id": "planned", "identifier": "PKT-143", "title": "Plan the next focus session",
                 "state": ["id": "planned-state", "name": "Planned", "type": "unstarted"],
@@ -275,9 +418,15 @@ final class MainWindowTests: XCTestCase {
                 "state": ["id": "todo-state", "name": "Todo", "type": "unstarted"],
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
             return (200, try JSONSerialization.data(withJSONObject: ["data": [
+                "projectStatuses": ["nodes": projectStatuses, "pageInfo": ["hasNextPage": false]],
                 "inProgress": ["nodes": [issue]], "completedRecent": ["nodes": []], "planned": ["nodes": [planned]], "todo": ["nodes": [todo]],
-                "projects": ["nodes": [project]], "initiatives": ["nodes": [["id": "initiative", "name": "Fun Side Projects",
-                "status": "Active", "projects": ["nodes": [project]]]]], "teams": ["nodes": []]]]))
+                "project": ["issues": ["nodes": [issue, planned, todo], "pageInfo": ["hasNextPage": false]]],
+                "projects": ["nodes": [project, ["id": "other-project", "name": "Weekly Planning",
+                    "status": ["id": "planned", "type": "planned", "name": "Planned"], "issues": ["nodes": []]]]],
+                "initiatives": ["nodes": [["id": "initiative", "name": "Fun Side Projects",
+                    "status": "Active", "projects": ["nodes": [project]]],
+                    ["id": "other-initiative", "name": "Studio Refresh", "status": "Active", "projects": ["nodes": []]]]],
+                "teams": ["nodes": []]]]))
         }
     }
 }

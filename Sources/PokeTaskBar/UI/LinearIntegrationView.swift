@@ -61,18 +61,6 @@ enum LinearIssuesTab: CaseIterable, Hashable {
 }
 
 @MainActor
-private enum LinearProjectsTab: Hashable {
-    case inProgress
-    case production
-}
-
-@MainActor
-private enum LinearInitiativesTab: Hashable {
-    case active
-    case planned
-}
-
-@MainActor
 struct LinearIntegrationView: View {
     let store: UsageStore
     @Environment(CompanionStore.self) private var companion
@@ -80,8 +68,10 @@ struct LinearIntegrationView: View {
     @State private var selectedRoot: LinearRootTab = .issues
     @State private var selectedIssuesTab: LinearIssuesTab = .inProgress
     @State private var issueSorts: [LinearIssuesTab: LinearIssueSort] = [:]
-    @State private var selectedProjectsTab: LinearProjectsTab = .inProgress
-    @State private var selectedInitiativesTab: LinearInitiativesTab = .active
+    @State private var selectedProjectStatus = ""
+    @State private var projectSort: LinearProjectSort = .name
+    @State private var initiativeSort: LinearInitiativeSort = .name
+    @State private var plannedInitiatives = false
 
     private var l: L { companion.l }
 
@@ -90,27 +80,16 @@ struct LinearIntegrationView: View {
     }
 
     private var visibleProjects: [LinearProjectSummary] {
-        store.linearProjects.filter { project in
-            switch selectedProjectsTab {
-            case .inProgress:
-                return LinearClient.matchesProjectInProgressTab(
-                    name: project.statusName, type: project.statusType)
-            case .production:
-                return LinearClient.matchesProjectProduction(
-                    name: project.statusName, type: project.statusType)
-            }
-        }
+        LinearContainerOrder.pinnedFirst(projectSort.sorted(LinearProjectStatuses.matching(
+            store.linearProjects, selection: selectedProjectStatus, catalog: store.linearProjectStatuses)),
+            ids: store.pinnedLinearProjectIDs)
     }
 
     private var visibleInitiatives: [LinearInitiativeSummary] {
-        store.linearInitiatives.filter { initiative in
-            switch selectedInitiativesTab {
-            case .active:
-                return LinearClient.matchesInitiativeActive(name: initiative.statusName)
-            case .planned:
-                return LinearClient.matchesInitiativePlanned(name: initiative.statusName)
-            }
-        }
+        LinearContainerOrder.pinnedFirst(initiativeSort.sorted(store.linearInitiatives.filter { initiative in
+            plannedInitiatives ? LinearClient.matchesInitiativePlanned(name: initiative.statusName)
+                : LinearClient.matchesInitiativeActive(name: initiative.statusName)
+        }), ids: store.pinnedLinearInitiativeIDs)
     }
 
     var body: some View {
@@ -123,7 +102,13 @@ struct LinearIntegrationView: View {
                         get: { issueSorts[selectedIssuesTab] ?? .priority },
                         set: { issueSorts[selectedIssuesTab] = $0 }))
                 }
-                LinearCardDisplayMenu()
+                if selectedRoot == .projects || selectedRoot == .initiatives {
+                    LinearProjectIssueFilterMenu()
+                    if selectedRoot == .projects { LinearProjectSortMenu(selection: $projectSort) }
+                    else { LinearInitiativeSortMenu(selection: $initiativeSort) }
+                } else {
+                    LinearCardDisplayMenu()
+                }
                 Button {
                     Task { _ = await store.refreshLinearIssues() }
                 } label: {
@@ -166,17 +151,10 @@ struct LinearIntegrationView: View {
                         TahoeTabItem(.completedToday, title: l.linearCompletedTab, symbol: "checkmark"),
                     ])
                 } else if selectedRoot == .projects {
-                    TahoeTabBar(selection: $selectedProjectsTab, items: [
-                        TahoeTabItem(
-                            .inProgress, title: l.linearInProgressTab, symbol: LinearChromeSymbol.project,
-                            symbolColor: LinearChromeTint.project),
-                        TahoeTabItem(.production, title: l.linearProductionTab, symbol: "cube"),
-                    ])
+                    LinearProjectStatusMenu(statuses: LinearProjectStatuses.options(
+                        projects: store.linearProjects, catalog: store.linearProjectStatuses), selection: $selectedProjectStatus)
                 } else if selectedRoot == .initiatives {
-                    TahoeTabBar(selection: $selectedInitiativesTab, items: [
-                        TahoeTabItem(.active, title: l.linearActiveTab, symbol: LinearChromeSymbol.initiative),
-                        TahoeTabItem(.planned, title: l.linearPlannedTab, symbol: "calendar"),
-                    ])
+                    LinearInitiativeStatusMenu(planned: $plannedInitiatives)
                 }
 
                 if let updated = store.linearIssuesUpdatedAt {
@@ -200,19 +178,25 @@ struct LinearIntegrationView: View {
                 case .issues:
                     issuesList
                 case .projects:
-                    containerList(
-                        items: visibleProjects.map { LinearContainerRow(project: $0) },
-                        emptyText: selectedProjectsTab == .production
-                            ? l.linearProjectsEmptyProduction
-                            : l.linearProjectsEmpty,
-                        openHelp: l.linearOpenProject)
+                    let values = visibleProjects
+                    let dividerID = LinearContainerOrder.dividerID(values, ids: store.pinnedLinearProjectIDs)
+                    if values.isEmpty {
+                        Text(l.linearProjectsNoMatches)
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        ContentFittingScrollView(fillsViewport: values.count > 8) {
+                            LazyVStack(spacing: 8) {
+                                ForEach(values) { project in
+                                    VStack(spacing: 8) {
+                                        if project.id == dividerID { Divider() }
+                                        LinearProjectCard(project: project, hiddenIssueStatuses: store.hiddenLinearIssueStatuses) { nav.showFocus() }
+                                    }
+                                }
+                            }
+                        }.frame(maxHeight: .infinity)
+                    }
                 case .initiatives:
-                    containerList(
-                        items: visibleInitiatives.map { LinearContainerRow(initiative: $0) },
-                        emptyText: selectedInitiativesTab == .planned
-                            ? l.linearInitiativesEmptyPlanned
-                            : l.linearInitiativesEmpty,
-                        openHelp: l.linearOpenInitiative)
+                    initiativesList
                 }
             }
         }
@@ -243,29 +227,25 @@ struct LinearIntegrationView: View {
         }
     }
 
-    private func containerList(
-        items: [LinearContainerRow],
-        emptyText: String,
-        openHelp: String
-    ) -> some View {
+    private var initiativesList: some View {
         Group {
-            if items.isEmpty {
-                Text(emptyText)
+            let values = visibleInitiatives
+            let dividerID = LinearContainerOrder.dividerID(values, ids: store.pinnedLinearInitiativeIDs)
+            if values.isEmpty {
+                Text(plannedInitiatives ? l.linearInitiativesEmptyPlanned : l.linearInitiativesEmpty)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(.top, 4)
             } else {
-                ContentFittingScrollView(fillsViewport: items.count > 8) {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(items) { row in
-                            LinearFoldableRow(row: row, openHelp: openHelp) {
-                                LinearContainerIssuesView(issues: row.issues, nested: true) {
-                                    nav.showFocus()
+                ContentFittingScrollView(fillsViewport: values.count > 8) {
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        ForEach(values) { initiative in
+                            VStack(spacing: 8) {
+                                if initiative.id == dividerID { Divider() }
+                                LinearInitiativeCard(initiative: initiative) {
+                                    LinearInitiativeProjects(initiative: initiative) { nav.showFocus() }
                                 }
-                            }
-                            if row.id != items.last?.id {
-                                Divider().opacity(0.6)
                             }
                         }
                     }
@@ -282,35 +262,82 @@ struct LinearIntegrationView: View {
     }
 }
 
-/// Keep planned work visible in both parent surfaces, with the same issue controls.
+/// Keep each actual workflow status separate, including custom statuses from different teams.
+struct LinearIssueStatusSection: Identifiable {
+    var state: LinearWorkflowState
+    var issues: [LinearIssueSummary]
+    var id: String { state.id }
+
+    static func sections(_ issues: [LinearIssueSummary]) -> [Self] {
+        let grouped = Dictionary(grouping: issues) { issue in
+            issue.stateId ?? "missing:\(issue.teamID ?? ""):\(issue.stateType ?? ""):\(issue.stateName ?? "")"
+        }
+        let sections = grouped.map { id, values in
+            let issue = values[0]
+            return Self(state: LinearWorkflowState(id: id, name: issue.stateName ?? "",
+                type: issue.stateType ?? "",
+                position: issue.teamStates.first { $0.id == issue.stateId }?.position),
+                issues: LinearClient.sortedByPriority(values))
+        }
+        return sections.sorted { a, b in
+            let left = LinearClient.workflowTypeRank(a.state.type), right = LinearClient.workflowTypeRank(b.state.type)
+            if left != right { return left < right }
+            if let ap = a.state.position, let bp = b.state.position, ap != bp { return ap < bp }
+            let order = a.state.name.localizedStandardCompare(b.state.name)
+            if order != .orderedSame { return order == .orderedAscending }
+            return a.id < b.id
+        }
+    }
+}
+
 @MainActor
 struct LinearContainerIssuesView: View {
     let issues: [LinearIssueSummary]
     var nested = false
+    var includesClosed = false
+    var initiallyMinimized = false
     let onPin: () -> Void
     @Environment(CompanionStore.self) private var companion
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var collapsedStatusIDs: Set<String> = []
 
     var body: some View {
-        let planned = issues.filter(LinearClient.isPlannedIssue)
-        let other = issues.filter { !LinearClient.isPlannedIssue($0) }
+        let sections = LinearIssueStatusSection.sections(issues)
         VStack(alignment: .leading, spacing: 0) {
             if issues.isEmpty {
-                Text(companion.l.linearContainerEmptyIssues)
+                Text(includesClosed ? companion.l.linearProjectEmptyIssues : companion.l.linearContainerEmptyIssues)
                     .font(.caption).foregroundStyle(.secondary).padding(.vertical, 4)
             }
-            rows(other)
-            if !planned.isEmpty {
-                Text("\(companion.l.linearPlannedTab) · \(planned.count)")
-                    .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                    .padding(.top, 10).padding(.bottom, 4)
-                rows(planned)
+            ForEach(sections) { section in
+                let collapsed = collapsedStatusIDs.contains(section.id)
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+                        if collapsed { collapsedStatusIDs.remove(section.id) }
+                        else { collapsedStatusIDs.insert(section.id) }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: collapsed ? "chevron.right" : "chevron.down").font(.system(size: 9, weight: .semibold))
+                            .frame(width: 10)
+                        if let first = section.issues.first { LinearCardStatusIcon(issue: first) }
+                        Text(section.state.name.isEmpty ? companion.l.linearStatusUnknown : section.state.name)
+                        if sections.filter({ $0.state.name == section.state.name }).count > 1,
+                           let team = section.issues.first?.teamKey { Text(team).foregroundStyle(.tertiary) }
+                        Text("\(section.issues.count)").foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    .padding(.top, 10).padding(.bottom, 4).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).accessibilityValue(collapsed ? "Collapsed" : "Expanded")
+                if !collapsed { rows(section.issues) }
             }
         }
     }
 
     private func rows(_ values: [LinearIssueSummary]) -> some View {
         ForEach(values) { issue in
-            LinearIssueEntityRow(issue: issue, nested: nested, onPin: onPin)
+            LinearIssueEntityRow(issue: issue, nested: nested, initiallyMinimized: initiallyMinimized, onPin: onPin)
                 .padding(.vertical, 4)
         }
     }
@@ -329,6 +356,15 @@ struct LinearIssueEntityRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
     @State private var expanded = false
+    @State private var minimized = false
+
+    init(issue: LinearIssueSummary, nested: Bool = false, initiallyMinimized: Bool = false,
+         onPin: @escaping () -> Void) {
+        self.issue = issue
+        self.nested = nested
+        self.onPin = onPin
+        _minimized = State(initialValue: initiallyMinimized)
+    }
 
     private var rowShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -351,30 +387,33 @@ struct LinearIssueEntityRow: View {
                     Text(issue.title)
                         .font(.system(size: 14))
                         .foregroundStyle(.primary)
-                        .lineLimit(expanded ? nil : 2)
+                        .lineLimit(expanded && !minimized ? nil : 2)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .allowsHitTesting(false)
+                    LinearCardMinimizeButton(minimized: $minimized)
                 }
             }
 
-            LinearCardMetadata(issue: issue, allMetadata: allMetadata || expanded)
+            if !minimized {
+                LinearCardMetadata(issue: issue, allMetadata: allMetadata || expanded)
 
-            if (allMetadata || expanded), issue.createdAt != nil || issue.updatedAt != nil {
-                LinearCardDates(issue: issue).allowsHitTesting(false)
-            }
-
-            if expanded {
-                Divider().padding(.vertical, 2)
-                if let text = issue.descriptionText, !text.isEmpty {
-                    LinearMarkdownText(source: text)
+                if (allMetadata || expanded), issue.createdAt != nil || issue.updatedAt != nil {
+                    LinearCardDates(issue: issue).allowsHitTesting(false)
                 }
-                LinearIssueCompletionStats(issue: issue)
-                    .allowsHitTesting(false)
-                HStack {
-                    Spacer()
-                    LinearFocusButton(issue: issue, openDeskOnPin: false, onPinned: onPin)
+
+                if expanded {
+                    Divider().padding(.vertical, 2)
+                    if let text = issue.descriptionText, !text.isEmpty {
+                        LinearMarkdownText(source: text)
+                    }
+                    LinearIssueCompletionStats(issue: issue)
+                        .allowsHitTesting(false)
+                    HStack {
+                        Spacer()
+                        LinearFocusButton(issue: issue, openDeskOnPin: false, onPinned: onPin)
+                    }
                 }
             }
         }
@@ -382,13 +421,15 @@ struct LinearIssueEntityRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) { expanded.toggle() }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+                    if minimized { minimized = false } else { expanded.toggle() }
+                }
             } label: {
                 rowShape
                     .fill(colorScheme == .dark
                           ? Color(red: 0.15, green: 0.155, blue: 0.16)
                           : Color(nsColor: .controlBackgroundColor))
-                    .overlay { rowShape.fill(Color.primary.opacity(hovering || expanded ? 0.025 : 0)) }
+                    .overlay { rowShape.fill(Color.primary.opacity(hovering || (expanded && !minimized) ? 0.025 : 0)) }
                     .overlay {
                         rowShape.strokeBorder(Color.primary.opacity(contrast == .increased ? 0.35 : 0.045), lineWidth: 1)
                     }
@@ -397,200 +438,10 @@ struct LinearIssueEntityRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(issue.title)
-            .accessibilityValue(expanded ? "Expanded" : "Collapsed")
+            .accessibilityValue(minimized ? "Minimized" : (expanded ? "Expanded" : "Collapsed"))
         }
         .contentShape(rowShape)
         .onHover { hovering = $0 }
-        .accessibilityAddTraits(expanded ? .isSelected : [])
-    }
-}
-
-struct LinearContainerRow: Identifiable {
-    var id: String
-    var name: String
-    var url: URL?
-    var statusName: String?
-    var leadOrOwner: String?
-    var targetDate: Date?
-    var descriptionText: String?
-    var symbol: String
-    var symbolTint: Color
-    var issues: [LinearIssueSummary]
-
-    init(project: LinearProjectSummary) {
-        id = project.id
-        name = project.name
-        url = project.url
-        statusName = project.statusName ?? project.statusType
-        leadOrOwner = project.leadName
-        targetDate = project.targetDate
-        descriptionText = project.descriptionText
-        symbol = LinearChromeSymbol.project
-        symbolTint = LinearChromeTint.project
-        issues = project.issues
-    }
-
-    init(initiative: LinearInitiativeSummary) {
-        id = initiative.id
-        name = initiative.name
-        url = initiative.url
-        statusName = initiative.statusName
-        leadOrOwner = initiative.ownerName
-        targetDate = initiative.targetDate
-        descriptionText = initiative.descriptionText
-        symbol = LinearChromeSymbol.initiative
-        symbolTint = .secondary
-        issues = initiative.issues
-    }
-}
-
-/// Unboxed two-line project/initiative row. Click unfolds metadata, markdown, and issues.
-@MainActor
-struct LinearFoldableRow<Content: View>: View {
-    @Environment(CompanionStore.self) private var companion
-    let row: LinearContainerRow
-    let openHelp: String
-    @ViewBuilder let content: () -> Content
-
-    @State private var expanded = false
-    @State private var hoveringHeader = false
-
-    init(row: LinearContainerRow, openHelp: String, initiallyExpanded: Bool = false,
-         @ViewBuilder content: @escaping () -> Content) {
-        self.row = row
-        self.openHelp = openHelp
-        self.content = content
-        _expanded = State(initialValue: initiallyExpanded)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                            .rotationEffect(.degrees(expanded ? 90 : 0))
-                            .frame(width: 14)
-                        Image(systemName: row.symbol)
-                            .font(.caption)
-                            .foregroundStyle(row.symbolTint)
-                            .frame(width: 14)
-                        Text(row.name)
-                            .font(LinearRowTypography.topLevel)
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                if let url = row.url {
-                    Button {
-                        NSWorkspace.shared.open(url)
-                    } label: {
-                        Image(systemName: "arrow.up.right.square")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 22, height: 22)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .controlSize(.mini)
-                    .help(openHelp)
-                }
-            }
-
-            if !expanded {
-                collapsedMeta
-            }
-
-            if expanded {
-                expandedMeta
-                if let text = row.descriptionText, !text.isEmpty {
-                    LinearMarkdownText(source: text)
-                }
-                content()
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 4)
-        .background(
-            Color.primary.opacity(hoveringHeader || expanded ? 0.06 : 0),
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onHover { hoveringHeader = $0 }
-        .accessibilityAddTraits(expanded ? .isSelected : [])
-    }
-
-    @ViewBuilder
-    private var collapsedMeta: some View {
-        let chips = metaChips
-        if !chips.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(Array(chips.enumerated()), id: \.offset) { _, text in
-                        LinearTagChip(text: text)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private var expandedMeta: some View {
-        let chips = metaChips
-        if !chips.isEmpty {
-            FlexibleChipWrap(chips: chips)
-        }
-    }
-
-    private var metaChips: [String] {
-        var chips: [String] = []
-        if let status = row.statusName, !status.isEmpty { chips.append(status) }
-        if let person = row.leadOrOwner, !person.isEmpty { chips.append(person) }
-        if let target = row.targetDate {
-            chips.append(target.formatted(.dateTime.month(.abbreviated).day()))
-        }
-        chips.append("\(row.issues.count)")
-        let plannedCount = row.issues.filter(LinearClient.isPlannedIssue).count
-        if plannedCount > 0 { chips.append("\(companion.l.linearPlannedTab): \(plannedCount)") }
-        return chips
-    }
-}
-
-@MainActor
-private struct FlexibleChipWrap: View {
-    let chips: [String]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(chips.chunked(by: 3).enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 4) {
-                    ForEach(Array(row.enumerated()), id: \.offset) { _, text in
-                        LinearTagChip(text: text)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-    }
-}
-
-private extension Array {
-    func chunked(by size: Int) -> [[Element]] {
-        guard size > 0 else { return [self] }
-        var rows: [[Element]] = []
-        var index = startIndex
-        while index < endIndex {
-            let next = self.index(index, offsetBy: size, limitedBy: endIndex) ?? endIndex
-            rows.append(Array(self[index..<next]))
-            index = next
-        }
-        return rows
+        .accessibilityAddTraits(expanded && !minimized ? .isSelected : [])
     }
 }

@@ -645,7 +645,7 @@ final class RelativeTimestampPerformanceTests: XCTestCase {
             .appendingPathComponent("Sources/PokeTaskBar/UI/LinearIntegrationView.swift")
         let source = try String(contentsOf: linear, encoding: .utf8)
         XCTAssertTrue(
-            source.contains("LazyVStack(alignment: .leading, spacing: 0)"),
+            source.contains("LazyVStack(alignment: .leading,"),
             "Linear issue/project lists must lazy-load rows (eager VStack+ForEach builds every card)")
     }
 }

@@ -42,7 +42,38 @@ sub-issue progress and team-specific estimate display names are not fetched. Est
 use the numeric value already supported by the app. No counts or metadata are invented
 to reproduce the reference screenshots.
 
+Expanded project cards now fetch the full non-archived issue list, including labels,
+and group it by workflow status. See [Linear project cards](linear-project-cards.md)
+for that surface's layout, loading behavior and validation.
+
+## Minimize cards
+
+The title-row chevron minimizes each issue independently, leaving its title, identifier,
+status, assignee and Focus control visible. Everything below the title is hidden,
+including metadata in both display modes, dates, descriptions and expanded actions.
+The chevron or a click on the minimized card restores its previous expansion state.
+This is local view state and resets when that card view is recreated.
+
+The same control is available on [project cards](linear-project-cards.md) and
+[initiative cards](linear-initiative-cards.md), including nested and menu-bar cards.
+It respects Reduce Motion and has localized tooltips and accessibility labels.
+
 ## Validation
+
+`LinearCardMinimizeTests` uses native mouse events on Issues, Projects, Initiatives
+and Overview summaries at 240/1000pt, in light/dark and both metadata modes. It checks
+title-only height, restoring summary/expanded content, and no focus, pin or selection
+side effects. Set `PTB_MINIMIZE_PREVIEW_DIR` to save summary/minimized captures.
+The minimize follow-up passed 22 focused tests with three optional window previews
+skipped; the relevant full-workspace preview then passed separately. Native card
+previews and coverage regions were inspected. This is fixture validation, not live
+Linear verification or an installed-app replacement.
+
+The subsequent requested build-and-replace installed the minimize feature in
+`/Applications/PokeTaskBar v1.4.app` and verified a single launched instance (PID 46052).
+All 103 build inputs stayed unchanged; bundle signing passed and the installed
+executable matched the built app. SHA-256:
+`4235f28ca3a61da46b1a6d1f09884df8ee32d75e8d3768a4c0306b0c1822db47`.
 
 `LinearIssueCardTests` checks metadata parsing, optional values, workflow-color responses
 and date-only deadlines in three time zones. Set `PTB_ISSUE_CARD_PREVIEW_DIR` to capture
