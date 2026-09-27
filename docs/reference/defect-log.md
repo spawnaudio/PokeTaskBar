@@ -16,6 +16,13 @@ read_when:
 
 ## Attached panel sizing
 
+- **Native popover tests must not assume system chrome offsets.** The Issue Filter
+  checkbox test passed locally but its hard-coded popup coordinates missed every
+  checkbox on the macOS 15 CI runner. The test now locates the scroll document and
+  native reset button before sending mouse events. Row offsets are relative to the
+  app's explicit 28pt rows. Keep assertions on repeated selection, persistence and
+  popover visibility; skipping the interaction would hide the regression.
+
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.
   Logic tests passed because they exercised filtering and navigation without measuring

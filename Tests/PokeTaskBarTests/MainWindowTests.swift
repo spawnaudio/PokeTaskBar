@@ -223,18 +223,28 @@ final class MainWindowTests: XCTestCase {
             try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to:
                 URL(fileURLWithPath: path).appendingPathComponent("issue-filter.png"))
         }
-        let selections: [(CGFloat, Set<String>)] = [
-            (112, ["unstarted:planned"]),
-            (140, ["unstarted:planned", "unstarted:todo"]),
-            (112, ["unstarted:todo"]),
+        // Popover chrome differs across macOS releases; use the actual scroll document.
+        func descendants(of view: NSView) -> [NSView] {
+            [view] + view.subviews.flatMap { descendants(of: $0) }
+        }
+        let views = descendants(of: content)
+        let document = try XCTUnwrap(views.compactMap { $0 as? NSScrollView }.first?.documentView)
+        let options = LinearProjectIssueFilter.options(fixture.usage.linearProjects,
+            additionalIssues: fixture.usage.linearInitiatives.flatMap(\.issues))
+        let selections: [(String, Set<String>)] = [
+            ("Planned", ["unstarted:planned"]),
+            ("Todo", ["unstarted:planned", "unstarted:todo"]),
+            ("Planned", ["unstarted:todo"]),
         ]
-        for (top, expected) in selections {
-            try await click(popup, in: content, x: 37, top: top)
+        for (label, expected) in selections {
+            let index = try XCTUnwrap(options.firstIndex { $0.name == label })
+            try await click(popup, in: document, x: 10, top: CGFloat(index) * 28 + 14)
             XCTAssertTrue(popup.isVisible, "Changing a checkbox must leave Issue Filter open")
             XCTAssertEqual(fixture.usage.hiddenLinearIssueStatuses, expected)
         }
         XCTAssertEqual(fixture.usage.hiddenLinearIssueStatuses, ["unstarted:todo"])
-        try await click(popup, in: content, x: 100, top: 65)
+        let reset = try XCTUnwrap(views.compactMap { $0 as? NSButton }.first)
+        try await click(popup, in: reset, x: reset.bounds.midX, top: reset.bounds.midY)
         XCTAssertTrue(popup.isVisible)
         XCTAssertTrue(fixture.usage.hiddenLinearIssueStatuses.isEmpty, "Show all statuses resets every checkbox")
     }
