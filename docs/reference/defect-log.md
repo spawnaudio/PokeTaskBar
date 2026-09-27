@@ -887,6 +887,23 @@ read_when:
 
 ## 외부 GraphQL
 
+- **Initiative health totals are not a count of started projects.** The supplied
+  Linear reference counts reported project health across statuses, including completed
+  projects. Restricting the rollup to `started` silently understated the screenshot's
+  totals (Fun Side Projects: 1 instead of 7). Started-only fixtures missed this.
+  `LinearInitiativeCardTests` now covers reported health on completed/backlog projects,
+  no-update started projects, pagination and duplicate project IDs. Initiative/project
+  issue filters must not be reused for this health rollup.
+
+- **Keep project-card relationships separate from nested issue previews.** Adding
+  teams, initiatives, labels, milestones and customers to the existing 50-project
+  dashboard raised its live complexity to 14,520 and triggered HTTP 400. Parser-only
+  fixtures do not model the server's query cost. The card metadata request now batches
+  at most 50 projects without nested issues; full issue lists load separately on
+  expansion. `LinearProjectCardTests` checks this query boundary and paginated loading,
+  while read-only live validation confirms the requests are accepted. Recheck live
+  complexity when increasing these page sizes or adding another relationship.
+
 - **한 쿼리에 컬렉션을 얹다가 복잡도 상한에 걸리면, 폴백이 형제 컬렉션을 침묵 삭제하면 안 된다.**
   Linear rejects a single request over 10,000 complexity points. Nesting `team.states`
   (default page 50) under `projects { issues }` and `initiatives { projects { issues } }`

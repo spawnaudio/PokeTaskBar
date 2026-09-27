@@ -485,6 +485,8 @@ struct L {
     var linearAPIKeyMalformed: String { t("키 형식이 아닙니다 (lin_api_ 로 시작).", "That isn’t an API key (should start with lin_api_).", "キー形式ではありません（lin_api_ で開始）。", "Eso no es una clave API (debe empezar por lin_api_).", "Ce n’est pas une clé API (doit commencer par lin_api_).", "Isso não é uma chave de API (deve começar com lin_api_).", "Das ist kein API-Schlüssel (sollte mit lin_api_ beginnen).") }
     var linearAPIKeyInvalid: String { t("Linear가 키를 거부했습니다. 권한을 확인하세요.", "Linear rejected that key. Check its permissions.", "Linearがキーを拒否しました。権限を確認してください。", "Linear rechazó esa clave. Revisa sus permisos.", "Linear a rejeté cette clé. Vérifie ses permissions.", "O Linear rejeitou essa chave. Verifique as permissões.", "Linear hat diesen Schlüssel abgelehnt. Berechtigungen prüfen.") }
     var linearIssuesTab: String { t("이슈", "Issues", "課題", "Issues", "Issues", "Issues", "Issues") }
+    var linearCardMinimize: String { t("카드 최소화", "Minimize card", "カードを最小化", "Minimizar tarjeta", "Réduire la carte", "Minimizar cartão", "Karte minimieren") }
+    var linearCardRestore: String { t("카드 복원", "Restore card", "カードを元に戻す", "Restaurar tarjeta", "Restaurer la carte", "Restaurar cartão", "Karte wiederherstellen") }
     var linearCardMetadata: String { t("카드 속성", "Card metadata", "カードのプロパティ", "Metadatos de tarjeta", "Métadonnées des cartes", "Metadados do cartão", "Kartenmetadaten") }
     var linearCardMinimal: String { t("최소", "Minimal", "最小限", "Mínimos", "Minimales", "Mínimos", "Minimal") }
     var linearCardAll: String { t("모두 표시", "All available", "すべて表示", "Todos los disponibles", "Toutes les données", "Todos disponíveis", "Alle verfügbaren") }
@@ -504,6 +506,19 @@ struct L {
     var linearSortUpdated: String { t("최근 수정순", "Recently updated", "更新が新しい順", "Actualizadas recientemente", "Récemment modifiées", "Atualizadas recentemente", "Zuletzt aktualisiert") }
     var linearSortCreated: String { t("최근 생성순", "Newest created", "作成が新しい順", "Más recientes", "Créées récemment", "Criadas recentemente", "Neueste zuerst") }
     var linearSortTitle: String { t("제목순", "Title · A–Z", "タイトル順", "Título · A–Z", "Titre · A–Z", "Título · A–Z", "Titel · A–Z") }
+    var linearSortProjects: String { t("프로젝트 정렬", "Sort projects", "プロジェクトを並べ替え", "Ordenar proyectos", "Trier les projets", "Ordenar projetos", "Projekte sortieren") }
+    var linearProjectSortName: String { t("이름순", "Name · A–Z", "名前順", "Nombre · A–Z", "Nom · A–Z", "Nome · A–Z", "Name · A–Z") }
+    var linearPinToTop: String { t("상단에 고정", "Pin to top", "上部に固定", "Fijar arriba", "Épingler en haut", "Fixar no topo", "Oben anheften") }
+    var linearUnpinFromTop: String { t("상단 고정 해제", "Unpin from top", "上部の固定を解除", "Desfijar de arriba", "Désépingler", "Desafixar do topo", "Anheftung lösen") }
+    var linearProjectSortTarget: String { t("목표일순", "Target date · earliest first", "目標日が近い順", "Fecha objetivo más próxima", "Date cible la plus proche", "Data alvo mais próxima", "Zieldatum · früheste zuerst") }
+    var linearProjectSortStart: String { t("시작일순", "Start date · earliest first", "開始日が早い順", "Fecha de inicio más próxima", "Date de début la plus proche", "Data de início mais próxima", "Startdatum · früheste zuerst") }
+    var linearProjectAll: String { t("전체", "All", "すべて", "Todos", "Tous", "Todos", "Alle") }
+    var linearIssueFilter: String { t("이슈 필터", "Issue Filter", "課題フィルター", "Filtro de issues", "Filtre des issues", "Filtro de issues", "Issue-Filter") }
+    var linearSortInitiatives: String { t("이니셔티브 정렬", "Sort initiatives", "イニシアチブを並べ替え", "Ordenar iniciativas", "Trier les initiatives", "Ordenar iniciativas", "Initiativen sortieren") }
+    var linearProjectIssueStatuses: String { t("펼친 프로젝트의 이슈 상태", "Issue statuses in expanded projects", "展開したプロジェクトの課題ステータス", "Estados de issues en proyectos expandidos", "Statuts des issues dans les projets développés", "Status de issues em projetos expandidos", "Issue-Status in aufgeklappten Projekten") }
+    var linearProjectShowAllStatuses: String { t("모든 상태 표시", "Show all statuses", "すべてのステータスを表示", "Mostrar todos los estados", "Afficher tous les statuts", "Mostrar todos os status", "Alle Status anzeigen") }
+    var linearProjectNoMatchingIssueStatuses: String { t("선택한 상태의 이슈가 없습니다.", "No issues match the selected statuses.", "選択したステータスの課題はありません。", "Ninguna issue coincide con los estados seleccionados.", "Aucune issue ne correspond aux statuts sélectionnés.", "Nenhuma issue corresponde aos status selecionados.", "Keine Issues mit den ausgewählten Status.") }
+    var linearProjectsNoMatches: String { t("일치하는 프로젝트가 없습니다.", "No matching projects.", "一致するプロジェクトはありません。", "No hay proyectos coincidentes.", "Aucun projet correspondant.", "Nenhum projeto correspondente.", "Keine passenden Projekte.") }
     var focusOneHour: String { t("1시간", "1 hour", "1時間", "1 hora", "1 heure", "1 hora", "1 Stunde") }
     var focusCustomTime: String { t("사용자 지정 시간", "Custom Time", "カスタム時間", "Tiempo personalizado", "Durée personnalisée", "Tempo personalizado", "Eigene Dauer") }
     var linearIssuesEmptyPlanned: String { t("예정된 이슈가 없습니다.", "No planned issues.", "予定の課題はありません。", "No hay issues planificadas.", "Aucune issue planifiée.", "Nenhuma issue planejada.", "Keine geplanten Issues.") }
@@ -516,6 +531,22 @@ struct L {
     var linearInitiativesEmpty: String { t("활성 이니셔티브가 없습니다.", "No active initiatives.", "アクティブなイニシアチブはありません。", "No hay iniciativas activas.", "Aucune initiative active.", "Nenhuma iniciativa ativa.", "Keine aktiven Initiativen.") }
     var linearInitiativesEmptyPlanned: String { t("예정된 이니셔티브가 없습니다.", "No planned initiatives.", "予定のイニシアチブはありません。", "No hay iniciativas planificadas.", "Aucune initiative planifiée.", "Nenhuma iniciativa planejada.", "Keine geplanten Initiativen.") }
     var linearContainerEmptyIssues: String { t("열린 이슈가 없습니다.", "No open issues.", "未完了の課題はありません。", "No hay issues abiertas.", "Aucune issue ouverte.", "Nenhuma issue aberta.", "Keine offenen Issues.") }
+    var linearProjectEmptyIssues: String { t("이슈가 없습니다.", "No issues.", "課題はありません。", "No hay issues.", "Aucune issue.", "Nenhuma issue.", "Keine Issues.") }
+    var linearProjectLoadingIssues: String { t("이슈 불러오는 중…", "Loading issues…", "課題を読み込み中…", "Cargando issues…", "Chargement des issues…", "Carregando issues…", "Issues werden geladen…") }
+    func linearProjectIssueCount(_ n: Int) -> String {
+        t("이슈 \(n)개", "\(n) \(n == 1 ? "issue" : "issues")", "\(n)件の課題", "\(n) issues", "\(n) issues", "\(n) issues", "\(n) Issues")
+    }
+    func linearProjectPreviewCount(_ n: Int) -> String {
+        t("미리보기 · \(n)개", "Preview · \(n) \(n == 1 ? "issue" : "issues")", "プレビュー · \(n)件", "Vista previa · \(n) issues", "Aperçu · \(n) issues", "Prévia · \(n) issues", "Vorschau · \(n) Issues")
+    }
+    func linearProjectHealth(_ health: String) -> String {
+        switch health {
+        case "onTrack": t("정상 진행", "On track", "順調", "En curso", "En bonne voie", "No caminho certo", "Im Plan")
+        case "atRisk": t("위험", "At risk", "リスクあり", "En riesgo", "À risque", "Em risco", "Gefährdet")
+        case "offTrack": t("진행 지연", "Off track", "遅延", "Fuera de curso", "En retard", "Fora do planejado", "Nicht im Plan")
+        default: health
+        }
+    }
     var linearIssuesSyncFailed: String { t("Linear 동기화에 실패했습니다. 잠시 후 다시 시도하세요.", "Failed to sync with Linear. Try again shortly.", "Linearとの同期に失敗しました。しばらくして再試行してください。", "No se pudo sincronizar con Linear. Inténtalo de nuevo en breve.", "La synchronisation Linear a échoué. Réessaie dans un instant.", "Falha ao sincronizar com o Linear. Tente novamente em instantes.", "Synchronisierung mit Linear fehlgeschlagen. Bitte gleich erneut versuchen.") }
     var linearOpenIssue: String { t("Linear에서 열기", "Open in Linear", "Linearで開く", "Abrir en Linear", "Ouvrir dans Linear", "Abrir no Linear", "In Linear öffnen") }
     var linearOpenProject: String { t("Linear에서 프로젝트 열기", "Open project in Linear", "Linearでプロジェクトを開く", "Abrir proyecto en Linear", "Ouvrir le projet dans Linear", "Abrir projeto no Linear", "Projekt in Linear öffnen") }

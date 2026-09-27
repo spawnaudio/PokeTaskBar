@@ -8,21 +8,22 @@ struct MainWindowWorkspacesView: View {
     @Environment(CompanionStore.self) private var companion
     @Environment(MainWindowNavigation.self) private var nav
     @AppStorage("mainWindowProjectsGrid") private var projectGrid = false
-    @AppStorage("mainWindowInitiativesOverview") private var initiativeOverview = false
     private var l: L { companion.l }
     private var secondary: Bool { nav.workspaceSecondaryTabs[page] ?? false }
     private var query: String { nav.workspaceQueries[page] ?? "" }
+    private var projectStatuses: [LinearWorkflowState] {
+        LinearProjectStatuses.options(projects: store.linearProjects, catalog: store.linearProjectStatuses)
+    }
     private var projects: [LinearProjectSummary] {
-        store.linearProjects.filter { project in
-            (secondary ? LinearClient.matchesProjectProduction(name: project.statusName, type: project.statusType)
-             : LinearClient.matchesProjectInProgressTab(name: project.statusName, type: project.statusType)) && matches(project.name)
-        }
+        LinearContainerOrder.pinnedFirst(nav.projectSort.sorted(LinearProjectStatuses.matching(
+            store.linearProjects, selection: nav.projectStatus, catalog: store.linearProjectStatuses)
+            .filter { matches($0.name) }), ids: store.pinnedLinearProjectIDs)
     }
     private var initiatives: [LinearInitiativeSummary] {
-        store.linearInitiatives.filter { initiative in
+        LinearContainerOrder.pinnedFirst(nav.initiativeSort.sorted(store.linearInitiatives.filter { initiative in
             (secondary ? LinearClient.matchesInitiativePlanned(name: initiative.statusName)
              : LinearClient.matchesInitiativeActive(name: initiative.statusName)) && matches(initiative.name)
-        }
+        }), ids: store.pinnedLinearInitiativeIDs)
     }
     private var issues: [LinearIssueSummary] {
         let source = nav.issuesTab.issues(in: store, projectID: nav.projectFilter)
@@ -83,19 +84,27 @@ struct MainWindowWorkspacesView: View {
                 ForEach(LinearIssuesTab.allCases, id: \.self) { value in
                     tab(value.title(l), selected: nav.issuesTab == value) { nav.issuesTab = value }
                 }
+            } else if page == .projects {
+                LinearProjectStatusMenu(statuses: projectStatuses, selection: Binding(
+                    get: { nav.projectStatus }, set: { nav.projectStatus = $0 }))
             } else {
-                tab(page == .initiatives ? l.linearActiveTab : l.linearInProgressTab, selected: !secondary) {
-                    nav.workspaceSecondaryTabs[page] = false
-                }
-                tab(page == .initiatives ? l.linearPlannedTab : l.linearProductionTab, selected: secondary) {
-                    nav.workspaceSecondaryTabs[page] = true
-                }
+                LinearInitiativeStatusMenu(planned: Binding(
+                    get: { secondary }, set: { nav.workspaceSecondaryTabs[page] = $0 }))
             }
         }
     }
     private var actions: some View {
         HStack(spacing: 12) {
-            LinearCardDisplayMenu()
+            if page == .projects || page == .initiatives {
+                LinearProjectIssueFilterMenu()
+                if page == .projects {
+                    LinearProjectSortMenu(selection: Binding(get: { nav.projectSort }, set: { nav.projectSort = $0 }))
+                } else {
+                    LinearInitiativeSortMenu(selection: Binding(get: { nav.initiativeSort }, set: { nav.initiativeSort = $0 }))
+                }
+            } else {
+                LinearCardDisplayMenu()
+            }
             if page == .issues {
                 LinearIssueSortMenu(selection: Binding(
                     get: { nav.issueSorts[nav.issuesTab] ?? .priority },
@@ -106,11 +115,6 @@ struct MainWindowWorkspacesView: View {
                 Picker("View", selection: $projectGrid) {
                     Text("List").tag(false); Text("Grid").tag(true)
                 }.pickerStyle(.segmented).labelsHidden().frame(width: 140)
-            }
-            if page == .initiatives {
-                Picker("View", selection: $initiativeOverview) {
-                    Text("Expanded").tag(false); Text("Overview").tag(true)
-                }.pickerStyle(.segmented).labelsHidden().frame(width: 185)
             }
             Button { Task { _ = await store.refreshLinearIssues() } } label: {
                 Image(systemName: "arrow.clockwise")
@@ -135,78 +139,55 @@ struct MainWindowWorkspacesView: View {
         }
     }
     @ViewBuilder private var projectContent: some View {
-        if projects.isEmpty { Text("No matching projects.").foregroundStyle(.secondary).padding(.vertical, 24) }
+        let values = projects
+        let dividerID = LinearContainerOrder.dividerID(values, ids: store.pinnedLinearProjectIDs)
+        if values.isEmpty { Text(l.linearProjectsNoMatches).foregroundStyle(.secondary).padding(.vertical, 24) }
         if projectGrid {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 16)], spacing: 16) {
-                ForEach(projects) { project in projectCard(project) }
+            VStack(spacing: 12) {
+                let pinned = values.filter { store.pinnedLinearProjectIDs.contains($0.id) }
+                if !pinned.isEmpty { projectGridGroup(pinned) }
+                if dividerID != nil { Divider() }
+                projectGridGroup(values.filter { !store.pinnedLinearProjectIDs.contains($0.id) })
             }
         } else {
             LazyVStack(spacing: 12) {
-                ForEach(projects) { project in
-                    LinearFoldableRow(row: LinearContainerRow(project: project), openHelp: l.linearOpenProject) {
-                        LinearContainerIssuesView(issues: project.issues) { nav.select(.focus) }
-                            .padding(.leading, 22)
-                    }.padding(12)
+                ForEach(values) { project in
+                    VStack(spacing: 12) {
+                        if project.id == dividerID { Divider() }
+                        projectCard(project)
+                    }
                 }
             }
         }
     }
+    private func projectGridGroup(_ values: [LinearProjectSummary]) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 12, alignment: .top)], spacing: 12) {
+            ForEach(values) { project in projectCard(project) }
+        }
+    }
     private func projectCard(_ project: LinearProjectSummary) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(project.name, systemImage: "folder").font(.system(size: 16, weight: .semibold))
-            if let purpose = project.descriptionText { Text(purpose).lineLimit(3).foregroundStyle(.secondary) }
-            HStack {
-                Text(project.statusName ?? project.statusType ?? "")
-                Spacer(); Text("\(project.issues.count) issues")
-            }.font(.system(size: 12)).foregroundStyle(.secondary)
-            if let date = project.targetDate { Text(date, style: .date).font(.system(size: 12)).foregroundStyle(.secondary) }
-            Button("View issues") { nav.showProjectIssues(project) }.buttonStyle(.link)
-            let plannedCount = project.issues.filter(LinearClient.isPlannedIssue).count
-            if plannedCount > 0 {
-                Button("\(l.linearPlannedTab): \(plannedCount)") { nav.showProjectIssues(project, tab: .planned) }
-                    .buttonStyle(.link)
-            }
-        }.frame(maxWidth: .infinity, alignment: .leading).mainWindowCard()
+        LinearProjectCard(project: project, hiddenIssueStatuses: store.hiddenLinearIssueStatuses,
+                          onViewIssues: { nav.showProjectIssues(project) }) {
+            nav.select(.focus)
+        }
     }
     @ViewBuilder private var initiativeContent: some View {
-        if initiatives.isEmpty { Text("No matching initiatives.").foregroundStyle(.secondary).padding(.vertical, 24) }
-        if initiativeOverview {
-            VStack(alignment: .leading, spacing: 18) {
-                ForEach(initiatives) { initiative in
-                    Button { nav.selectedInitiativeID = initiative.id } label: {
-                        HStack { Image(systemName: "flag"); Text(initiative.name); Spacer(); Text(initiative.statusName ?? "") }
-                            .padding(14).contentShape(Rectangle())
-                            .background(.primary.opacity(nav.selectedInitiativeID == initiative.id ? 0.065 : 0), in: RoundedRectangle(cornerRadius: 8))
-                    }.buttonStyle(.plain)
-                }
-                if let selected = initiatives.first(where: { $0.id == nav.selectedInitiativeID }) ?? initiatives.first {
-                    initiativeProjects(selected)
-                }
-            }
-        } else {
-            VStack(spacing: 12) {
-                ForEach(initiatives) { initiative in
-                    LinearFoldableRow(row: LinearContainerRow(initiative: initiative), openHelp: l.linearOpenInitiative,
-                                      initiallyExpanded: initiative.id == initiatives.first?.id) {
+        let values = initiatives
+        let dividerID = LinearContainerOrder.dividerID(values, ids: store.pinnedLinearInitiativeIDs)
+        if values.isEmpty { Text("No matching initiatives.").foregroundStyle(.secondary).padding(.vertical, 24) }
+        VStack(spacing: 12) {
+            ForEach(values) { initiative in
+                VStack(spacing: 12) {
+                    if initiative.id == dividerID { Divider() }
+                    LinearInitiativeCard(initiative: initiative,
+                                         initiallyExpanded: initiative.id == values.first?.id) {
                         initiativeProjects(initiative)
-                    }.padding(12)
+                    }
                 }
             }
         }
     }
     private func initiativeProjects(_ initiative: LinearInitiativeSummary) -> some View {
-        let projectIDs = Set(initiative.projectIDs)
-        let linked = store.linearProjects.filter { projectIDs.contains($0.id) }
-        return VStack(alignment: .leading, spacing: 12) {
-            ForEach(linked) { project in projectCard(project) }
-            let planned = initiative.issues.filter(LinearClient.isPlannedIssue)
-            if !planned.isEmpty {
-                LinearContainerIssuesView(issues: planned) { nav.select(.focus) }
-            }
-            if linked.isEmpty {
-                Text("Project details are available in Linear.").foregroundStyle(.secondary)
-                if let url = initiative.url { Link("Open in Linear", destination: url) }
-            }
-        }
+        LinearInitiativeProjects(initiative: initiative, onViewProject: { nav.showProjectIssues($0) }) { nav.select(.focus) }
     }
 }

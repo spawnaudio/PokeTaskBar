@@ -39,7 +39,6 @@ final class MainWindowNavigation {
     var search = ""
     var projectFilter: String?
     var selectedProjectID: String?
-    var selectedInitiativeID: String?
     var selectedSpeciesID: Int?
     var selectedRecordID: String?
     var selectedStorageID: String?
@@ -47,6 +46,9 @@ final class MainWindowNavigation {
     var workspaceQueries: [MainWindowPage: String] = [:]
     var issuesTab: LinearIssuesTab = .inProgress
     var issueSorts: [LinearIssuesTab: LinearIssueSort] = [:]
+    var projectStatus = ""
+    var projectSort: LinearProjectSort = .name
+    var initiativeSort: LinearInitiativeSort = .name
     var workspaceSecondaryTabs: [MainWindowPage: Bool] = [:]
     var canGoBack: Bool { !backStack.isEmpty }
     var canGoForward: Bool { !forwardStack.isEmpty }

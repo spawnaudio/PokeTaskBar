@@ -196,7 +196,6 @@ final class TahoeButtonStyleTests: XCTestCase {
             contentsOf: root.appendingPathComponent("PopoverChrome.swift"), encoding: .utf8)
 
         XCTAssertTrue(linear.contains("LinearIssueEntityRow"))
-        XCTAssertTrue(linear.contains("LinearTagChip"))
         XCTAssertTrue(linear.contains("LinearMarkdownText"))
         let card = try String(contentsOf: root.appendingPathComponent("LinearIssueCard.swift"), encoding: .utf8)
         XCTAssertTrue(card.contains("LinearPriorityButton"))
@@ -257,11 +256,10 @@ final class TahoeButtonStyleTests: XCTestCase {
             "folded project and labels must not share a horizontal chip strip with team")
         XCTAssertTrue(issueRow.contains(".font(.system(size: 14))"))
         XCTAssertTrue(issueRow.contains(".padding(10)"))
-        XCTAssertTrue(linear.contains("nested: true"), "issues under a project/initiative use the nested title size")
-        let foldable = structSource(linear, named: "LinearFoldableRow", until: "FlexibleChipWrap")
-        XCTAssertTrue(foldable.contains("LinearRowTypography.topLevel"))
-        XCTAssertTrue(foldable.contains("padding(.vertical, 8)"))
-        XCTAssertTrue(foldable.contains("padding(.horizontal, 4)"))
+        let initiative = try String(contentsOf: root.appendingPathComponent("LinearInitiativeCard.swift"), encoding: .utf8)
+        XCTAssertTrue(initiative.contains("nested: true"), "issues under an initiative use the nested title size")
+        XCTAssertTrue(initiative.contains("LinearProjectCard("))
+        XCTAssertTrue(initiative.contains("ViewThatFits(in: .horizontal)"))
     }
 
     func testLinearRowTitlesStepDownByTwoPoints() {
