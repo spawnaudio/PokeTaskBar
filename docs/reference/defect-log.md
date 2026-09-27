@@ -20,7 +20,9 @@ read_when:
   checkbox test passed locally but its hard-coded popup coordinates missed every
   checkbox on the macOS 15 CI runner. The test now locates the scroll document and
   native reset button before sending mouse events. Row offsets are relative to the
-  app's explicit 28pt rows. Keep assertions on repeated selection, persistence and
+  app's explicit 28pt rows. Queue mouse-up before delivering mouse-down: native AppKit
+  controls may synchronously track until release, blocking a sequential send loop.
+  Keep assertions on repeated selection, persistence and
   popover visibility; skipping the interaction would hide the regression.
 
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
