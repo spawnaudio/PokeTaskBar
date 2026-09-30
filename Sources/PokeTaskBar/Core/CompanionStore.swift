@@ -1501,8 +1501,8 @@ final class CompanionStore {
         let unownForm: UnownForm? = line.baseID == UnownForm.speciesID
             ? (pendingForm ?? .roll(rng.next(), collected: state.collectedUnownForms)) : nil
         let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
-        if state.ownsSpecies(line.baseID, unownForm: unownForm) && !isShiny {
-            AppLog.write("hatch: species \(line.baseID) already caught and not shiny — re-roll")
+        if state.ownsSpecies(line.baseID, unownForm: unownForm, shinyOnly: isShiny) {
+            AppLog.write("hatch: species \(line.baseID) already caught (shiny=\(isShiny)) — re-roll")
             state.pendingHatchID = nil
             state.pendingUnownForm = nil
             prefetchedLineID = nil
