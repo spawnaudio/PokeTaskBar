@@ -741,17 +741,22 @@ struct CompanionState: Codable, Sendable {
         mintExpiresAt = c.lenientOptional(Date.self, forKey: .mintExpiresAt)
     }
 
-    /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.
+    /// Ownership includes graduated records and reached stages of training/storage partners.
     /// 도감 전체 표시 모델을 만들지 않고 대표 종 하나만 확인하는 경량 경로다.
-    func ownsSpecies(_ speciesID: Int, unownForm: UnownForm? = nil) -> Bool {
+    func ownsSpecies(_ speciesID: Int, unownForm: UnownForm? = nil, shinyOnly: Bool = false) -> Bool {
         let form = UnownForm.resolved(speciesID: speciesID, form: unownForm)
         if dex.contains(where: {
-            $0.chainOrder.contains(speciesID)
+            (!shinyOnly || $0.isShiny) && $0.chainOrder.contains(speciesID)
                 && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
         }) { return true }
-        guard let active else { return false }
-        return active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID)
-            && UnownForm.resolved(speciesID: speciesID, form: active.unownForm) == form
+        let partners = pokemonStorage.compactMap { item -> MonState? in
+            if case .partner(_, let mon) = item { return mon }
+            return nil
+        } + [active].compactMap { $0 }
+        return partners.contains {
+            (!shinyOnly || $0.isShiny) && $0.pathIDs.prefix($0.stageIndex + 1).contains(speciesID)
+                && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
+        }
     }
 
     func hasCollectedFinal(forBaseID baseID: Int) -> Bool {

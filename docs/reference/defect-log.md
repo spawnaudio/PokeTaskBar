@@ -87,6 +87,14 @@ read_when:
 
 ## 판정·데이터
 
+- **Hatch ownership must include ungraduated partners in storage.** The duplicate
+  gate used `ownsSpecies`, which only checked the dex and active trainee; banking
+  a partner removed its ownership until graduation. The original hatch test used
+  only a graduated dex entry. Ownership now checks stored partners too, and shiny
+  rolls reject an already owned shiny of the same species/form. `UniqueHatchTests`
+  exercises hatch → buy egg → storage swap → hatch, save/reload, the first shiny
+  exception and a duplicate shiny. Removing the storage scan makes it fail.
+
 - **Validate completion feedback through the polling coordinator, not only the
   reward emitter.** Project XP correctly emitted a green receipt, but AppDelegate
   discarded `ProjectOutcome.newlyCredited` and announced only issue completions.
