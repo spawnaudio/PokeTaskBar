@@ -289,7 +289,7 @@ struct MainWindowCollectionView: View {
                     Button("Open Storage →") { nav.content.collectionSegment = .storage }
                 }.buttonStyle(.link)
             }
-        }.scrollIndicators(.hidden)
+        }.scrollIndicators(.never)
     }
 }
 

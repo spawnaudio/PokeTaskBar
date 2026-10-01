@@ -79,6 +79,7 @@ struct ContentFittingScrollView<Content: View>: View {
                     }
                 }
         }
+        .scrollIndicators(.never)
         .onPreferenceChange(ScrollContentHeightKey.self) { contentHeight = $0 }
         .background {
             if fitting {
