@@ -16,6 +16,13 @@ read_when:
 
 ## Attached panel sizing
 
+- **Synthetic text-entry clicks must consume their queued mouse-up.** AppKit may
+  leave the posted release pending after `mouseDown`; later native tests then use
+  that release at the wrong coordinates. Both floating text-input helpers now use
+  the existing native-click cleanup and assert no release remains. The assertion
+  failed twice with the old helper. Edge-close checks wait for the actual peek
+  within a bounded two seconds rather than assuming the next retry fits in 450 ms.
+
 - **A new NSPanel already has a plain content view.** Testing `contentView == nil`
   before installing a detached timer's hosting view left the first window empty.
   Frame and persistence assertions passed; the native handle lookup and rendered
