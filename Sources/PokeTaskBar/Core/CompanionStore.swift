@@ -1025,21 +1025,24 @@ final class CompanionStore {
         return kind.isPassive && itemCount(kind) > 0
     }
 
-    /// 구매 가능 — 잔액이 그 아이템 가격 이상(상점 미판매면 false). 활성/알 무관(재고는 미리 쌓아둘 수 있음).
-    func canBuy(_ kind: ItemKind) -> Bool {
-        guard let price = price(of: kind) else { return false }
-        if kind.isPassive && itemCount(kind) > 0 { return false }   // 보유형은 1회만(재구매 불가)
-        return availableTokens >= price
+    /// Affordable quantity; passive items can only be owned once.
+    func maxBuyCount(_ kind: ItemKind) -> Int {
+        guard let price = price(of: kind), price > 0 else { return 0 }
+        if kind.isPassive && itemCount(kind) > 0 { return 0 }
+        let affordable = availableCoins / price
+        return kind.isPassive ? min(1, affordable) : affordable
     }
 
-    /// 아이템 1개 구매 — 지갑에서 price 차감, 인벤토리 +1. usedSinceInstall(성장·통계)·진화 진행엔
-    /// 무영향(지출 원장만 증가). 잔액 부족/미판매면 no-op(false).
+    func canBuy(_ kind: ItemKind, count: Int = 1) -> Bool {
+        count > 0 && count <= maxBuyCount(kind)
+    }
+
+    /// Buy the entire quantity atomically, leaving growth and usage statistics unchanged.
     @discardableResult
-    func buy(_ kind: ItemKind) -> Bool {
-        guard let price = price(of: kind), availableTokens >= price else { return false }
-        if kind.isPassive && itemCount(kind) > 0 { return false }   // 보유형 중복 구매 방지(방어)
-        state.spentTokens += price
-        state.inventory[kind.rawValue, default: 0] += 1
+    func buy(_ kind: ItemKind, count: Int = 1) -> Bool {
+        guard canBuy(kind, count: count), let price = price(of: kind) else { return false }
+        state.spentTokens += price * count
+        state.inventory[kind.rawValue, default: 0] += count
         save()
         return true
     }

@@ -53,12 +53,20 @@ struct ShopItemCard: View {
     let store: CompanionStore
     let kind: ItemKind
     @Environment(\.mainWindowChrome) private var mainWindowChrome
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var confirming = false
+    @State private var quantity = 1
 
     private var price: Int { store.price(of: kind) ?? 0 }
+    private var maxQuantity: Int { store.maxBuyCount(kind) }
+    private var selectedQuantity: Int { min(quantity, max(1, maxQuantity)) }
 
     var body: some View {
-        if mainWindowChrome { desktopCard } else { compactCard }
+        Group {
+            if mainWindowChrome { desktopCard } else { compactCard }
+        }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: confirming)
+        .onChange(of: maxQuantity) { _, _ in quantity = selectedQuantity }
     }
 
     private var desktopCard: some View {
@@ -114,23 +122,43 @@ struct ShopItemCard: View {
                 Spacer()
             }
         } else if confirming {
-            HStack(spacing: 8) {
-                Text(l.buyConfirm(l.itemName(kind)))
-                    .font(mainWindowChrome ? .system(size: 13) : .caption2).foregroundStyle(.secondary).lineLimit(mainWindowChrome ? 2 : 1)
-                Spacer()
-                Button(l.buy) { buyNow() }
-                    .tahoeButtonStyle(.prominent).controlSize(.small)
-                Button(l.cancel) { confirming = false }
-                    .tahoeButtonStyle(.accessory).controlSize(.small)
+            VStack(alignment: .leading, spacing: 8) {
+                if kind.isPassive {
+                    Text(l.buyConfirm(l.itemName(kind)))
+                        .font(mainWindowChrome ? .system(size: 13) : .caption2).foregroundStyle(.secondary)
+                } else {
+                    Stepper(value: $quantity, in: 1...max(1, maxQuantity)) {
+                        Text("\(l.quantity) ×\(selectedQuantity)")
+                            .font(.callout.weight(.semibold)).monospacedDigit()
+                    }
+                    .disabled(maxQuantity == 0)
+                    .accessibilityLabel("\(l.quantity), \(l.itemName(kind))")
+                    .accessibilityValue("\(selectedQuantity)")
+                    .accessibilityIdentifier("shop-quantity")
+                }
+                HStack(spacing: 8) {
+                    Text(l.requiresCoins(TokenFormatter.compact(price * selectedQuantity)))
+                        .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary).monospacedDigit()
+                    Spacer()
+                    Button(l.purchase) { buyNow() }
+                        .tahoeButtonStyle(.prominent).controlSize(.small)
+                        .disabled(!store.canBuy(kind, count: selectedQuantity))
+                        .accessibilityIdentifier("shop-purchase")
+                    Button(l.cancel) { confirming = false }
+                        .tahoeButtonStyle(.accessory).controlSize(.small)
+                        .accessibilityIdentifier("shop-cancel")
+                }
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
         } else {
             HStack {
                 Text(l.requiresCoins(TokenFormatter.compact(price)))
                     .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary).monospacedDigit()
                 Spacer()
                 if store.canBuy(kind) {
-                    Button(l.buy) { confirming = true }
+                    Button(l.buy) { quantity = 1; confirming = true }
                         .tahoeButtonStyle(.regular).controlSize(.small)
+                        .accessibilityIdentifier("shop-buy")
                 } else {
                     Text(l.notEnoughCoins)
                         .font(mainWindowChrome ? .system(size: 12) : .caption2).foregroundStyle(.secondary)
@@ -140,8 +168,7 @@ struct ShopItemCard: View {
     }
 
     private func buyNow() {
-        confirming = false
-        _ = store.buy(kind)
+        if store.buy(kind, count: selectedQuantity) { confirming = false }
     }
 }
 

@@ -1675,6 +1675,8 @@ struct L {
     var spendableTokens: String { spendableCoins }
     var shopHint: String { t("XP를 코인으로 바꿔 아이템을 살 수 있어요. 코인 = XP ÷ 1000.", "Spend Coins from XP (Coins = XP ÷ 1000).", "XPをコインに換えてアイテムを買えます。コイン = XP ÷ 1000。", "Gasta monedas de tu XP (monedas = XP ÷ 1000).", "Dépense des pièces depuis l’XP (pièces = XP ÷ 1000).", "Gaste moedas do XP (moedas = XP ÷ 1000).", "Münzen aus XP (Münzen = XP ÷ 1000).") }
     var buy: String { t("구매", "Buy", "購入", "Comprar", "Acheter", "Comprar", "Kaufen") }
+    var purchase: String { t("구매 확정", "Purchase", "購入を確定", "Confirmar compra", "Confirmer l’achat", "Confirmar compra", "Kauf bestätigen") }
+    var quantity: String { t("수량", "Quantity", "数量", "Cantidad", "Quantité", "Quantidade", "Menge") }
     func buyConfirm(_ name: String) -> String { t("\(name) 구매할까요?", "Buy \(name)?", "\(name) を購入しますか？", "¿Comprar \(name)?", "Acheter \(name) ?", "Comprar \(name)?", "\(name) kaufen?") }
     var notEnoughCoins: String { t("코인이 부족해요", "Not enough coins", "コインが足りません", "No tienes suficientes monedas", "Pas assez de pièces", "Moedas insuficientes", "Nicht genug Münzen") }
     var notEnoughTokens: String { notEnoughCoins }

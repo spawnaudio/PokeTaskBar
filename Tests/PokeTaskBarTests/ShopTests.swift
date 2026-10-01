@@ -1,4 +1,6 @@
 import XCTest
+import AppKit
+import SwiftUI
 @testable import PokeTaskBar
 
 // MARK: 상점 (재화 = usedSinceInstall − spentTokens, 이상한 사탕 구매)
@@ -23,7 +25,10 @@ final class ShopTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":\(spent),"
             + "\"lastDate\":\"d\",\"dex\":[],\"collectedFinals\":[]\(inv)}"
         try? json.data(using: .utf8)!.write(to: url)
-        return CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
+        let suite = "ShopTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite); try? FileManager.default.removeItem(at: url) }
+        return CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), defaults: defaults)
     }
 
     // MARK: 잔액 계산
@@ -108,6 +113,152 @@ final class ShopTests: XCTestCase {
         XCTAssertEqual(s.ownedItems.first?.count, 4)
     }
 
+    func testBulkPurchaseUsesScaledPriceAndCreditsEntireQuantity() {
+        for kind in [ItemKind.rareCandy, .mint] {
+            let s = store(used: EconomyScale.xpForCoins(3 * kind.shopPrice!), rareCandy: 2)
+            s.setShopDifficulty(0.5)
+            let price = s.price(of: kind)!
+            let owned = s.itemCount(kind)
+            XCTAssertEqual(s.maxBuyCount(kind), 6)
+            XCTAssertTrue(s.canBuy(kind, count: 3))
+            XCTAssertTrue(s.buy(kind, count: 3))
+            XCTAssertEqual(s.itemCount(kind), owned + 3)
+            XCTAssertEqual(s.state.spentTokens, 3 * price)
+            XCTAssertEqual(s.maxBuyCount(kind), 3)
+        }
+    }
+
+    func testBulkPurchaseRejectsInvalidAndUnaffordableQuantitiesWithoutPartialPurchase() {
+        let s = store(used: EconomyScale.xpForCoins(2 * RareCandy.price), rareCandy: 2)
+        XCTAssertEqual(s.maxBuyCount(.rareCandy), 2)
+        for count in [-1, 0, 3, Int.max] {
+            XCTAssertFalse(s.canBuy(.rareCandy, count: count))
+            XCTAssertFalse(s.buy(.rareCandy, count: count))
+            XCTAssertEqual(s.rareCandyCount, 2)
+            XCTAssertEqual(s.state.spentTokens, 0)
+        }
+        XCTAssertTrue(s.buy(.rareCandy, count: 2))
+        XCTAssertEqual(s.availableCoins, 0)
+        XCTAssertEqual(s.maxBuyCount(.rareCandy), 0)
+        XCTAssertFalse(s.buy(.rareCandy))
+    }
+
+    func testPassiveQuantityIsLimitedToOne() {
+        let s = store(used: EconomyScale.xpForCoins(3 * ShinyCharm.price))
+        XCTAssertEqual(s.maxBuyCount(.shinyCharm), 1)
+        XCTAssertFalse(s.buy(.shinyCharm, count: 2))
+        XCTAssertEqual(s.state.spentTokens, 0)
+        XCTAssertTrue(s.buy(.shinyCharm))
+        XCTAssertEqual(s.maxBuyCount(.shinyCharm), 0)
+        XCTAssertFalse(s.buy(.shinyCharm))
+        XCTAssertEqual(s.itemCount(.shinyCharm), 1)
+    }
+
+    func testShopScrollsWithoutShowingOrFlashingScrollbars() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let root = ShopView(store: store(used: 1_000_000_000), nav: PopoverNavigation())
+            .frame(width: 360, height: 180)
+        let host = NSHostingView(rootView: root)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 180),
+                              styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(150))
+        host.layoutSubtreeIfNeeded()
+        func findScrollView(in view: NSView) -> NSScrollView? {
+            if let scroll = view as? NSScrollView { return scroll }
+            return view.subviews.lazy.compactMap { findScrollView(in: $0) }.first
+        }
+        let scroll = try XCTUnwrap(findScrollView(in: host))
+        XCTAssertFalse(scroll.hasVerticalScroller)
+        XCTAssertFalse(scroll.hasHorizontalScroller)
+        let before = scroll.contentView.bounds.origin.y
+        try XCTUnwrap(scroll.documentView).scroll(NSPoint(x: 0, y: before + 120))
+        scroll.flashScrollers()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertGreaterThan(scroll.contentView.bounds.origin.y, before, "Content must remain scrollable")
+        XCTAssertFalse(scroll.hasVerticalScroller, "Scrolling must not reveal a scrollbar")
+        XCTAssertFalse(scroll.hasHorizontalScroller)
+    }
+
+    func testNativeBuyAdjustQuantityCancelAndPurchaseInBothLayouts() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        for desktop in [false, true] {
+            let s = store(used: EconomyScale.xpForCoins(3 * RareCandy.price))
+            let root = ShopItemCard(store: s, kind: .rareCandy)
+                .environment(\.mainWindowChrome, desktop)
+                .environment(\.colorScheme, .light)
+                .transaction { $0.disablesAnimations = true }
+                .frame(width: desktop ? 280 : 360)
+                .background(Color.white)
+            let host = NSHostingView(rootView: root)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: desktop ? 280 : 360, height: 320),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.appearance = NSAppearance(named: .aqua)
+            window.contentView = host
+            window.orderFrontRegardless()
+            defer { window.orderOut(nil); window.contentView = nil }
+            func settle() async throws {
+                try await Task.sleep(for: .milliseconds(100))
+                window.setContentSize(host.fittingSize)
+                host.layoutSubtreeIfNeeded()
+            }
+            func click(x: CGFloat, bottom: CGFloat) async throws {
+                let point = host.convert(NSPoint(x: x, y: host.isFlipped ? host.bounds.height - bottom : bottom), to: nil)
+                for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                    window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                        modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+                }
+                try await settle()
+            }
+            func capture(_ stage: String) throws {
+                guard let directory = ProcessInfo.processInfo.environment["PTB_SHOP_PREVIEW_DIR"] else { return }
+                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to:
+                    URL(fileURLWithPath: directory).appendingPathComponent("shop-\(desktop)-\(stage).png"))
+            }
+            func findStepper(in view: NSView) -> NSStepper? {
+                if let stepper = view as? NSStepper { return stepper }
+                return view.subviews.lazy.compactMap { findStepper(in: $0) }.first
+            }
+            func adjust(_ increase: Bool) async throws {
+                let stepper = try XCTUnwrap(findStepper(in: host))
+                let y = stepper.bounds.height * ((increase != stepper.isFlipped) ? 0.75 : 0.25)
+                let point = stepper.convert(NSPoint(x: stepper.bounds.midX, y: y), to: host)
+                try await click(x: point.x, bottom: host.isFlipped ? host.bounds.height - point.y : point.y)
+            }
+            try await settle()
+            try capture("before")
+            let trailing = host.bounds.width - (desktop ? 0 : 10)
+            try await click(x: trailing - 20, bottom: desktop ? 12 : 22)
+            try capture("quantity")
+            XCTAssertEqual(s.rareCandyCount, 0, "Opening Buy must not spend coins")
+            try await click(x: trailing - 25, bottom: desktop ? 12 : 22)
+            XCTAssertEqual(s.state.spentTokens, 0)
+            try await click(x: trailing - 20, bottom: desktop ? 12 : 22)
+            try await adjust(true)
+            try await adjust(false)
+            try capture("lowered")
+            try await click(x: trailing - 95, bottom: desktop ? 12 : 22)
+            XCTAssertEqual(s.rareCandyCount, 1, "Decreasing the quantity must buy only one")
+            XCTAssertEqual(s.state.spentTokens, RareCandy.price)
+            try await click(x: trailing - 20, bottom: desktop ? 12 : 22)
+            try await adjust(true)
+            try await adjust(true)
+            try capture("selected")
+            try await click(x: trailing - 95, bottom: desktop ? 12 : 22)
+            XCTAssertEqual(s.rareCandyCount, 3, "Increasing must stop at the affordable quantity")
+            XCTAssertEqual(s.state.spentTokens, 3 * RareCandy.price)
+            XCTAssertEqual(s.availableCoins, 0)
+            try capture("after")
+        }
+    }
+
     /// [영속] 재시작(같은 파일 재로드) 후 지출·재고가 유지된다.
     func testBuyPersistsAcrossRestart() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("shop-persist-\(UUID().uuidString).json")
@@ -115,12 +266,12 @@ final class ShopTests: XCTestCase {
             + "\"lastDate\":\"d\",\"dex\":[],\"collectedFinals\":[]}"
         try? json.data(using: .utf8)!.write(to: url)
         let s1 = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
-        XCTAssertTrue(s1.buyRareCandy())
+        XCTAssertTrue(s1.buy(.rareCandy, count: 3))
 
         let s2 = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
-        XCTAssertEqual(s2.rareCandyCount, 1, "재고 영속")
-        XCTAssertEqual(s2.state.spentTokens, RareCandy.price, "지출 영속")
-        XCTAssertEqual(s2.availableCoins, 1_000_000 - RareCandy.price)
+        XCTAssertEqual(s2.rareCandyCount, 3, "재고 영속")
+        XCTAssertEqual(s2.state.spentTokens, 3 * RareCandy.price, "지출 영속")
+        XCTAssertEqual(s2.availableCoins, 1_000_000 - 3 * RareCandy.price)
     }
 
     // MARK: 정렬 (가격 저렴한 순 + 구매 완료 보유형 맨 아래)
