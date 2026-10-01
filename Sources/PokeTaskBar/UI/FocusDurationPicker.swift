@@ -6,12 +6,16 @@ import SwiftUI
 struct FocusDurationPicker: View {
     let issueTitle: String
     let initialMinutes: Int
-    let onStart: (Int) -> Void
+    var onStart: (Int) -> Void = { _ in }
+    var onStartTask: ((String, String, Int) -> Void)? = nil
     @Environment(CompanionStore.self) private var companion
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismiss) private var dismiss
     @State private var minutes = ""
+    @State private var taskTitle = ""
+    @State private var taskDescription = ""
     @FocusState private var inputFocused: Bool
+    @FocusState private var titleFocused: Bool
 
     private var selectedMinutes: Int? {
         guard let value = Int(minutes.trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -23,8 +27,18 @@ struct FocusDurationPicker: View {
         let l = companion.l
         let theme = MenuBarTheme(scheme: scheme)
         VStack(alignment: .leading, spacing: 12) {
-            Text(l.focusDuration).font(.system(size: 13, weight: .semibold))
-            Text(issueTitle).foregroundStyle(theme.secondary).lineLimit(2)
+            Text(onStartTask == nil ? l.focusDuration : l.localTaskTimer).font(.system(size: 13, weight: .semibold))
+            if onStartTask != nil {
+                TextField(l.localTaskTitle, text: $taskTitle)
+                    .textFieldStyle(.roundedBorder).focused($titleFocused)
+                    .accessibilityIdentifier("local-task-title")
+                TextField(l.localTaskDescription, text: $taskDescription, axis: .vertical)
+                    .lineLimit(3...5).textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("local-task-description")
+                Text(l.localTaskPrivacy).font(.system(size: 11)).foregroundStyle(theme.secondary)
+            } else {
+                Text(issueTitle).foregroundStyle(theme.secondary).lineLimit(2)
+            }
             HStack(spacing: 6) {
                 ForEach(SessionXP.plannedPresets, id: \.self) { preset in
                     Button(l.minutesValue(preset)) { minutes = String(preset) }
@@ -56,14 +70,14 @@ struct FocusDurationPicker: View {
         .task {
             minutes = String(initialMinutes)
             NSApp.activate(ignoringOtherApps: true)
-            inputFocused = true
+            if onStartTask != nil { titleFocused = true } else { inputFocused = true }
         }
     }
 
     private func start() {
         guard let selectedMinutes else { return }
         dismiss()
-        onStart(selectedMinutes)
+        if let onStartTask { onStartTask(taskTitle, taskDescription, selectedMinutes) }
+        else { onStart(selectedMinutes) }
     }
 }
-

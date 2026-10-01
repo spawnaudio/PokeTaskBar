@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import XCTest
 @testable import PokeTaskBar
 
@@ -59,15 +60,18 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(FocusTick.settleLeaveInProgress(session), 5_000_000)
     }
 
-    func testAutoContinueClosesFiveXAndSettlesPlannedAtOneX() {
+    func testTimerWaitsForExplicitChoiceWithoutAccruingOrSettlingXP() {
         var session = runningSession()
         session = FocusTick.apply(session, now: t0.addingTimeInterval(50 * 60)).session
-        let result = FocusTick.apply(session, now: t0.addingTimeInterval(50 * 60 + 30))
-        XCTAssertTrue(result.autoContinued)
-        XCTAssertEqual(result.session.phase, .overtime)
-        XCTAssertFalse(result.session.fiveXOpen)
-        XCTAssertEqual(result.sessionXP, 5_000_000)
-        XCTAssertEqual(FocusTick.settleLeaveInProgress(result.session), 0)
+        for seconds in [30, 300, 3600] {
+            let result = FocusTick.apply(session, now: t0.addingTimeInterval(50 * 60 + Double(seconds)))
+            XCTAssertEqual(result.session.phase, .awaitingChoice)
+            XCTAssertTrue(result.session.fiveXOpen)
+            XCTAssertFalse(result.hitZero)
+            XCTAssertEqual(result.sessionXP, 0)
+            XCTAssertEqual(result.session.accumulatedSeconds, 50 * 60)
+            XCTAssertEqual(FocusTick.settleLeaveInProgress(result.session), 5_000_000)
+        }
     }
 
     func testOvertimeWithoutNotePaysOneXPerInterval() {
@@ -118,7 +122,6 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(held.session.phase, .awaitingChoice)
         XCTAssertEqual(held.sessionXP, 0)
         XCTAssertEqual(held.session.accumulatedSeconds, 50 * 60)
-        XCTAssertFalse(held.autoContinued)
     }
 
     func testCheckInWaitsWhenZeroTimePopupIsShowing() {
@@ -1131,6 +1134,21 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertNil(MenuBarLines.focusedIssueTitle(pomo))
     }
 
+    func testFocusedIssueTitleIsOptionalSingleLineAndBounded() {
+        var current = runningSession()
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(current, show: false))
+        current.issue.title = "  Ship\nlogin\tflow  "
+        XCTAssertEqual(MenuBarLines.focusedIssueTitle(current, show: true), "Ship login flow")
+        current.issue.title = String(repeating: "👩🏽‍💻", count: 41)
+        let title = MenuBarLines.focusedIssueTitle(current, show: true)
+        XCTAssertEqual(title, String(repeating: "👩🏽‍💻", count: 39) + "…")
+        current.issue.title = " \n\t "
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(current, show: true))
+        current.issue = .pomodoro(title: "Pomodoro")
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(current, show: true))
+        XCTAssertNil(MenuBarLines.focusedIssueTitle(nil, show: true))
+    }
+
     func testMenuBarLinearCountsUseYellowAndBlueSymbols() {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         let attr = MenuBarLines.attributedTitle(
@@ -1307,6 +1325,245 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertTrue(stores.focus.session?.issue.isPomodoro == true)
         XCTAssertNil(stores.focus.session?.issue.url)
         XCTAssertEqual(stores.focus.session?.issue.title, stores.companion.l.pomodoroTitle)
+    }
+
+    func testLocalTaskPersistsDetailsAndNeverPostsToLinear() async throws {
+        let capture = CommentCapture()
+        let stores = makeStores(postComment: { await capture.post(issueID: $0, body: $1) })
+        stores.focus.startLocalTask(title: "  Clean my room  ", description: "  Clothes, then desk.  ", minutes: 15)
+        let task = try XCTUnwrap(stores.focus.session?.issue)
+        XCTAssertTrue(task.isLocal)
+        XCTAssertFalse(task.isPomodoro)
+        XCTAssertEqual(task.title, "Clean my room")
+        XCTAssertEqual(task.taskDescription, "Clothes, then desk.")
+        XCTAssertNil(task.url)
+        XCTAssertTrue(task.teamStates.isEmpty)
+        XCTAssertEqual(MenuBarLines.focusedIssueTitle(stores.focus.session), "Clean my room")
+        let restored = FocusSessionStore(usage: stores.usage, companion: stores.companion,
+            clock: { self.t0 }, fileURL: stores.focusURL, ticksOnTimer: false)
+        XCTAssertEqual(restored.session?.issue, task)
+        XCTAssertEqual(restored.session?.phase, .paused)
+        stores.focus.noteDraft = "Keep this local"
+        await stores.focus.postSessionNote()
+        await stores.focus.markIssueDone()
+        XCTAssertTrue(capture.posts.isEmpty)
+        XCTAssertEqual(stores.focus.session?.issue, task)
+        stores.focus.finishLeavingInProgress()
+        XCTAssertNil(stores.focus.session)
+        XCTAssertEqual(stores.focus.todayLog.first?.issueTitle, "Clean my room")
+        stores.focus.startLocalTask(title: "Do the dishes", description: "", minutes: 10)
+        XCTAssertNotEqual(stores.focus.session?.issue.id, task.id)
+    }
+
+    func testLocalTaskAllowsUntitledTimerAndRejectsInvalidDurationOrReplacingSession() {
+        let stores = makeStores()
+        stores.focus.startLocalTask(title: "Do the dishes", description: "", minutes: 0)
+        XCTAssertNil(stores.focus.session)
+        stores.focus.startLocalTask(title: " \n ", description: "  ", minutes: 5)
+        XCTAssertEqual(stores.focus.session?.issue.title, stores.companion.l.pomodoroTitle)
+        XCTAssertNil(stores.focus.session?.issue.taskDescription)
+        let current = stores.focus.session
+        stores.focus.startLocalTask(title: "Do the dishes", description: "", minutes: 10)
+        XCTAssertEqual(stores.focus.session, current)
+        XCTAssertEqual(stores.focus.plannedMinutes, 5)
+    }
+
+    func testLegacyPinnedIssueWithoutTaskDescriptionStillDecodes() throws {
+        let data = try JSONEncoder().encode(FocusPinnedIssue(issue()))
+        XCTAssertNil(try JSONDecoder().decode(FocusPinnedIssue.self, from: data).taskDescription)
+    }
+
+    func testTimerAlarmWaitsCanBeSilencedAndRearmsAfterExtending() throws {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.usage.floatingPetEnabled = false
+        stores.focus.startLocalTask(title: "Do the dishes", description: "", minutes: 5)
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        clock.now = t0.addingTimeInterval(5 * 60)
+        stores.focus.tick()
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        XCTAssertEqual(stores.usage.menuFlashLines, [stores.companion.l.timesUpFlashTitle, "Do the dishes"])
+        clock.now = t0.addingTimeInterval(20 * 60)
+        stores.focus.tick()
+        XCTAssertEqual(stores.focus.prompt, .zeroTime)
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        let restored = FocusSessionStore(usage: stores.usage, companion: stores.companion,
+            clock: { clock.now }, fileURL: stores.focusURL, ticksOnTimer: false)
+        XCTAssertTrue(restored.timerAlarmRinging)
+        stores.focus.setDisplayAwake(false)
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        stores.focus.setDisplayAwake(true)
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        stores.focus.silenceTimerAlarm()
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        XCTAssertEqual(stores.focus.prompt, .zeroTime)
+        stores.focus.addRemainingMinutes(5)
+        XCTAssertFalse(stores.focus.timerAlarmSilenced)
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        clock.now = clock.now.addingTimeInterval(5 * 60)
+        stores.focus.tick()
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        stores.focus.continueOvertime()
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        XCTAssertEqual(stores.focus.session?.phase, .overtime)
+        stores.focus.finishLeavingInProgress()
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        XCTAssertNil(stores.focus.session)
+    }
+
+    func testResetAndEditStopAlarmForLinearFocusToo() {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.focus.pin(issue(), openDesk: false, minutes: 5)
+        clock.now = t0.addingTimeInterval(5 * 60)
+        stores.focus.tick()
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        XCTAssertTrue(stores.focus.setTimerMinutes(1))
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        clock.now = clock.now.addingTimeInterval(60)
+        stores.focus.tick()
+        XCTAssertTrue(stores.focus.timerAlarmRinging)
+        stores.focus.requestReset()
+        stores.focus.confirmReset()
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        XCTAssertEqual(stores.focus.session?.phase, .running)
+    }
+
+    func testEarlyFinishRecordsTimeSinceLastTick() {
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.focus.startLocalTask(title: "Digital workspace organisation", description: "", minutes: 25)
+        clock.now = t0.addingTimeInterval(73)
+        stores.focus.finishLeavingInProgress()
+        XCTAssertEqual(stores.focus.todayLog.first?.durationSeconds, 73)
+        XCTAssertEqual(stores.focus.issueHistory.first?.durationSeconds, 73)
+    }
+
+    func testNativeAlarmAppearsOnceClosingSilencesAndNewExpiryReopens() async throws {
+        _ = NSApplication.shared
+        guard !NSScreen.screens.isEmpty else { throw XCTSkip("Requires a macOS display") }
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.usage.timerAlarmSoundEnabled = false
+        stores.usage.floatingPetEnabled = false
+        stores.focus.startLocalTask(title: "Do the dishes", description: "", minutes: 5)
+        let controller = FocusTimerAlertController(usage: stores.usage, companion: stores.companion, session: stores.focus)
+        defer { stores.focus.finishLeavingInProgress(); withExtendedLifetime(controller) {} }
+        clock.now = t0.addingTimeInterval(5 * 60)
+        stores.focus.tick()
+        try await Task.sleep(for: .milliseconds(100))
+        let panel = try XCTUnwrap(NSApp.windows.first {
+            $0.identifier?.rawValue == "PokeTaskBar.FocusTimerAlert" && $0.isVisible
+        })
+        XCTAssertEqual(panel.level, .floating)
+        XCTAssertNotNil(panel.contentView)
+        XCTAssertFalse(controller.isSoundPlaying)
+        stores.usage.timerAlarmSoundEnabled = true
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(controller.isSoundPlaying)
+        panel.performClose(nil)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(stores.focus.timerAlarmSilenced)
+        XCTAssertFalse(stores.focus.timerAlarmRinging)
+        XCTAssertFalse(controller.isSoundPlaying)
+        XCTAssertEqual(stores.focus.prompt, .zeroTime)
+        clock.now = clock.now.addingTimeInterval(60)
+        stores.focus.tick()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(panel.isVisible)
+        stores.focus.addRemainingMinutes(5)
+        try await Task.sleep(for: .milliseconds(100))
+        clock.now = clock.now.addingTimeInterval(5 * 60)
+        stores.focus.tick()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(panel.isVisible)
+        stores.focus.continueOvertime()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(panel.isVisible)
+        XCTAssertNil(panel.contentView)
+    }
+
+    func testNativeTaskSetupStartsWithEnteredTitleAndDuration() async throws {
+        _ = NSApplication.shared
+        guard !NSScreen.screens.isEmpty else { throw XCTSkip("Requires a macOS display") }
+        let stores = makeStores()
+        let host = NSHostingView(rootView: FocusDurationPicker(issueTitle: "", initialMinutes: 15,
+            onStartTask: { title, description, minutes in
+                stores.focus.startLocalTask(title: title, description: description, minutes: minutes)
+            }).environment(stores.companion))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 308, height: 340),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(180))
+        func fields(_ view: NSView) -> [NSTextField] {
+            (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(fields)
+        }
+        let title = try XCTUnwrap(fields(host).first { $0.isEditable && $0.placeholderString == stores.companion.l.localTaskTitle })
+        let minutes = try XCTUnwrap(fields(host).first { $0.isEditable && $0.placeholderString == stores.companion.l.timerMinutesLabel })
+        func type(_ text: String, into field: NSTextField) throws {
+            window.makeFirstResponder(field)
+            let editor = try XCTUnwrap(field.currentEditor() as? NSTextView)
+            editor.selectAll(nil)
+            editor.insertText(text, replacementRange: editor.selectedRange())
+        }
+        try type("Clean my room", into: title)
+        try type("7", into: minutes)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertNil(stores.focus.session, "Editing the draft must not start a timer")
+        window.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+            modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: window.windowNumber, context: nil, characters: "\r",
+            charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)))
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(stores.focus.session?.issue.title, "Clean my room")
+        XCTAssertTrue(stores.focus.session?.issue.isLocal == true)
+        XCTAssertEqual(stores.focus.session?.plannedSeconds, 7 * 60)
+    }
+
+    func testRenderLocalTaskTimerAndAlarm() async throws {
+        guard let path = ProcessInfo.processInfo.environment["PTB_LOCAL_TIMER_PREVIEW_DIR"] else {
+            throw XCTSkip("Set PTB_LOCAL_TIMER_PREVIEW_DIR for timer previews")
+        }
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let clock = TimeOpenCompanionTestsClock(t0)
+        let stores = makeStores(clock: clock)
+        stores.focus.startLocalTask(title: "Clean my room", description: "Put clothes away, then clear the desk.", minutes: 15)
+        for scheme in [ColorScheme.light, .dark] {
+            let style = scheme == .light ? "light" : "dark"
+            func render<V: View>(_ view: V, name: String, size: NSSize) async throws {
+                let host = NSHostingView(rootView: view
+                    .environment(stores.usage).environment(stores.companion).environment(stores.focus)
+                    .environment(PopoverNavigation()).environment(MainWindowNavigation())
+                    .environment(\.colorScheme, scheme).frame(width: size.width, height: size.height)
+                    .background(Color(nsColor: .windowBackgroundColor)))
+                let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
+                    styleMask: .borderless, backing: .buffered, defer: false)
+                window.appearance = NSAppearance(named: scheme == .light ? .aqua : .darkAqua)
+                window.contentView = host
+                host.frame = NSRect(origin: .zero, size: size)
+                defer { window.contentView = nil }
+                try await Task.sleep(for: .milliseconds(180))
+                host.layoutSubtreeIfNeeded()
+                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                    .write(to: directory.appendingPathComponent("\(name)-\(style).png"))
+            }
+            try await render(FocusDurationPicker(issueTitle: "", initialMinutes: 15, onStartTask: { _, _, _ in }),
+                name: "setup", size: NSSize(width: 308, height: 340))
+            try await render(MainWindowFocusView(), name: "focus", size: NSSize(width: 660, height: 650))
+            try await render(FocusTabView(), name: "popover", size: NSSize(width: 360, height: 700))
+            try await render(FloatingTimerStrip(), name: "floating", size: NSSize(width: 384, height: 42))
+            clock.now = t0.addingTimeInterval(15 * 60)
+            stores.focus.tick()
+            try await render(FocusTimerAlertView(), name: "alarm", size: NSSize(width: 380, height: 330))
+            clock.now = t0
+            stores.focus.requestReset()
+            stores.focus.confirmReset()
+        }
     }
 
     func testOpenPomodoroSetupDoesNotStartUntilConfirmed() {

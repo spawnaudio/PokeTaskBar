@@ -8,6 +8,10 @@ final class FloatingPetPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+final class FloatingTimerHostingView: NSHostingView<AnyView> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 /// 데스크톱 위에 떠 있는 컴패니언 포켓몬 오버레이(옵트인, 설정 → 플로팅 펫).
 /// - 드래그: 커스텀 `mouseDragged` (클릭과 충돌하지 않음).
 /// - 클릭 → 팝오버, 우클릭 → 메뉴, 호버 → 오늘 사용량 콜아웃.
@@ -23,11 +27,24 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private let session: FocusSessionStore
     private let defaults: UserDefaults
     private var panel: NSPanel?
+    private var timerPanel: NSPanel?
+    private var timerTextInputArmed = false
+    static let timerPanelIdentifier = "PokeTaskBar.DetachedTimer"
+    static let timerAnchorXKey = "floatingTimerAnchorX"
+    static let timerAnchorYKey = "floatingTimerAnchorY"
     private var hoverPanel: NSPanel?
     private var rewardPanel: XPRewardPanel?
     private var displayAwake = true
     private var builtAnimated: Bool?
     private var powerObserver: NSObjectProtocol?
+    enum TuckEdge: String { case left, right }
+    static let tuckEdgeKey = "floatingPetTuckEdge"
+    static let edgePeekWidth: CGFloat = 24
+    private(set) var tuckEdge: TuckEdge?
+    private var edgeRevealed = false
+    private var tuckTask: Task<Void, Never>?
+    private var menuTracking = false
+    private var applyingFrame = false
 
     private static let originXKey = "floatingPetOriginX"
     private static let originYKey = "floatingPetOriginY"
@@ -117,6 +134,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         self.companion = companion
         self.session = session
         self.defaults = defaults
+        self.tuckEdge = defaults.string(forKey: Self.tuckEdgeKey).flatMap(TuckEdge.init(rawValue:))
         self.onOpenPopover = onOpenPopover
         self.onHide = onHide
         self.onOpenToday = onOpenToday
@@ -170,6 +188,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             _ = store.floatingPetSize
             _ = store.floatingPetIslandFolded
             _ = store.floatingTimerWidth
+            _ = store.floatingTimerScale
+            _ = store.floatingTimerDetached
             _ = store.currentSpeechBubble
             _ = companion.language
             _ = session.isActive
@@ -237,7 +257,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
                           islandFolded: Bool = false,
                           showsTimerToggle: Bool = false,
                           setupIsland: Bool = false,
-                          timerWidth: CGFloat = FloatingTimerMetrics.defaultWidth) -> NSSize {
+                          timerWidth: CGFloat = FloatingTimerMetrics.defaultWidth,
+                          timerScale: CGFloat = 1) -> NSSize {
         if !hasIsland, !showsTimerToggle, !setupIsland, prompt == .none, confirm == .none {
             if showingBubble {
                 return NSSize(width: max(petSize, bubbleMinWidth),
@@ -266,12 +287,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let needsPromptColumn = promptH > 0 || composerH > 0
         let contentWidth = islandOn && !folded ? FloatingTimerMetrics.width(timerWidth) : islandWidth
         let contentW: CGFloat = (showChrome || needsPromptColumn) ? contentWidth + islandGap : 0
-        let islandW = contentW + foldedClockW + chevronW
+        let islandW = (contentW + foldedClockW + chevronW) * timerScale
         let chromeH: CGFloat = showChrome ? (setupIsland ? setupIslandHeight : islandHeight) : 0
         let foldedClockH: CGFloat = (hasIsland && folded) ? islandFoldedClockHeight : 0
         let column = chromeH + composerH + promptH
+        let toggleH: CGFloat = showsToggle ? islandFoldChevronSize : 0
         let width = max(petSize + islandW, showingBubble ? bubbleMinWidth : petSize + islandW)
-        let height = (showingBubble ? bubbleHeadroom : 0) + max(petSize, column, foldedClockH)
+        let height = (showingBubble ? bubbleHeadroom : 0) + max(petSize, max(column, foldedClockH, toggleH) * timerScale)
         return NSSize(width: width, height: height)
     }
 
@@ -353,8 +375,139 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func sync() {
+        syncDetachedTimer()
         guard store.floatingPetEnabled, displayAwake else { hide(); return }
         show()
+    }
+
+    private var detachedTimerSize: NSSize {
+        let reserved = Self.panelSize(petSize: 0, showingBubble: false,
+            hasIsland: session.isActive, prompt: session.prompt,
+            composingNote: session.isComposingNote, confirm: overlayConfirm,
+            setupIsland: session.pomodoroSetupOpen && !session.isActive,
+            timerWidth: CGFloat(store.floatingTimerWidth))
+        let scale = CGFloat(store.floatingTimerScale)
+        return NSSize(width: CGFloat(store.floatingTimerWidth) * scale, height: reserved.height * scale)
+    }
+
+    private func syncDetachedTimer() {
+        guard store.floatingTimerDetached, displayAwake,
+              session.isActive || session.pomodoroSetupOpen else {
+            timerPanel?.orderOut(nil)
+            timerPanel?.contentView = nil
+            timerTextInputArmed = false
+            return
+        }
+        let p = timerPanel ?? makePanel()
+        timerPanel = p
+        p.identifier = NSUserInterfaceItemIdentifier(Self.timerPanelIdentifier)
+        if !(p.contentView is NSHostingView<AnyView>) {
+            p.contentView = FloatingTimerHostingView(rootView: AnyView(
+                SessionIslandView(onResizeTimer: { [weak self] width, anchor in
+                    self?.resizeTimer(to: width, keepingRightEdge: anchor)
+                })
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .environment(store).environment(companion).environment(session)))
+        }
+        let size = detachedTimerSize
+        let savedX = defaults.object(forKey: Self.timerAnchorXKey) as? Double
+        let savedY = defaults.object(forKey: Self.timerAnchorYKey) as? Double
+        let fallback = panel.map {
+            NSPoint(x: $0.frame.maxX - CGFloat(store.floatingPetSize) - Self.islandFoldChevronSize - Self.islandGap * 2,
+                    y: $0.frame.minY)
+        } ?? Self.defaultPetOrigin(petSize: CGFloat(store.floatingPetSize))
+        let anchor = NSPoint(x: savedX ?? fallback.x, y: savedY ?? fallback.y)
+        let screen = NSScreen.screens.first { $0.visibleFrame.contains(NSPoint(x: anchor.x - 1, y: anchor.y)) }
+            ?? panel?.screen ?? NSScreen.main
+        let frame = NSRect(x: anchor.x - size.width, y: anchor.y, width: size.width, height: size.height)
+        let target = screen.map { FloatingTimerMetrics.constrained(frame, to: $0.visibleFrame) } ?? frame
+        if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
+            applyingFrame = true
+            p.setFrame(target, display: true)
+            applyingFrame = false
+        }
+        if !p.isVisible { p.orderFrontRegardless() }
+        if savedX == nil || savedY == nil { persistTimerAnchor() }
+        let needsKey = Self.overlayNeedsKeyWindow(composingNote: session.isComposingNote, prompt: session.prompt)
+        if needsKey, !timerTextInputArmed {
+            NSApp.activate(ignoringOtherApps: true)
+            p.makeKeyAndOrderFront(nil)
+        }
+        timerTextInputArmed = needsKey
+    }
+
+    private func persistTimerAnchor() {
+        guard let timerPanel, timerPanel.isVisible else { return }
+        defaults.set(timerPanel.frame.maxX, forKey: Self.timerAnchorXKey)
+        defaults.set(timerPanel.frame.minY, forKey: Self.timerAnchorYKey)
+    }
+
+    private var displayedTuckEdge: TuckEdge? {
+        guard !edgeRevealed,
+              store.floatingTimerDetached || !Self.overlayNeedsKeyWindow(
+                composingNote: session.isComposingNote, prompt: session.prompt)
+        else { return nil }
+        return tuckEdge
+    }
+
+    func toggleEdgeTucking() {
+        tuckTask?.cancel()
+        if tuckEdge != nil {
+            tuckEdge = nil
+        } else if let panel, let screen = panel.screen {
+            let petCenter = panel.frame.maxX - CGFloat(store.floatingPetSize) / 2
+            tuckEdge = petCenter < screen.visibleFrame.midX ? .left : .right
+        }
+        defaults.set(tuckEdge?.rawValue, forKey: Self.tuckEdgeKey)
+        edgeRevealed = false
+        hideHoverCallout()
+        sync()
+    }
+
+    private func hoverChanged(_ hovering: Bool) {
+        tuckTask?.cancel()
+        if hovering {
+            if tuckEdge != nil, !edgeRevealed {
+                edgeRevealed = true
+                show()
+            }
+            if !menuTracking { showHoverCallout() }
+        } else {
+            hideHoverCallout()
+            guard tuckEdge != nil, edgeRevealed else { return }
+            tuckTask = Task { @MainActor [weak self] in
+                // Only retry while an open popover, text editor or drag needs the overlay.
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
+                    guard let self, let panel = self.panel, panel.isVisible else { return }
+                    guard !self.menuTracking, NSEvent.pressedMouseButtons == 0,
+                          panel.childWindows?.contains(where: \.isVisible) != true,
+                          !Self.overlayNeedsKeyWindow(composingNote: self.session.isComposingNote,
+                                                      prompt: self.session.prompt)
+                    else { continue }
+                    guard !panel.frame.contains(NSEvent.mouseLocation) else { return }
+                    self.edgeRevealed = false
+                    self.show()
+                    return
+                }
+            }
+        }
+    }
+
+    /// Crop at the screen boundary instead of moving a window onto an adjacent display.
+    static func edgeFrame(expanded: NSRect, edge: TuckEdge, visible: NSRect,
+                          petSize: CGFloat, tucked: Bool) -> NSRect {
+        let size = tucked ? NSSize(width: edgePeekWidth, height: petSize) : expanded.size
+        let frame = NSRect(x: edge == .left ? visible.minX : visible.maxX - size.width,
+                           y: expanded.minY, width: size.width, height: size.height)
+        return FloatingTimerMetrics.constrained(frame, to: visible)
+    }
+
+    private func petView(animated: Bool) -> AnyView {
+        AnyView(FloatingPetView(animated: animated, tuckedEdge: displayedTuckEdge,
+            onResizeTimer: { [weak self] width, anchor in
+                self?.resizeTimer(to: width, keepingRightEdge: anchor)
+            }).environment(store).environment(companion).environment(session))
     }
 
     private func show() {
@@ -362,29 +515,42 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         panel = p
         let wantAnimated = Self.shouldAnimate(lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
         if p.contentView == nil || builtAnimated != wantAnimated {
-            let hosting = PetHostingView(rootView: AnyView(
-                FloatingPetView(animated: wantAnimated, onResizeTimer: { [weak self] width, anchor in
-                    self?.resizeTimer(to: width, keepingRightEdge: anchor)
-                })
-                    .environment(store).environment(companion).environment(session)))
+            let hosting = PetHostingView(rootView: petView(animated: wantAnimated))
             hosting.onOpenPopover = onOpenPopover
             hosting.onHide = onHide
             hosting.onOpenToday = onOpenToday
             hosting.onNewIssue = onNewIssue
             hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
+            hosting.tuckEnabled = { [weak self] in self?.tuckEdge != nil }
+            hosting.onToggleTuck = { [weak self] in self?.toggleEdgeTucking() }
+            hosting.onMenuTrackingChange = { [weak self] tracking in
+                guard let self else { return }
+                self.menuTracking = tracking
+                self.tuckTask?.cancel()
+                if tracking { self.hideHoverCallout() }
+                else { self.hoverChanged(self.panel?.frame.contains(NSEvent.mouseLocation) == true) }
+            }
             hosting.languageProvider = { [weak self] in self?.companion.language ?? .systemDefault }
             hosting.petSize = CGFloat(store.floatingPetSize)
             hosting.hasIsland = true
-            hosting.onHoverChange = { [weak self] hovering in
-                if hovering { self?.showHoverCallout() } else { self?.hideHoverCallout() }
-            }
+            hosting.onHoverChange = { [weak self] in self?.hoverChanged($0) }
+            hosting.tuckedEdge = displayedTuckEdge
             p.contentView = hosting
             builtAnimated = wantAnimated
         }
         if let hosting = p.contentView as? PetHostingView {
-            hosting.toolTip = currentHoverText()
+            if hosting.tuckedEdge != displayedTuckEdge {
+                hosting.tuckedEdge = displayedTuckEdge
+                hosting.rootView = petView(animated: wantAnimated)
+            }
+            hosting.toolTip = displayedTuckEdge == nil ? currentHoverText() : L(companion.language).floatingPetReveal
             hosting.petSize = CGFloat(store.floatingPetSize)
-            hosting.hasIsland = true
+            hosting.hasIsland = displayedTuckEdge == nil
+            hosting.setAccessibilityElement(displayedTuckEdge != nil)
+            if displayedTuckEdge != nil {
+                hosting.setAccessibilityRole(.button)
+                hosting.setAccessibilityLabel(L(companion.language).floatingPetReveal)
+            }
             hosting.onOpenToday = onOpenToday
             hosting.onNewIssue = onNewIssue
             hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
@@ -392,12 +558,14 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let petSize = CGFloat(store.floatingPetSize)
         let target = targetFrame(petSize: petSize, showingBubble: store.currentSpeechBubble != nil)
         if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
+            applyingFrame = tuckEdge != nil
             p.setFrame(target, display: true)
+            applyingFrame = false
             p.orderFrontRegardless()
         } else if !p.isVisible {
             p.orderFrontRegardless()
         }
-        let needsKey = Self.overlayNeedsKeyWindow(
+        let needsKey = !store.floatingTimerDetached && Self.overlayNeedsKeyWindow(
             composingNote: session.isComposingNote, prompt: session.prompt)
         if needsKey, !textInputArmed {
             // Accessory apps ignore cooperative activate; same trap as the popover.
@@ -410,6 +578,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func hide() {
+        tuckTask?.cancel()
+        edgeRevealed = false
         hideHoverCallout()
         showXPReward(nil)
         textInputArmed = false
@@ -421,7 +591,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     private func updateHoverTooltip() {
         if let hosting = panel?.contentView as? PetHostingView {
-            hosting.toolTip = currentHoverText()
+            hosting.toolTip = displayedTuckEdge == nil ? currentHoverText() : L(companion.language).floatingPetReveal
         }
         if hoverPanel?.isVisible == true { showHoverCallout() }
     }
@@ -435,7 +605,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func showHoverCallout() {
-        guard let pet = panel, pet.isVisible else { return }
+        guard displayedTuckEdge == nil, let pet = panel, pet.isVisible else { return }
         // Don't cover an active limit bubble — the speech bubble is the priority surface.
         if store.currentSpeechBubble != nil || session.prompt != .none
             || session.forfeitPrompt != nil || session.resetPrompt
@@ -501,29 +671,41 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func overlayPanelSize(petSize: CGFloat, showingBubble: Bool) -> NSSize {
-        Self.panelSize(petSize: petSize, showingBubble: showingBubble,
+        if store.floatingTimerDetached {
+            return Self.panelSize(petSize: petSize, showingBubble: showingBubble,
+                                  hasIsland: false, prompt: .none, showsTimerToggle: !session.isActive,
+                                  timerScale: CGFloat(store.floatingTimerScale))
+        }
+        return Self.panelSize(petSize: petSize, showingBubble: showingBubble,
                        hasIsland: session.isActive, prompt: session.prompt,
                        composingNote: session.isComposingNote,
                        confirm: overlayConfirm,
                        islandFolded: store.floatingPetIslandFolded,
                        showsTimerToggle: true,
                        setupIsland: session.pomodoroSetupOpen && !session.isActive,
-                       timerWidth: CGFloat(store.floatingTimerWidth))
+                       timerWidth: CGFloat(store.floatingTimerWidth),
+                       timerScale: CGFloat(store.floatingTimerScale))
     }
 
     /// The left resize rail follows the pointer while the right edge and pet stay
     /// anchored. Persist that anchor before observation runs another sync.
     func resizeTimer(to proposedWidth: CGFloat, keepingRightEdge anchor: NSPoint) {
-        guard let panel, session.isActive || session.pomodoroSetupOpen,
-              !store.floatingPetIslandFolded else { return }
-        let extraWidth = panel.frame.width - CGFloat(store.floatingTimerWidth)
+        guard let panel = store.floatingTimerDetached ? timerPanel : panel,
+              session.isActive || session.pomodoroSetupOpen,
+              store.floatingTimerDetached || !store.floatingPetIslandFolded else { return }
+        let scale = CGFloat(store.floatingTimerScale)
+        let extraWidth = panel.frame.width - CGFloat(store.floatingTimerWidth) * scale
         let screen = NSScreen.screens.first { $0.visibleFrame.intersects(panel.frame) } ?? NSScreen.main
-        let available = screen.map { anchor.x - $0.visibleFrame.minX - extraWidth } ?? FloatingTimerMetrics.maximumWidth
+        let available = screen.map { (anchor.x - $0.visibleFrame.minX - extraWidth) / scale } ?? FloatingTimerMetrics.maximumWidth
         store.floatingTimerWidth = Double(FloatingTimerMetrics.width(proposedWidth, available: available))
-        let size = overlayPanelSize(petSize: CGFloat(store.floatingPetSize), showingBubble: store.currentSpeechBubble != nil)
+        let size = store.floatingTimerDetached ? detachedTimerSize
+            : overlayPanelSize(petSize: CGFloat(store.floatingPetSize), showingBubble: store.currentSpeechBubble != nil)
         let frame = NSRect(x: anchor.x - size.width, y: anchor.y, width: size.width, height: size.height)
+        applyingFrame = true
         panel.setFrame(screen.map { FloatingTimerMetrics.constrained(frame, to: $0.visibleFrame) } ?? frame, display: true)
-        persistPetOrigin()
+        applyingFrame = false
+        if store.floatingTimerDetached { persistTimerAnchor() }
+        else { persistPetOrigin() }
     }
 
     private func targetFrame(petSize: CGFloat, showingBubble: Bool) -> NSRect {
@@ -545,6 +727,10 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         }
         if let screen = NSScreen.screens.first(where: { $0.visibleFrame.intersects(frame) }) {
             frame = FloatingTimerMetrics.constrained(frame, to: screen.visibleFrame)
+            if let tuckEdge {
+                frame = Self.edgeFrame(expanded: frame, edge: tuckEdge, visible: screen.visibleFrame,
+                                       petSize: petSize, tucked: displayedTuckEdge != nil)
+            }
         }
         return frame
     }
@@ -574,11 +760,22 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     func windowDidMove(_ notification: Notification) {
+        guard !applyingFrame else { return }
+        if let moved = notification.object as? NSWindow, moved === timerPanel {
+            persistTimerAnchor()
+            return
+        }
+        // Both the pet drag and timer drag rail route through this delegate.
+        if tuckEdge != nil {
+            tuckEdge = nil
+            defaults.removeObject(forKey: Self.tuckEdgeKey)
+            tuckTask?.cancel()
+        }
         persistPetOrigin()
     }
 
     private func persistPetOrigin() {
-        guard let p = panel, p.isVisible else { return }
+        guard tuckEdge == nil, let p = panel, p.isVisible else { return }
         let petSize = CGFloat(store.floatingPetSize)
         let pet = Self.petOrigin(panelOrigin: p.frame.origin, petSize: petSize,
                                  panelSize: p.frame.size, hasIsland: true)
@@ -596,6 +793,10 @@ final class PetHostingView: NSHostingView<AnyView> {
     var onNewIssue: (() -> Void)?
     var canCreateIssue: () -> Bool = { false }
     var onHoverChange: ((Bool) -> Void)?
+    var onToggleTuck: (() -> Void)?
+    var onMenuTrackingChange: ((Bool) -> Void)?
+    var tuckEnabled: () -> Bool = { false }
+    var tuckedEdge: FloatingPetController.TuckEdge?
     var languageProvider: () -> AppLanguage = { .systemDefault }
     var hasIsland = false
     var petSize: CGFloat = 96
@@ -609,6 +810,12 @@ final class PetHostingView: NSHostingView<AnyView> {
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func accessibilityPerformPress() -> Bool {
+        guard tuckedEdge != nil else { return super.accessibilityPerformPress() }
+        onHoverChange?(true)
+        return true
+    }
 
     static func isClick(from start: NSPoint, to end: NSPoint,
                         thresholdSquared: CGFloat = FloatingPetController.clickThresholdSquared) -> Bool {
@@ -696,8 +903,13 @@ final class PetHostingView: NSHostingView<AnyView> {
     }
 
     private func showContextMenu(_ event: NSEvent) {
-        onHoverChange?(false)
+        onMenuTrackingChange?(true)
+        defer { onMenuTrackingChange?(false) }
         NSApp.activate(ignoringOtherApps: true)
+        NSMenu.popUpContextMenu(makeContextMenu(), with: event, for: self)
+    }
+
+    func makeContextMenu() -> NSMenu {
         let l = L(languageProvider())
         let menu = NSMenu(title: "")
         menu.autoenablesItems = false
@@ -713,30 +925,57 @@ final class PetHostingView: NSHostingView<AnyView> {
                                   action: #selector(handleNewIssue(_:)), keyEquivalent: "")
         create.target = self
         create.isEnabled = canCreateIssue()
+        menu.addItem(.separator())
+        let tuck = menu.addItem(withTitle: l.floatingPetMenuTuck,
+                                action: #selector(handleToggleTuck(_:)), keyEquivalent: "")
+        tuck.target = self
+        tuck.state = tuckEnabled() ? .on : .off
+        tuck.isEnabled = true
         let hide = menu.addItem(withTitle: l.floatingPetMenuHide,
                                 action: #selector(handleHide(_:)), keyEquivalent: "")
         hide.target = self
         hide.isEnabled = true
-        NSMenu.popUpContextMenu(menu, with: event, for: self)
+        return menu
     }
 
     @objc func handleOpen(_ sender: Any?) { onOpenPopover?() }
     @objc func handleOpenToday(_ sender: Any?) { onOpenToday?() }
     @objc func handleNewIssue(_ sender: Any?) { onNewIssue?() }
     @objc func handleHide(_ sender: Any?) { onHide?() }
+    @objc func handleToggleTuck(_ sender: Any?) { onToggleTuck?() }
 }
 
 @MainActor
 struct FloatingPetView: View {
     var animated: Bool = true
+    var tuckedEdge: FloatingPetController.TuckEdge?
     var onResizeTimer: (CGFloat, NSPoint) -> Void = { _, _ in }
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(FocusSessionStore.self) private var session
 
     var body: some View {
+        if let tuckedEdge {
+            sprite
+                // A slice beside the center stays visible even for narrow or padded sprites.
+                .offset(x: (tuckedEdge == .right ? 1 : -1) * FloatingPetController.edgePeekWidth / 2)
+                .frame(width: FloatingPetController.edgePeekWidth)
+                .clipped()
+        } else {
+            expandedContent
+        }
+    }
+
+    private var sprite: some View {
         let size = CGFloat(store.floatingPetSize)
         let subject = companion.representativeSubject
+        return SpriteView(speciesID: subject.speciesID, size: subject.speciesID == nil ? size * 0.5 : size, animated: animated,
+                          shiny: subject.isShiny, minFrameDelay: store.animationQuality.frameFloor,
+                          unownForm: subject.unownForm)
+            .frame(width: size, height: size)
+    }
+
+    private var expandedContent: some View {
         VStack(spacing: 8) {
             if let bubble = store.currentSpeechBubble {
                 SpeechBubbleView(bubble: bubble)
@@ -744,29 +983,46 @@ struct FloatingPetView: View {
                     .zIndex(1)
             }
 
-            HStack(alignment: .bottom, spacing: FloatingPetController.islandGap) {
-                if session.isActive || session.pomodoroSetupOpen {
-                    if showsIslandColumn {
-                        SessionIslandView(onResizeTimer: onResizeTimer)
-                    }
-                    if store.floatingPetIslandFolded && session.isActive {
-                        FloatingCompactTimer()
-                    }
+            HStack(alignment: .bottom, spacing: FloatingPetController.islandGap * CGFloat(store.floatingTimerScale)) {
+                if !store.floatingTimerDetached || !session.isActive {
+                    timerContent
+                        .scaledFloatingTimer(size: timerContentSize, scale: CGFloat(store.floatingTimerScale))
                 }
-                if !store.floatingPetIslandFolded || !session.isActive {
-                    islandFoldChevron
-                }
-                SpriteView(speciesID: subject.speciesID, size: size, animated: animated,
-                           shiny: subject.isShiny,
-                           minFrameDelay: store.animationQuality.frameFloor, unownForm: subject.unownForm)
-                    .frame(width: size, height: size)
-                    .zIndex(0)
+                sprite.zIndex(0)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .animation(animated ? .spring(response: 0.3, dampingFraction: 0.7) : nil,
                    value: store.currentSpeechBubble)
+    }
+
+    private var timerContentSize: NSSize {
+        let attached = !store.floatingTimerDetached
+        let size = FloatingPetController.panelSize(petSize: 0, showingBubble: false,
+            hasIsland: attached && session.isActive, prompt: attached ? session.prompt : .none,
+            composingNote: attached && session.isComposingNote,
+            confirm: !attached ? .none : session.forfeitPrompt != nil ? .forfeit : session.resetPrompt ? .reset : .none,
+            islandFolded: store.floatingPetIslandFolded, showsTimerToggle: true,
+            setupIsland: attached && session.pomodoroSetupOpen && !session.isActive,
+            timerWidth: CGFloat(store.floatingTimerWidth))
+        return NSSize(width: size.width - FloatingPetController.islandGap, height: size.height)
+    }
+
+    private var timerContent: some View {
+        HStack(alignment: .bottom, spacing: FloatingPetController.islandGap) {
+            if !store.floatingTimerDetached && (session.isActive || session.pomodoroSetupOpen) {
+                if showsIslandColumn {
+                    SessionIslandView(onResizeTimer: onResizeTimer)
+                }
+                if store.floatingPetIslandFolded && session.isActive {
+                    FloatingCompactTimer()
+                }
+            }
+            if (!store.floatingTimerDetached && !store.floatingPetIslandFolded) || !session.isActive {
+                islandFoldChevron
+            }
+        }
     }
 
     private var showsIslandColumn: Bool {

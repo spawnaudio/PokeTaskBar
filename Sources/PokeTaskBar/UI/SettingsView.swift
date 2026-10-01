@@ -84,7 +84,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         desktopGroup("General", keywords: "language representative pokemon refresh animation limits launch") { generalGroup(store) }
-                        desktopGroup("Desktop", keywords: "menu bar floating pet companion") {
+                        desktopGroup("Desktop", keywords: "menu bar issue title floating pet companion timer size scale detach pin") {
                             menuBarGroup(store); floatingPetGroup(store)
                         }
                         desktopGroup("Notifications", keywords: "alerts sound") { notificationsGroup(store) }
@@ -350,6 +350,8 @@ struct SettingsView: View {
                 toggleRow(l.scoreLabel, $store.showScoreInMenu)
                 Divider()
                 toggleRow(l.menuBarLinearIssuesLabel, $store.showLinearIssuesInMenu)
+                Divider()
+                toggleRow(l.menuBarFocusedIssueTitle, $store.showFocusedIssueTitleInMenu)
             }
             Text(l.allOffHint).font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
         }
@@ -380,6 +382,21 @@ struct SettingsView: View {
                 Divider()
                 toggleRow(l.floatingPetBubbleAlertsLabel, $store.floatingPetBubbleAlerts)
             }
+            Divider()
+            groupRow {
+                Text(l.floatingTimerSizeLabel).font(.callout)
+                Slider(value: $store.floatingTimerScale, in: FloatingTimerMetrics.scaleRange, step: 0.05)
+                    .accessibilityLabel(l.floatingTimerSizeLabel)
+                    .accessibilityValue("\(Int((store.floatingTimerScale * 100).rounded()))%")
+                Text("\(Int((store.floatingTimerScale * 100).rounded()))%")
+                    .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
+            }
+            Divider()
+            toggleRow(l.detachFloatingTimer, $store.floatingTimerDetached)
+            if store.floatingTimerDetached {
+                Divider()
+                toggleRow(l.pinFloatingTimer, $store.floatingTimerPinned)
+            }
         }
     }
 
@@ -387,6 +404,8 @@ struct SettingsView: View {
     private func notificationsGroup(_ store: UsageStore) -> some View {
         @Bindable var store = store
         settingsSection(l.notificationsSection) {
+            toggleRow(l.timerAlarmSound, $store.timerAlarmSoundEnabled)
+            Divider()
             toggleRow(l.limitNotificationsLabel, $store.limitNotifications)
             if store.limitNotifications {
                 Divider()

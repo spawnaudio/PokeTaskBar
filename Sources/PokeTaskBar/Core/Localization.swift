@@ -25,6 +25,13 @@ struct L {
     var menuBarUsage: String { t("사용량", "Usage", "使用量", "Uso", "Usage", "Uso", "Nutzung") }
     var currentFocus: String { t("현재 집중", "Current focus", "現在の集中", "Enfoque actual", "Focus actuel", "Foco atual", "Aktueller Fokus") }
     var finishFocusTimer: String { t("종료", "Finish", "終了", "Finalizar", "Terminer", "Concluir", "Beenden") }
+    var localTaskTimer: String { t("작업 타이머", "Task timer", "タスクタイマー", "Temporizador de tarea", "Minuteur de tâche", "Temporizador de tarefa", "Aufgabentimer") }
+    var localTaskTitle: String { t("제목 (선택)", "Title (optional)", "タイトル（任意）", "Título (opcional)", "Titre (facultatif)", "Título (opcional)", "Titel (optional)") }
+    var localTaskDescription: String { t("설명 (선택)", "Description (optional)", "説明（任意）", "Descripción (opcional)", "Description (facultative)", "Descrição (opcional)", "Beschreibung (optional)") }
+    var localTaskPrivacy: String { t("이 Mac에만 저장됩니다. Linear에 추가되지 않습니다.", "Saved on this Mac. Nothing is added to Linear.", "このMacに保存されます。Linearには追加されません。", "Se guarda en este Mac. No se añade a Linear.", "Enregistré sur ce Mac. Rien n’est ajouté à Linear.", "Salvo neste Mac. Nada é adicionado ao Linear.", "Auf diesem Mac gespeichert. Kein Eintrag in Linear.") }
+    var timerAlarmSound: String { t("타이머 종료 소리", "Timer completion sound", "タイマー終了音", "Sonido al terminar el temporizador", "Son de fin du minuteur", "Som ao concluir o temporizador", "Ton bei Timerende") }
+    var silenceTimerAlarm: String { t("알람 끄기", "Silence alarm", "アラームを消音", "Silenciar alarma", "Couper l’alarme", "Silenciar alarme", "Alarm stummschalten") }
+    var timerAlarmSilenced: String { t("알람이 꺼졌습니다", "Alarm silenced", "アラーム消音済み", "Alarma silenciada", "Alarme coupée", "Alarme silenciado", "Alarm stummgeschaltet") }
     var moveFloatingTimer: String { t("타이머와 펫 이동", "Move timer and pet", "タイマーとペットを移動", "Mover temporizador y mascota", "Déplacer le minuteur et le compagnon", "Mover temporizador e companheiro", "Timer und Begleiter bewegen") }
     var resizeFloatingTimer: String { t("타이머 너비 조절", "Resize timer", "タイマーの幅を変更", "Cambiar ancho del temporizador", "Redimensionner le minuteur", "Redimensionar temporizador", "Timerbreite ändern") }
     var focusDuration: String { t("집중 시간", "Focus duration", "集中時間", "Duración del enfoque", "Durée de concentration", "Duração do foco", "Fokusdauer") }
@@ -308,6 +315,26 @@ struct L {
           "Dein Pokémon schwebt über dem Bildschirm – zieh es an die gewünschte Stelle")
     }
     var floatingPetSizeLabel: String { t("크기", "Size", "サイズ", "Tamaño", "Taille", "Tamanho", "Größe") }
+    var floatingTimerSizeLabel: String {
+        t("타이머 크기", "Timer size", "タイマーのサイズ", "Tamaño del temporizador",
+          "Taille du minuteur", "Tamanho do temporizador", "Timergröße")
+    }
+    var menuBarFocusedIssueTitle: String {
+        t("집중 중인 이슈 제목", "Focused issue title", "集中中の課題タイトル", "Título de la tarea enfocada",
+          "Titre de la tâche en cours", "Título da tarefa em foco", "Titel der fokussierten Aufgabe")
+    }
+    var detachFloatingTimer: String {
+        t("펫에서 타이머 분리", "Detach timer from pet", "ペットからタイマーを切り離す", "Separar temporizador de la mascota",
+          "Détacher le minuteur du compagnon", "Separar temporizador da mascote", "Timer vom Pokémon lösen")
+    }
+    var attachFloatingTimer: String {
+        t("펫에 타이머 붙이기", "Attach timer to pet", "ペットにタイマーを戻す", "Unir temporizador a la mascota",
+          "Rattacher le minuteur au compagnon", "Unir temporizador à mascote", "Timer am Pokémon befestigen")
+    }
+    var pinFloatingTimer: String {
+        t("타이머 위치 고정", "Pin timer position", "タイマーの位置を固定", "Fijar posición del temporizador",
+          "Verrouiller la position du minuteur", "Fixar posição do temporizador", "Timerposition fixieren")
+    }
     /// 푸터 눈 아이콘의 툴팁(켜져 있을 때) — 켜는 쪽 문구는 floatingPetEnableLabel 을 그대로 쓴다.
     var floatingPetHideLabel: String {
         t("플로팅 펫 숨기기", "Hide floating pet", "フローティングペットを隠す", "Ocultar mascota flotante",
@@ -318,6 +345,14 @@ struct L {
         t("말풍선으로 알림 받기", "Show notifications as bubbles", "通知を吹き出しで表示", "Mostrar notificaciones como globos", "Afficher les notifications en bulles", "Mostrar notificações em balões", "Benachrichtigungen als Sprechblasen anzeigen")
     }
     var floatingPetMenuOpen: String { t("토큰 바 열기", "Open Token Bar", "トークンバーを開く", "Abrir Token Bar", "Ouvrir Token Bar", "Abrir o Token Bar", "Token Bar öffnen") }
+    var floatingPetMenuTuck: String {
+        t("화면 가장자리에 숨기기", "Tuck at screen edge", "画面の端に隠す", "Ocultar en el borde de la pantalla",
+          "Replier au bord de l’écran", "Recolher na borda da tela", "Am Bildschirmrand verstecken")
+    }
+    var floatingPetReveal: String {
+        t("포켓몬과 타이머 표시", "Show Pokémon and timer", "ポケモンとタイマーを表示", "Mostrar Pokémon y temporizador",
+          "Afficher le Pokémon et le minuteur", "Mostrar Pokémon e temporizador", "Pokémon und Timer anzeigen")
+    }
     var floatingPetMenuHide: String {
         t("플로팅 펫 끄기", "Turn off floating pet", "フローティングペットをオフ", "Desactivar mascota flotante", "Désactiver le compagnon flottant", "Desativar mascote flutuante", "Schwebendes Pokémon ausschalten")
     }

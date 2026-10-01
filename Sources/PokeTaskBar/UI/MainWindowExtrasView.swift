@@ -41,7 +41,7 @@ struct MainWindowExtrasView: View {
     }
     private var inspector: some View {
         let issue: LinearIssueSummary? = {
-            guard let current = session.session, !current.issue.isPomodoro else { return nil }
+            guard let current = session.session, !current.issue.isLocal else { return nil }
             return store.linearIssue(id: current.issue.id) ?? current.issue.summary
         }()
         return VStack(alignment: .leading, spacing: 8) {

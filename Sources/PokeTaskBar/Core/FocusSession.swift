@@ -23,7 +23,6 @@ enum CheckInAnswer: String, Codable, Equatable {
 enum SessionXP {
     static let intervalSeconds = TimeOpenXP.awardIntervalSeconds
     static let tokensPerAward = TimeOpenXP.tokensPerAward
-    static let autoContinueDelay: TimeInterval = 30
     static let minMinutes = 5
     static let maxMinutes = 180
     static let defaultPlannedMinutes = 50
@@ -172,10 +171,11 @@ enum MenuBarLines {
     }
 
     /// Linear issue title for the compact menu-bar pill. Pomodoro has no issue name.
-    static func focusedIssueTitle(_ session: FocusSession?) -> String? {
-        guard let session, !session.issue.isPomodoro else { return nil }
-        let title = session.issue.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return title.isEmpty ? nil : title
+    static func focusedIssueTitle(_ session: FocusSession?, show: Bool = true) -> String? {
+        guard show, let session, !session.issue.isPomodoro else { return nil }
+        let title = session.issue.title.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        guard !title.isEmpty else { return nil }
+        return title.count > 40 ? String(title.prefix(39)) + "…" : title
     }
 
     /// After the pipe: running timer, else Linear counts, else companion XP.
@@ -275,6 +275,7 @@ struct FocusPinnedIssue: Codable, Equatable, Identifiable {
     var stateName: String?
     var completedStateId: String?
     var teamStates: [LinearWorkflowState]
+    var taskDescription: String? = nil
 
     init(_ issue: LinearIssueSummary) {
         id = issue.id
@@ -304,6 +305,17 @@ struct FocusPinnedIssue: Codable, Equatable, Identifiable {
     }
 
     var isPomodoro: Bool { id == Self.pomodoroID }
+    var isLocal: Bool { isPomodoro || id.hasPrefix("focus.task.") }
+    var displayName: String { isLocal ? title : identifier }
+
+    static func localTask(title: String, description: String) -> FocusPinnedIssue {
+        var task = pomodoro(title: title.trimmingCharacters(in: .whitespacesAndNewlines))
+        task.id = "focus.task.\(UUID().uuidString)"
+        task.identifier = "TASK"
+        let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        task.taskDescription = trimmed.isEmpty ? nil : trimmed
+        return task
+    }
 
     private init(
         id: String,
@@ -431,7 +443,6 @@ struct FocusTickResult: Equatable {
     var session: FocusSession
     var sessionXP: Int
     var hitZero: Bool
-    var autoContinued: Bool
     var checkInBecameDue: Bool
 }
 
@@ -450,7 +461,6 @@ enum FocusTick {
         var s = session
         var xp = 0
         var hitZero = false
-        var autoContinued = false
         var checkInBecameDue = false
 
         if let start = s.segmentStartedAt, s.isAccruing {
@@ -473,15 +483,6 @@ enum FocusTick {
                 s.pendingCheckIn = false
                 s.checkInAccumulatedSeconds = 0
             }
-        }
-
-        if s.phase == .awaitingChoice,
-           let since = s.awaitingChoiceSince,
-           now.timeIntervalSince(since) >= SessionXP.autoContinueDelay {
-            let settled = settlePlanned(&s, multiplier: 1)
-            xp += settled
-            applyContinue(&s, now: now)
-            autoContinued = true
         }
 
         if s.phase == .overtime {
@@ -509,17 +510,10 @@ enum FocusTick {
             checkInBecameDue = false
         }
 
-        if autoContinued, s.checkInDeferred {
-            s.checkInDeferred = false
-            s.pendingCheckIn = true
-            checkInBecameDue = true
-        }
-
         return FocusTickResult(
             session: s,
             sessionXP: xp,
             hitZero: hitZero,
-            autoContinued: autoContinued,
             checkInBecameDue: checkInBecameDue)
     }
 
@@ -791,7 +785,7 @@ struct FocusLogEntry: Codable, Equatable, Identifiable {
             id: UUID(),
             day: day,
             kind: .session,
-            issueIdentifier: issue.identifier,
+            issueIdentifier: issue.displayName,
             issueTitle: issue.title,
             startedAt: startedAt,
             durationSeconds: duration,
@@ -810,7 +804,7 @@ struct FocusLogEntry: Codable, Equatable, Identifiable {
             id: UUID(),
             day: day,
             kind: .checkIn,
-            issueIdentifier: issue.identifier,
+            issueIdentifier: issue.displayName,
             issueTitle: issue.title,
             startedAt: nil,
             durationSeconds: nil,
@@ -828,7 +822,7 @@ struct FocusLogEntry: Codable, Equatable, Identifiable {
             id: UUID(),
             day: day,
             kind: .note,
-            issueIdentifier: issue.identifier,
+            issueIdentifier: issue.displayName,
             issueTitle: issue.title,
             startedAt: nil,
             durationSeconds: nil,
@@ -847,7 +841,7 @@ struct FocusLogEntry: Codable, Equatable, Identifiable {
             id: UUID(),
             day: day,
             kind: .forfeit,
-            issueIdentifier: issue.identifier,
+            issueIdentifier: issue.displayName,
             issueTitle: issue.title,
             startedAt: nil,
             durationSeconds: nil,

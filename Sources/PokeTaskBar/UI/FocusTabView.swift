@@ -11,6 +11,7 @@ struct FocusTabView: View {
     @Environment(PopoverNavigation.self) private var nav
     @Environment(\.colorScheme) private var scheme
     @State private var showTimeXP = false
+    @State private var choosingTask = false
 
     private var l: L { companion.l }
     private var theme: MenuBarTheme { MenuBarTheme(scheme: scheme) }
@@ -55,7 +56,7 @@ struct FocusTabView: View {
             FocusForfeitWarningCard(warning: warning)
         } else if session.resetPrompt {
             FocusResetConfirmCard()
-        } else if SessionPromptSurface.showsOnPopover(floatingPetEnabled: store.floatingPetEnabled),
+        } else if SessionPromptSurface.showsOnPopover(floatingPetEnabled: store.focusOverlayEnabled),
                   session.prompt != .none
                     || SessionPromptSurface.showsPopoverCaption(
                         floatingPetEnabled: store.floatingPetEnabled,
@@ -77,7 +78,7 @@ struct FocusTabView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(theme.secondary)
                 Spacer()
-                if let url = current.issue.url, !current.issue.isPomodoro {
+                if let url = current.issue.url, !current.issue.isLocal {
                     Button { NSWorkspace.shared.open(url) } label: {
                         Image(systemName: "arrow.up.right.square")
                             .frame(width: 24, height: 24)
@@ -89,15 +90,19 @@ struct FocusTabView: View {
                 }
             }
             VStack(alignment: .leading, spacing: 5) {
-                if !current.issue.isPomodoro {
+                if !current.issue.isLocal {
                     LinearIssueIDButton(identifier: current.issue.identifier, url: current.issue.url)
                 }
                 Text(current.issue.title)
                     .font(.system(size: 18, weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineLimit(3)
+                if let description = current.issue.taskDescription {
+                    Text(description).font(.system(size: 12)).foregroundStyle(theme.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            if !current.issue.isPomodoro {
+            if !current.issue.isLocal {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
                         LinearIssueStatusPicker(issue: issue, compact: true)
@@ -143,7 +148,7 @@ struct FocusTabView: View {
                 }
                 .buttonStyle(MenuBarButtonStyle())
                 .disabled(current.phase == .awaitingChoice)
-                if current.issue.isPomodoro {
+                if current.issue.isLocal {
                     Button { session.finishLeavingInProgress() } label: {
                         Label(l.finishFocusTimer, systemImage: "checkmark")
                             .frame(maxWidth: .infinity)
@@ -188,18 +193,25 @@ struct FocusTabView: View {
     private var pomodoroRow: some View {
         HStack(spacing: 10) {
             Image(systemName: "timer").foregroundStyle(theme.secondary)
-            Text(l.pomoTimer).font(.system(size: 13, weight: .medium))
+            Text(l.localTaskTimer).font(.system(size: 13, weight: .medium))
             Spacer(minLength: 4)
             Text(l.minutesValue(session.plannedMinutes))
                 .font(.system(size: 12)).foregroundStyle(theme.secondary)
-            Button { session.openPomodoroSetup() } label: {
+            Button { choosingTask = true } label: {
                 Image(systemName: "play.fill")
                     .frame(width: 14, height: 14)
             }
             .buttonStyle(MenuBarButtonStyle())
             .disabled(session.isActive)
-            .help(l.pomoTimer)
-            .accessibilityLabel(l.pomoTimer)
+            .help(l.localTaskTimer)
+            .accessibilityLabel(l.localTaskTimer)
+            .popover(isPresented: $choosingTask) {
+                FocusDurationPicker(issueTitle: "", initialMinutes: session.plannedMinutes,
+                    onStartTask: { title, description, minutes in
+                        session.startLocalTask(title: title, description: description, minutes: minutes)
+                        choosingTask = false
+                    })
+            }
         }
     }
 }

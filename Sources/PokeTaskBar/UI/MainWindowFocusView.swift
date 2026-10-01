@@ -14,12 +14,15 @@ struct MainWindowFocusView: View {
                 if let current = session.session {
                     let issue = usage.linearIssue(id: current.issue.id) ?? current.issue.summary
                     VStack(spacing: 10) {
-                        if !current.issue.isPomodoro {
+                        if !current.issue.isLocal {
                             LinearIssueIDButton(identifier: current.issue.identifier, url: current.issue.url)
                         }
                         Text(current.issue.title).font(.system(size: 24, weight: .semibold))
                             .multilineTextAlignment(.center)
-                        if !current.issue.isPomodoro {
+                        if let description = current.issue.taskDescription {
+                            Text(description).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        }
+                        if !current.issue.isLocal {
                             HStack(spacing: 12) {
                                 LinearIssueStatusPicker(issue: issue)
                                 if let project = issue.projectName { Text(project).foregroundStyle(.secondary) }
@@ -39,7 +42,7 @@ struct MainWindowFocusView: View {
                         FocusPauseButton(paused: current.userPaused || current.phase == .paused,
                             disabled: current.phase == .awaitingChoice, pauseTitle: l.pauseTimer,
                             resumeTitle: l.resumeTimer) { session.togglePause() }
-                        if current.issue.isPomodoro {
+                        if current.issue.isLocal {
                             Button(l.finishFocusTimer) { session.finishLeavingInProgress() }.tahoeButtonStyle(.prominent)
                         } else {
                             FocusMarkDoneButton(title: l.markDone,
@@ -50,7 +53,7 @@ struct MainWindowFocusView: View {
                         }
                     }.controlSize(.large)
                     FocusTimerControls(compact: false).frame(maxWidth: 460)
-                    if !current.issue.isPomodoro {
+                    if !current.issue.isLocal {
                         VStack(alignment: .leading, spacing: 12) {
                             SessionNoteButton(compact: false)
                             if session.isComposingNote { SessionNoteComposer(compact: false) }
@@ -62,13 +65,13 @@ struct MainWindowFocusView: View {
                     Text(l.focusIssueOrTimerPrompt).font(.system(size: 24, weight: .semibold))
                         .multilineTextAlignment(.center)
                     Button(l.linearIssuesTab) { nav.select(.issues) }.tahoeButtonStyle(.prominent)
-                    Button(l.pomoTimer) { choosingTimer = true }.tahoeButtonStyle(.regular)
+                    Button(l.localTaskTimer) { choosingTimer = true }.tahoeButtonStyle(.regular)
                         .popover(isPresented: $choosingTimer) {
-                            FocusDurationPicker(issueTitle: l.pomodoroTitle, initialMinutes: session.plannedMinutes) { minutes in
-                                session.plannedMinutes = minutes
-                                session.startPomodoro()
-                                choosingTimer = false
-                            }
+                            FocusDurationPicker(issueTitle: "", initialMinutes: session.plannedMinutes,
+                                onStartTask: { title, description, minutes in
+                                    session.startLocalTask(title: title, description: description, minutes: minutes)
+                                    choosingTimer = false
+                                })
                         }
                 }
                 if let warning = session.forfeitPrompt {

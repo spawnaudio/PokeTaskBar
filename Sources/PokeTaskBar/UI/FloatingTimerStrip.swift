@@ -8,6 +8,12 @@ enum FloatingTimerMetrics {
     static let minimumWidth: CGFloat = 288
     static let maximumWidth: CGFloat = 720
     static let widthKey = "floatingTimerWidth"
+    static let scaleKey = "floatingTimerScale"
+    static let scaleRange: ClosedRange<Double> = 0.5...2
+
+    static func scale(_ proposed: Double) -> Double {
+        proposed.isFinite ? min(scaleRange.upperBound, max(scaleRange.lowerBound, proposed)) : 1
+    }
 
     static func width(_ proposed: CGFloat, available: CGFloat = maximumWidth) -> CGFloat {
         let proposed = proposed.isFinite ? proposed : defaultWidth
@@ -19,6 +25,14 @@ enum FloatingTimerMetrics {
         result.origin.x = min(max(visible.minX, frame.minX), max(visible.minX, visible.maxX - frame.width))
         result.origin.y = min(max(visible.minY, frame.minY), max(visible.minY, visible.maxY - frame.height))
         return result
+    }
+}
+
+extension View {
+    func scaledFloatingTimer(size: NSSize, scale: CGFloat) -> some View {
+        frame(width: size.width, height: size.height, alignment: .bottomTrailing)
+            .scaleEffect(scale, anchor: .bottomTrailing)
+            .frame(width: size.width * scale, height: size.height * scale, alignment: .bottomTrailing)
     }
 }
 
@@ -59,7 +73,7 @@ struct FloatingTimerStrip: View {
                     .frame(width: 74, alignment: .leading)
                 Rectangle().fill(theme.border).frame(width: 1, height: 16).accessibilityHidden(true)
                 HStack(spacing: 5) {
-                    if !current.issue.isPomodoro, !revealsControls || store.floatingTimerWidth >= 400 {
+                    if !current.issue.isLocal, !revealsControls || store.floatingTimerWidth >= 400 {
                         LinearIssueIDButton(identifier: current.issue.identifier, url: current.issue.url)
                             .font(.system(size: 11)).foregroundStyle(theme.secondary)
                             .fixedSize()
@@ -76,7 +90,8 @@ struct FloatingTimerStrip: View {
                 dragHandle(.move, label: l.moveFloatingTimer)
                     .frame(width: 16, height: 30)
                     .overlay {
-                        Image(systemName: "circle.grid.2x2.fill")
+                        Image(systemName: store.floatingTimerDetached && store.floatingTimerPinned
+                              ? "pin.fill" : "circle.grid.2x2.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(theme.secondary.opacity(revealsControls ? 1 : 0.55))
                             .allowsHitTesting(false).accessibilityHidden(true)
@@ -112,6 +127,8 @@ struct FloatingTimerStrip: View {
 
     private func dragHandle(_ mode: FloatingTimerDragView.Mode, label: String) -> some View {
         FloatingTimerDragHandle(mode: mode, width: CGFloat(store.floatingTimerWidth), label: label,
+                                scale: CGFloat(store.floatingTimerScale),
+                                movementLocked: mode == .move && store.floatingTimerDetached && store.floatingTimerPinned,
                                 onResize: onResizeTimer, onFocusChange: { handleFocused = $0 })
             .help(label)
     }
@@ -143,7 +160,7 @@ struct FloatingTimerStrip: View {
             }
 
             Button {
-                if current.issue.isPomodoro { session.finishLeavingInProgress() }
+                if current.issue.isLocal { session.finishLeavingInProgress() }
                 else {
                     completing = true
                     Task { await session.markIssueDone(); completing = false }
@@ -152,8 +169,8 @@ struct FloatingTimerStrip: View {
             .buttonStyle(FloatingTimerButtonStyle())
             .focused($focusedControl, equals: .done)
             .disabled(completing || store.updatingLinearIssueID != nil || !canComplete(current))
-            .help(current.issue.isPomodoro ? l.finishFocusTimer : l.markDone)
-            .accessibilityLabel(current.issue.isPomodoro ? l.finishFocusTimer : l.markDone)
+            .help(current.issue.isLocal ? l.finishFocusTimer : l.markDone)
+            .accessibilityLabel(current.issue.isLocal ? l.finishFocusTimer : l.markDone)
 
             Button { showActions.toggle() } label: { Image(systemName: "ellipsis") }
                 .buttonStyle(FloatingTimerButtonStyle(selected: showActions))
@@ -161,7 +178,7 @@ struct FloatingTimerStrip: View {
                 .help(l.floatingTimerActions).accessibilityLabel(l.floatingTimerActions)
                 .popover(isPresented: $showActions, arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        if !current.issue.isPomodoro {
+                        if !current.issue.isLocal {
                             let issue = store.linearIssue(id: current.issue.id) ?? current.issue.summary
                             HStack {
                                 LinearIssueStatusPicker(issue: issue)
@@ -171,6 +188,20 @@ struct FloatingTimerStrip: View {
                             }
                         }
                         FocusTimerControls()
+                        Button {
+                            showActions = false
+                            store.floatingTimerDetached.toggle()
+                            store.floatingPetIslandFolded = false
+                        } label: {
+                            Label(store.floatingTimerDetached ? l.attachFloatingTimer : l.detachFloatingTimer,
+                                  systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                        .buttonStyle(.plain).font(.system(size: 12))
+                        if store.floatingTimerDetached {
+                            @Bindable var store = store
+                            Toggle(l.pinFloatingTimer, isOn: $store.floatingTimerPinned)
+                                .toggleStyle(.switch).controlSize(.small)
+                        }
                         Button { showActions = false; session.openDesk() } label: {
                             Label(l.todayDeskMenuOpen, systemImage: "macwindow")
                         }
@@ -185,7 +216,7 @@ struct FloatingTimerStrip: View {
     }
 
     private func canComplete(_ current: FocusSession) -> Bool {
-        if current.issue.isPomodoro { return true }
+        if current.issue.isLocal { return true }
         let issue = store.linearIssue(id: current.issue.id) ?? current.issue.summary
         return current.issue.completedStateId != nil || issue.completedStateId != nil
             || issue.teamStates.contains { $0.type.lowercased() == "completed" }

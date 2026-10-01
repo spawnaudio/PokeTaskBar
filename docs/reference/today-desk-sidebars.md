@@ -21,7 +21,7 @@ The titled, resizable window has a transparent title bar and hidden title. The t
 `MainWindowNavigation` retains back/forward history, Collection selection, workspace searches and project filtering across page changes. `PopoverNavigation` is bridged for reused controls; the main window never creates another focus session.
 
 - Today is the dashboard: actual current Pokémon hero, growth progress, shortcuts and next/current Focus.
-- Focus shows the shared timer, issue controls, local Pomodoro setup, notes and existing confirmation/check-in flows.
+- Focus shows the shared timer, issue controls, local task timer setup, notes and existing confirmation/check-in flows. Task timers accept an optional title and description, persist locally, and never create or update Linear issues. The floating setup keeps its quick Pomodoro Start and adds task setup alongside it.
 - Issues, Projects and Initiatives use existing Linear data/actions. Projects has List and Grid; Initiatives has Expanded and Overview. Initiative membership comes from actual project IDs, including projects without open issues.
 - Collection provides Bag, Pokémon Storage, Pokédex/Catch log and approved Shop catalogue 1. Buying, training and item use reuse the existing store operations and inline confirmations.
 - Usage has Overview, Provider and Limits. Settings uses expandable groups and search over existing controls.
@@ -46,8 +46,16 @@ Pin requests with `openDesk: true` open the main window on Focus. Popover issue 
 
 `PTBOpenMainWindowOnLaunch=1` in a bundle opens the main window on launch and Finder reopen. The v1.3 build sets this flag. Other named bundles retain their existing launch behavior.
 
+All timers wait at zero until Continue, Finish, Mark done (Linear only), or an explicit time change. Expiry presents an independent floating alarm window plus a macOS notification when authorized. The native Glass sound repeats while waiting; Settings → Notifications can disable it. Silence or closing the alarm stops sound while retaining the zero-time choice. Sleep holds silence playback; waking resumes it unless silenced. Extending or resetting rearms the next expiry. Relaunch restores running timers paused and presents any already-finished timer again.
+
+Settings → Desktop adds an optional focused title in the menu bar, a detached floating timer, and a pin lock for its independent saved screen position. The detached timer keeps running and hosts notes/check-ins with the pet hidden; attaching it again preserves the pet's position. Timer size scales the whole attached, collapsed or detached timer from 50–200%, independently of its width. The floating egg renders at half the Pokémon size and follows the same Pokémon size setting. Existing edge tuck, hover reveal and quick Pomodoro Start remain available.
+
 ## Validation
 
 `MainWindowTests` covers retained navigation state, project routing, timer continuity, egg purchase semantics and actual native navigation/collapse/drag events. Its opt-in screenshot check renders the implemented views with isolated state and an injected Linear response. `TodayDeskLayoutTests` covers width/collapse persistence and minimum-size math. Native event checks need display-server access; offscreen renders alone do not prove clicks work.
+
+Local task timers and completion alarms were checked on 1 October 2026: 150 focused tests passed, with three unrelated optional screenshot tests skipped. This includes 90 Focus tests, native task-title/duration input, alarm window and sound playback, existing floating timer interactions, and ten light/dark previews under `build/local-task-timer-preview`. Reintroducing the old 30-second automatic continuation caused the new unattended-expiry regression test to fail; the final source was restored and all 90 Focus tests passed again. Validation used a temporary source copy because other chats were editing the checkout during compilation; timer feature sources matched the tested copy.
+
+The combined timer/display/sizing build was checked on 1 October 2026: 144 focused tests passed with no skips, followed by two passing native main-window checks. This covers title/description persistence, local-task Linear boundaries, completion alarms, detached movement/pinning, notes/check-ins, 50/100/200% scaling in both appearances, egg sizing, edge tuck and non-token XP hatching. The full suite ran 1,489 tests (22 skipped), failing 15 test cases; unchanged Master ran 1,470 (21 skipped), sharing 11 of those failures. The four additional native window checks passed in the focused runs. The full test/coverage gate remains failing; this build does not claim a green full suite.
 
 See `main-window-v1.3.md` for this build's results and remaining validation limits.

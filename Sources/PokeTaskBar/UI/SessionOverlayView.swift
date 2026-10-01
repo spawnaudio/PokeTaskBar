@@ -11,10 +11,26 @@ struct SessionIslandView: View {
     private var l: L { companion.l }
 
     var body: some View {
+        if store.floatingTimerDetached {
+            let reserved = FloatingPetController.panelSize(petSize: 0, showingBubble: false,
+                hasIsland: session.isActive, prompt: session.prompt,
+                composingNote: session.isComposingNote,
+                confirm: session.forfeitPrompt != nil ? .forfeit : session.resetPrompt ? .reset : .none,
+                setupIsland: session.pomodoroSetupOpen && !session.isActive,
+                timerWidth: CGFloat(store.floatingTimerWidth))
+            content.scaledFloatingTimer(size: NSSize(width: CGFloat(store.floatingTimerWidth), height: reserved.height),
+                                        scale: CGFloat(store.floatingTimerScale))
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         if session.pomodoroSetupOpen, session.session == nil {
             PomodoroSetupIsland(onResizeTimer: onResizeTimer)
         } else if let current = session.session {
-            let width = store.floatingPetIslandFolded ? FloatingPetController.islandWidth : CGFloat(store.floatingTimerWidth)
+            let expanded = store.floatingTimerDetached || !store.floatingPetIslandFolded
+            let width = expanded ? CGFloat(store.floatingTimerWidth) : FloatingPetController.islandWidth
             VStack(alignment: .leading, spacing: 6) {
                 if let warning = session.forfeitPrompt {
                     FocusForfeitWarningCard(warning: warning)
@@ -22,18 +38,18 @@ struct SessionIslandView: View {
                 } else if session.resetPrompt {
                     FocusResetConfirmCard()
                         .frame(width: width)
-                } else if SessionPromptSurface.showsOnOverlay(floatingPetEnabled: store.floatingPetEnabled) {
+                } else if SessionPromptSurface.showsOnOverlay(floatingPetEnabled: store.focusOverlayEnabled) {
                     SessionPromptCard()
                         .frame(width: width)
                 }
 
-                if session.isComposingNote, !current.issue.isPomodoro {
+                if session.isComposingNote, !current.issue.isLocal {
                     SessionNoteComposer()
                         .padding(8)
                         .frame(width: width, height: FloatingPetController.noteComposerHeight - 6)
                         .tahoeFloatingChrome()
                 }
-                if !store.floatingPetIslandFolded {
+                if expanded {
                     FloatingTimerStrip(onResizeTimer: onResizeTimer)
                 }
             }
@@ -53,6 +69,7 @@ struct PomodoroSetupIsland: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @State private var hovering = false
     @State private var handleFocused = false
+    @State private var choosingTask = false
 
     private var l: L { companion.l }
 
@@ -83,6 +100,16 @@ struct PomodoroSetupIsland: View {
             }
             .menuStyle(.borderlessButton).fixedSize()
             .foregroundStyle(theme.secondary)
+            Button { choosingTask = true } label: { Image(systemName: "square.and.pencil") }
+                .buttonStyle(FloatingTimerButtonStyle())
+                .help(l.localTaskTimer).accessibilityLabel(l.localTaskTimer)
+                .popover(isPresented: $choosingTask) {
+                    FocusDurationPicker(issueTitle: "", initialMinutes: session.plannedMinutes,
+                        onStartTask: { title, description, minutes in
+                            session.startLocalTask(title: title, description: description, minutes: minutes)
+                            choosingTask = false
+                        })
+                }
             Button { session.startPomodoro() } label: { Image(systemName: "play.fill") }
                 .font(.system(size: 11))
                 .buttonStyle(FloatingTimerButtonStyle(selected: true))
@@ -91,7 +118,8 @@ struct PomodoroSetupIsland: View {
             dragHandle(.move, label: l.moveFloatingTimer)
                 .frame(width: 16, height: 30)
                 .overlay {
-                    Image(systemName: "circle.grid.2x2.fill")
+                    Image(systemName: store.floatingTimerDetached && store.floatingTimerPinned
+                          ? "pin.fill" : "circle.grid.2x2.fill")
                         .font(.system(size: 9)).foregroundStyle(theme.secondary)
                         .allowsHitTesting(false).accessibilityHidden(true)
                 }
@@ -110,6 +138,8 @@ struct PomodoroSetupIsland: View {
 
     private func dragHandle(_ mode: FloatingTimerDragView.Mode, label: String) -> some View {
         FloatingTimerDragHandle(mode: mode, width: CGFloat(store.floatingTimerWidth), label: label,
+                                scale: CGFloat(store.floatingTimerScale),
+                                movementLocked: mode == .move && store.floatingTimerDetached && store.floatingTimerPinned,
                                 onResize: onResizeTimer, onFocusChange: { handleFocused = $0 })
             .help(label)
     }
