@@ -125,6 +125,11 @@ final class FloatingTimerOverlayTests: XCTestCase {
                             window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: point,
                                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+                            if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+                                window.sendEvent(release)
+                            }
+                            XCTAssertNil(NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: false),
+                                         "Native typing must not leak mouse releases into later tests")
                             let editor = try XCTUnwrap(field.currentEditor() as? NSTextView,
                                                        "Scaled text fields must accept clicks")
                             XCTAssertTrue(window.firstResponder === editor,
@@ -325,7 +330,9 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: editorWindow.windowNumber, context: nil, characters: "\u{1b}",
                 charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
-            try await Task.sleep(for: .milliseconds(450))
+            for _ in 0..<20 where editorWindow.isVisible || panel.frame.width != 24 {
+                try await Task.sleep(for: .milliseconds(100))
+            }
             XCTAssertFalse(editorWindow.isVisible)
             XCTAssertEqual(panel.frame.width, 24, "Leaving tucks after the popover closes")
             XCTAssertEqual(fixture.defaults.double(forKey: "floatingPetOriginX"), savedX)

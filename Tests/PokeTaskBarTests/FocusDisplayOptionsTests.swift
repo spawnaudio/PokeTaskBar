@@ -174,6 +174,11 @@ final class FocusDisplayOptionsTests: XCTestCase {
         window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: point,
             modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
             windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            window.sendEvent(release)
+        }
+        XCTAssertNil(NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: false),
+                     "Native typing must not leak mouse releases into later tests")
         let editor = try XCTUnwrap(field.currentEditor() as? NSTextView,
                                   "The first click must focus the detached text field")
         editor.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))

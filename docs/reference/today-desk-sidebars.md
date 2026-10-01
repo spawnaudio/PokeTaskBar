@@ -58,4 +58,6 @@ Local task timers and completion alarms were checked on 1 October 2026: 150 focu
 
 The combined timer/display/sizing build was checked on 1 October 2026: 144 focused tests passed with no skips, followed by two passing native main-window checks. This covers title/description persistence, local-task Linear boundaries, completion alarms, detached movement/pinning, notes/check-ins, 50/100/200% scaling in both appearances, egg sizing, edge tuck and non-token XP hatching. The full suite ran 1,489 tests (22 skipped), failing 15 test cases; unchanged Master ran 1,470 (21 skipped), sharing 11 of those failures. The four additional native window checks passed in the focused runs. The full test/coverage gate remains failing; this build does not claim a green full suite.
 
+The subsequent native test cleanup passed six checks covering scaling, detached input, edge tuck and the two main-window interactions in one process. A queued-release assertion first failed twice with the old detached-input helper, then passed after both typing helpers consumed their mouse-up events. The edge-close check now waits for its actual bounded result. These corrections affect tests only; the installed app source remains identical. The initial full-run logic-core coverage was 93.12%, above the 75% floor.
+
 See `main-window-v1.3.md` for this build's results and remaining validation limits.
