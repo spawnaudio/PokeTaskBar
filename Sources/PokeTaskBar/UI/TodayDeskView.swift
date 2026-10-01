@@ -101,16 +101,22 @@ struct SessionPromptCard: View {
     }
 
     private var zeroTime: some View {
-        let id = session.session?.issue.identifier ?? ""
+        let id = session.session?.issue.displayName ?? ""
+        let local = session.session?.issue.isLocal == true
         return VStack(alignment: .leading, spacing: 8) {
             Text(l.timesUpPopupTitle(id))
                 .font(.callout.weight(.semibold))
             Button(l.timesUpContinue) { session.continueOvertime() }
                 .tahoeButtonStyle(.prominent)
-            Button(l.timesUpFinishLeave) { session.finishLeavingInProgress() }
+            Button(local ? l.finishFocusTimer : l.timesUpFinishLeave) { session.finishLeavingInProgress() }
                 .tahoeButtonStyle(.regular)
-            Button(l.timesUpMarkDone) { Task { await session.markIssueDone() } }
-                .tahoeButtonStyle(.regular)
+            if !local {
+                Button(l.timesUpMarkDone) { Task { await session.markIssueDone() } }
+                    .tahoeButtonStyle(.regular)
+            }
+            if !session.timerAlarmSilenced {
+                Button(l.silenceTimerAlarm) { session.silenceTimerAlarm() }.tahoeButtonStyle(.accessory)
+            }
         }
         .controlSize(.small)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -120,13 +126,15 @@ struct SessionPromptCard: View {
 
     private var checkIn: some View {
         @Bindable var session = session
-        let id = session.session?.issue.identifier ?? ""
+        let id = session.session?.issue.displayName ?? ""
         return VStack(alignment: .leading, spacing: 8) {
             Text(l.stillOnIssue(id))
                 .font(.callout.weight(.semibold))
-            TextField(l.checkInNotePlaceholder, text: $session.checkInDraft)
-                .textFieldStyle(.roundedBorder)
-                .focused($checkInFieldFocused)
+            if session.session?.issue.isLocal != true {
+                TextField(l.checkInNotePlaceholder, text: $session.checkInDraft)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($checkInFieldFocused)
+            }
             HStack {
                 Button(l.checkInYes) { Task { await session.answerCheckIn(.yes) } }
                     .tahoeButtonStyle(.prominent)
@@ -136,9 +144,9 @@ struct SessionPromptCard: View {
                     .tahoeButtonStyle(.accessory)
                     .foregroundStyle(.secondary)
             }
-            Text(l.checkInAddNote)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            if session.session?.issue.isLocal != true {
+                Text(l.checkInAddNote).font(.caption2).foregroundStyle(.tertiary)
+            }
         }
         .controlSize(.small)
         .frame(maxWidth: .infinity, alignment: .leading)

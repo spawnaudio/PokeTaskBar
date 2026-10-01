@@ -16,6 +16,14 @@ read_when:
 
 ## Attached panel sizing
 
+- **A new NSPanel already has a plain content view.** Testing `contentView == nil`
+  before installing a detached timer's hosting view left the first window empty.
+  Frame and persistence assertions passed; the native handle lookup and rendered
+  preview caught it. Check for the expected hosting type on first show and after
+  teardown. `FocusDisplayOptionsTests.testDetachedTimerMovesIndependentlyPinsAndRestores`
+  verifies real controls on initial detach, independent movement, pinning, prompts,
+  reattachment, setup and relaunch. It fails with the nil-only installation guard.
+
 - **Native popover tests must not assume system chrome offsets.** The Issue Filter
   checkbox test passed locally but its hard-coded popup coordinates missed every
   checkbox on the macOS 15 CI runner. The test now locates the scroll document and
@@ -61,6 +69,18 @@ read_when:
   setup alone (no active session). The native controller regression verifies both handles,
   drawn surface opacity, first-click Start/Pause, resizing before Start, and the pet anchor
   through fold/expand in light and dark. It fails on the old setup implementation.
+
+- **Edge peeks must include sprite pixels, not only valid window geometry.** Cropping
+  the outer 24 pt of the square sprite slot can show only transparent padding at
+  larger sizes or for narrow characters. Crop beside the center instead.
+  `FloatingTimerOverlayTests.testEdgePeekContainsSpritePixelsAtAllPetSizes` checks
+  rendered alpha at 48, 96 and 384 pt on both edges; it fails with the outer-edge crop.
+
+- **Keyboard movement follows the window's display.** The floating timer drag handle
+  used the pointer's screen for keyboard moves as well as dragging, which could clamp
+  the timer onto another display. Only an active pointer drag should follow that screen.
+  The native edge-mode regression checks keyboard movement with the pointer away from
+  the overlay, including leaving edge mode and saving the new position.
 
 - **Attached window height must measure page content, not the current scroll viewport.**
   The fixed 640 pt shell and 520 pt minimum left short pages mostly blank. Previous
@@ -864,6 +884,15 @@ read_when:
 - **Open-panel snappiness is a different hitch than idle GIF wakeup.** Closed hosting teardown (`contentView=nil`) already stops relative-`Text` layout when hidden. With the panel **open**, three cheaper bugs still janked the main thread: ① focus `tick()` atomically encoded+wrote the session JSON every second; persist on phase/XP/check-in or a 10s cadence instead (`FocusSessionStore.tickPersistInterval`, `testAccrualTicksDoNotRewriteSessionFileEverySecond`). ② usage `refresh` assigned a new `snapshots` array (`fetchedAt: Date()`) even when daily/week/month payloads were identical, so every `@Observable` consumer rebuilt; skip with `ProviderSnapshot.payloadEquals` (`testIdenticalRefreshKeepsSnapshotPayloadIdentity`). ③ the floating pet observed `todayTotalTokens` and called `setFrame(display: true)` + `orderFrontRegardless` on every poll — split tooltip observation and skip the frame commit when the rect is unchanged (`shouldApplyPanelFrame`, `testVisiblePetSkipsRedundantFrameCommits`). Open Usage/Linear `Text(_, style: .relative)` still self-invalidates ~1Hz; those labels are `RelativeTimestampText` (15s `TimelineView`). Linear issue/project `ScrollView` lists are `LazyVStack` so off-screen foldable rows are not built on tab entry. Do **not** drop always-on GIF `frameFloor > 0`. Guards: `RefreshPublishPerformanceTests`, `RelativeTimestampPerformanceTests`, `FloatingPetEnergyTests.testVisiblePetSkipsRedundantFrameCommits`, Focus persist cadence tests.
 
 ## 알림
+
+- **Timer expiry must survive a missed visual cue.** The old zero-time path only
+  displayed transient bubble/menu feedback and automatically entered overtime after
+  30 seconds. Clock/XP tests explicitly expected that transition, so they could not
+  detect a user missing completion. All timers now stay at zero until an explicit
+  choice, with an independent native alarm window and optional repeating sound.
+  `FocusSessionTests` covers a long unattended wait, silence, close, sleep/wake,
+  rearming, reset/edit/continue/finish, and the real native alarm window. Local task
+  IDs share the timer but are blocked at Linear comment and completion boundaries.
 
 - **휘발성 필드를 dedup/identity 키에 쓰지 마라.** 매 fetch/refresh 마다 값이 변하는 필드(예: rolling
   한도 창의 `resets_at`)를 알림 중복방지 키에 넣으면 매번 새 키가 되어 dedup 이 무력화된다 — 주간 한도

@@ -44,6 +44,7 @@ final class FocusSessionStore {
     private(set) var resetPrompt = false
     /// Overlay setup island for a timer with no Linear issue. Not persisted.
     private(set) var pomodoroSetupOpen = false
+    private(set) var timerAlarmSilenced = false
     var onOpenDesk: (() -> Void)?
     var onOpenComposer: (() -> Void)?
     var onRevealOverlay: (() -> Void)?
@@ -158,6 +159,22 @@ final class FocusSessionStore {
         pomodoroSetupOpen = false
         startPinned(FocusPinnedIssue.pomodoro(title: companion.l.pomodoroTitle))
     }
+
+    func startLocalTask(title: String, description: String, minutes: Int) {
+        guard session == nil, (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
+        plannedMinutes = minutes
+        pomodoroSetupOpen = false
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        startPinned(FocusPinnedIssue.localTask(
+            title: title.isEmpty ? companion.l.pomodoroTitle : title, description: description))
+        onRevealOverlay?()
+    }
+
+    var timerAlarmRinging: Bool {
+        session?.phase == .awaitingChoice && session?.sleepHeld == false && !timerAlarmSilenced
+    }
+
+    func silenceTimerAlarm() { timerAlarmSilenced = true }
 
     func requestUnfocus() {
         guard session != nil else { return }
@@ -301,7 +318,10 @@ final class FocusSessionStore {
     }
 
     func finishLeavingInProgress(resumeTimeOpen: Bool = true) {
-        guard let session else { return }
+        guard let current = session else { return }
+        let result = FocusTick.apply(current, now: clock())
+        let session = result.session
+        grantSessionXP(result.sessionXP)
         let xp = FocusTick.settleLeaveInProgress(session)
         grantSessionXP(xp)
         appendSessionLog(session)
@@ -310,7 +330,7 @@ final class FocusSessionStore {
     }
 
     func markIssueDone() async {
-        guard let session else { return }
+        guard let session, !session.issue.isLocal else { return }
         let issue = usage.linearIssue(id: session.issue.id) ?? session.issue.summary
         guard let stateID = session.issue.completedStateId
                 ?? issue.completedStateId
@@ -325,7 +345,10 @@ final class FocusSessionStore {
     }
 
     func handleLinearCompletion(_ completed: LinearCompletedIssue) {
-        guard let session, session.issue.id == completed.id else { return }
+        guard let current = session, !current.issue.isLocal, current.issue.id == completed.id else { return }
+        let result = FocusTick.apply(current, now: clock())
+        let session = result.session
+        grantSessionXP(result.sessionXP)
         let finish: FocusFinishKind
         let xp: Int
         if session.fiveXOpen, !session.enteredOvertime {
@@ -387,7 +410,6 @@ final class FocusSessionStore {
         let result = FocusTick.apply(session, now: instant)
         let semantic = result.sessionXP > 0
             || result.hitZero
-            || result.autoContinued
             || result.checkInBecameDue
             || result.session.phase != session.phase
             || result.session.pendingCheckIn != session.pendingCheckIn
@@ -395,7 +417,8 @@ final class FocusSessionStore {
         self.session = result.session
         if result.sessionXP > 0 { grantSessionXP(result.sessionXP) }
         if result.hitZero {
-            usage.announceTimesUp(result.session.issue.identifier)
+            timerAlarmSilenced = false
+            usage.announceTimesUp(result.session.issue.displayName)
         }
         if Self.shouldPersistTick(
             elapsedSinceLastPersist: instant.timeIntervalSince(lastPersistAt),
@@ -471,7 +494,7 @@ final class FocusSessionStore {
     }
 
     private func postLinearComment(issueID: String, body: String) async -> Bool {
-        if session?.issue.isPomodoro == true { return false }
+        if session?.issue.isLocal == true { return false }
         if let postComment {
             return await postComment(issueID, body)
         }
@@ -492,6 +515,7 @@ final class FocusSessionStore {
 
     private func startPinned(_ issue: FocusPinnedIssue) {
         let now = clock()
+        usage.requestNotificationAuthorizationIfNeeded()
         companion.setTimeOpenXPSuspended(true)
         sessionGrantedXP = 0
         sessionCheckIns = []
@@ -604,9 +628,8 @@ final class FocusSessionStore {
     }
 
     private func syncTimer() {
-        let needs = ticksOnTimer && session != nil && (
-            session?.isAccruing == true || session?.phase == .awaitingChoice
-        )
+        if session?.phase != .awaitingChoice { timerAlarmSilenced = false }
+        let needs = ticksOnTimer && session?.isAccruing == true
         if needs {
             if timer == nil {
                 let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in

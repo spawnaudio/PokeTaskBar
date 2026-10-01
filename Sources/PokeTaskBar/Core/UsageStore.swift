@@ -85,6 +85,12 @@ final class UsageStore {
     var showLinearIssuesInMenu: Bool {
         didSet { defaults.set(showLinearIssuesInMenu, forKey: "showLinearIssuesInMenu") }
     }
+    var showFocusedIssueTitleInMenu: Bool {
+        didSet { defaults.set(showFocusedIssueTitleInMenu, forKey: "showFocusedIssueTitleInMenu") }
+    }
+    var timerAlarmSoundEnabled: Bool {
+        didSet { defaults.set(timerAlarmSoundEnabled, forKey: "timerAlarmSoundEnabled") }
+    }
     /// 한도 % 표시 방식 — 사용한 양(기본) 또는 남은 양. 숫자 표시에만 적용되고
     /// 경고/위험 판정·게이지 채움·알림은 사용률 원값 기준을 유지한다(경고 의미론 분리).
     enum LimitDisplayMode: String, CaseIterable {
@@ -165,6 +171,20 @@ final class UsageStore {
     /// Overlay timer island folded into the pet. Default expanded. Survives relaunch.
     var floatingPetIslandFolded: Bool {
         didSet { defaults.set(floatingPetIslandFolded, forKey: "floatingPetIslandFolded") }
+    }
+    var floatingTimerDetached: Bool {
+        didSet { defaults.set(floatingTimerDetached, forKey: "floatingTimerDetached") }
+    }
+    var floatingTimerPinned: Bool {
+        didSet { defaults.set(floatingTimerPinned, forKey: "floatingTimerPinned") }
+    }
+    var focusOverlayEnabled: Bool { floatingPetEnabled || floatingTimerDetached }
+    var floatingTimerScale: Double {
+        didSet {
+            let clamped = FloatingTimerMetrics.scale(floatingTimerScale)
+            if floatingTimerScale != clamped { floatingTimerScale = clamped }
+            defaults.set(floatingTimerScale, forKey: FloatingTimerMetrics.scaleKey)
+        }
     }
     /// Preferred expanded timer width. The controller additionally fits it to the screen.
     var floatingTimerWidth: Double {
@@ -685,6 +705,8 @@ final class UsageStore {
         showLimitInMenu = d.object(forKey: "showLimitInMenu") as? Bool ?? false
         showScoreInMenu = d.object(forKey: "showScoreInMenu") as? Bool ?? true
         showLinearIssuesInMenu = d.object(forKey: "showLinearIssuesInMenu") as? Bool ?? true
+        showFocusedIssueTitleInMenu = d.object(forKey: "showFocusedIssueTitleInMenu") as? Bool ?? false
+        timerAlarmSoundEnabled = d.object(forKey: "timerAlarmSoundEnabled") as? Bool ?? true
         limitDisplayMode = LimitDisplayMode(rawValue: d.string(forKey: "limitDisplayMode") ?? "") ?? .used
         limitNotifications = d.object(forKey: "limitNotifications") as? Bool ?? true
         companionNotifications = d.object(forKey: "companionNotifications") as? Bool ?? true
@@ -701,6 +723,9 @@ final class UsageStore {
         floatingPetSize = d.object(forKey: "floatingPetSize") as? Double ?? 96
         floatingPetBubbleAlerts = d.object(forKey: "floatingPetBubbleAlerts") as? Bool ?? true
         floatingPetIslandFolded = d.object(forKey: "floatingPetIslandFolded") as? Bool ?? false
+        floatingTimerDetached = d.object(forKey: "floatingTimerDetached") as? Bool ?? false
+        floatingTimerPinned = d.object(forKey: "floatingTimerPinned") as? Bool ?? false
+        floatingTimerScale = FloatingTimerMetrics.scale(d.object(forKey: FloatingTimerMetrics.scaleKey) as? Double ?? 1)
         floatingTimerWidth = Double(FloatingTimerMetrics.width(
             CGFloat(d.object(forKey: FloatingTimerMetrics.widthKey) as? Double ?? Double(FloatingTimerMetrics.defaultWidth))))
         menuBarPanelDetached = d.object(forKey: MenuBarPanelMetrics.detachedKey) as? Bool ?? false
@@ -1818,6 +1843,13 @@ final class UsageStore {
             floatingPetEnabled: floatingPetEnabled,
             l: L(localizationLanguage))
         presentTransientFeedback(bubble: feedback.bubble, menuLines: feedback.menuLines)
+        if AppEnv.isBundledApp {
+            let content = UNMutableNotificationContent()
+            content.title = L(localizationLanguage).timesUpFlashTitle
+            content.body = identifier
+            UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: "focus.timer.finished", content: content, trigger: nil))
+        }
     }
 
     func announceForfeit(identifier: String, leaveInProgressXP: Int) {

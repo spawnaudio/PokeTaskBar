@@ -190,7 +190,7 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertEqual(dark.alphaComponent, 0.16, accuracy: 0.01)
     }
 
-    func testFocusTabKeepsPomodoroUsageAndTimeXPSeparate() throws {
+    func testFocusTabKeepsTaskTimerUsageAndTimeXPSeparate() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -200,8 +200,8 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(focus.contains("focusSessionSection"))
         XCTAssertTrue(focus.contains("idleFocusPrompt"))
         XCTAssertTrue(focus.contains("TimeXPView"))
-        XCTAssertTrue(focus.contains("session.openPomodoroSetup()"))
-        XCTAssertTrue(focus.contains("l.pomoTimer"))
+        XCTAssertTrue(focus.contains("session.startLocalTask(title: title, description: description, minutes: minutes)"))
+        XCTAssertTrue(focus.contains("l.localTaskTimer"))
         XCTAssertTrue(focus.contains("l.focusIssueOrTimerPrompt"))
         XCTAssertTrue(focus.contains("l.openLinearTab"))
         let chrome = try String(contentsOf: root.appendingPathComponent("PopoverChrome.swift"), encoding: .utf8)
@@ -293,9 +293,10 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains("MenuBarLines.attributedTitle"))
         XCTAssertTrue(source.contains("MenuBarLines.doneTodayPill"))
         XCTAssertTrue(source.contains("?? .doneToday(0)"))
-        XCTAssertTrue(source.contains("title: nil"))
+        XCTAssertTrue(source.contains("title: focusedTitle"))
         XCTAssertTrue(source.contains("store.menuLinearIssueCounts"))
-        XCTAssertFalse(source.contains("MenuBarLines.focusedIssueTitle(sessionStore.session)"))
+        XCTAssertTrue(source.contains("show: store.showFocusedIssueTitleInMenu"))
+        XCTAssertTrue(source.contains("_ = store.showFocusedIssueTitleInMenu"))
         XCTAssertFalse(source.contains("showScoreInMenu ? TokenFormatter.compact(companion.lifetimeXP) : nil"))
         XCTAssertFalse(source.contains("_ = store.showScoreInMenu"))
         XCTAssertTrue(source.contains("_ = store.menuLinearIssuesLine"))

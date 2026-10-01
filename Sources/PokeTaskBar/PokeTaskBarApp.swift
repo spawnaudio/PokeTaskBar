@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var issueComposer: LinearIssueComposerController!
     private var updater: UpdateChecker!
     private var floatingPet: FloatingPetController!
+    private var timerAlert: FocusTimerAlertController!
     private let xpFeedback = XPFeedbackController()
     private let xpGlow = XPBoundaryGlow()
     private let navigation = PopoverNavigation()
@@ -134,9 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )   // 데스크톱 플로팅 펫(옵트인)
         sessionStore.onRevealOverlay = { [weak self] in
             guard let self else { return }
-            self.store.floatingPetEnabled = true
+            if !self.store.floatingTimerDetached { self.store.floatingPetEnabled = true }
             self.store.floatingPetIslandFolded = false
         }
+        timerAlert = FocusTimerAlertController(usage: store, companion: companion, session: sessionStore)
         Task { await updater.check() }                    // 기동 시 1회 업데이트 확인
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -209,6 +211,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         withObservationTracking {
             _ = store.menuTitle
             _ = store.menuLinearIssuesLine
+            _ = store.showFocusedIssueTitleInMenu
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -285,6 +288,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             clock: sessionStore.clockDisplay(),
             overtimeAbbrev: companion.l.overtimeAbbrev)
         let trailing = MenuBarLines.doneTodayPill(linearCounts: store.menuLinearIssueCounts) ?? .doneToday(0)
+        let focusedTitle = MenuBarLines.focusedIssueTitle(
+            sessionStore.session, show: store.showFocusedIssueTitleInMenu)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         if let reward = xpFeedback.current {
             Self.applyMenuAttributedTitle(XPFeedbackStyle.title(for: reward), to: button)
@@ -294,12 +299,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 to: button)
         } else {
             Self.applyMenuAttributedTitle(
-                MenuBarLines.attributedTitle(title: nil, trailing: trailing, font: font),
+                MenuBarLines.attributedTitle(title: focusedTitle, trailing: trailing, font: font),
                 to: button)
         }
         button.toolTip = MenuBarLines.toolTip(
             identifier: sessionStore.session?.issue.identifier,
             sessionClock: sessionClock)
+        if focusedTitle != nil, let title = sessionStore.session?.issue.title {
+            button.toolTip = [title, button.toolTip].compactMap { $0 }.joined(separator: "\n")
+        }
         if let reward = xpFeedback.current {
             button.toolTip = [reward.exactText, button.toolTip].compactMap { $0 }.joined(separator: "\n")
         }

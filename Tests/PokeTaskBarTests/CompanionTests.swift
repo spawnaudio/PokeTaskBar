@@ -1016,6 +1016,14 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertEqual(s.state.eggUsage, 0)
     }
 
+    func testProgressXPFromNonTokenSourcesHatchesEgg() async {
+        let s = store(linear3)
+        s.applyProgressXP(PokemonBalance.eggHatchThreshold, source: .project)
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertNotNil(s.state.active, "timer and Linear/task XP must trigger hatching too")
+        XCTAssertEqual(s.state.eggUsage, 0)
+    }
+
     /// [회귀] 부화한 현재 포켓몬은 졸업 전에도 도감에 보여야 한다. 영구 dex 에 미리 저장하지 않고
     /// 화면용 엔트리로 합쳐, 진화 경로는 즉시 갱신되고 졸업 시 중복이 생기지 않는다.
     func testActiveCompanionAppearsInDexBeforeGraduationWithoutDuplicate() async {

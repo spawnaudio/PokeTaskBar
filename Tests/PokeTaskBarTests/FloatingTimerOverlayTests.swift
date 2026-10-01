@@ -5,6 +5,368 @@ import XCTest
 
 @MainActor
 final class FloatingTimerOverlayTests: XCTestCase {
+    func testTimerScalePersistsAndBoundsSavedValues() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        XCTAssertEqual(fixture.usage.floatingTimerScale, 1)
+        fixture.usage.floatingTimerScale = 0.75
+        XCTAssertEqual(fixture.makeUsage().floatingTimerScale, 0.75)
+        for (value, expected) in [(-1.0, 0.5), (10.0, 2.0), (.nan, 1.0), (.infinity, 1.0)] {
+            fixture.usage.floatingTimerScale = value
+            XCTAssertEqual(fixture.usage.floatingTimerScale, expected)
+            fixture.defaults.set(value, forKey: FloatingTimerMetrics.scaleKey)
+            XCTAssertEqual(fixture.makeUsage().floatingTimerScale, expected)
+        }
+    }
+
+    func testFloatingEggRendersAtHalfThePokemonSize() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        fixture.usage.floatingTimerDetached = true
+        fixture.focus.startPomodoro() // The detached timer leaves only the sprite in this view.
+        XCTAssertNil(fixture.companion.representativeSubject.speciesID)
+        func opaqueBounds(_ content: some View) throws -> NSRect {
+            let bitmap = NSBitmapImageRep(cgImage: try XCTUnwrap(ImageRenderer(content: content).cgImage))
+            var bounds = NSRect.null
+            for x in 0..<bitmap.pixelsWide {
+                for y in 0..<bitmap.pixelsHigh where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.1 {
+                    bounds = bounds.union(NSRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+            XCTAssertFalse(bounds.isNull)
+            return bounds
+        }
+        for size: CGFloat in [48, 96, 384] {
+            fixture.usage.floatingPetSize = Double(size)
+            let actual = try opaqueBounds(FloatingPetView(animated: false)
+                .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+                .frame(width: size, height: size))
+            let expected = try opaqueBounds(SpriteView(speciesID: nil, size: size / 2)
+                .frame(width: size, height: size))
+            XCTAssertEqual(actual, expected, "The egg must share the Pokémon setting at half its size")
+            let old = try opaqueBounds(SpriteView(speciesID: nil, size: size))
+            XCTAssertEqual(actual.height, old.height / 2, accuracy: 2)
+        }
+    }
+
+    func testNativeTimerScaleUpdatesAllModesAndKeepsControlsUsable() async throws {
+        let screen = try XCTUnwrap(NSScreen.main)
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        fixture.companion.setLanguage(.en)
+        fixture.usage.floatingPetEnabled = true
+        fixture.usage.floatingPetSize = 48
+        fixture.defaults.set(screen.visibleFrame.maxX - 100, forKey: "floatingPetOriginX")
+        fixture.defaults.set(screen.visibleFrame.minY + 100, forKey: "floatingPetOriginY")
+        let controller = FloatingPetController(store: fixture.usage, companion: fixture.companion,
+            session: fixture.focus, defaults: fixture.defaults)
+        defer { controller.setDisplayAwake(false) }
+        let pet = try XCTUnwrap(NSApp.windows.compactMap { $0 as? FloatingPetPanel }.first { $0.isVisible })
+        let petAnchor = pet.frame.maxX - 48
+        func settle() async throws {
+            try await Task.sleep(for: .milliseconds(120))
+            for window in NSApp.windows where window.isVisible { window.contentView?.layoutSubtreeIfNeeded() }
+        }
+        func handles(_ view: NSView) -> [FloatingTimerDragView] {
+            (view as? FloatingTimerDragView).map { [$0] } ?? view.subviews.flatMap(handles)
+        }
+        func click(_ window: NSWindow, x: CGFloat, y: CGFloat) throws {
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: y),
+                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+            }
+        }
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            pet.appearance = NSAppearance(named: appearance)
+            for scale: CGFloat in [0.5, 1, 2] {
+                fixture.usage.floatingTimerScale = Double(scale)
+                fixture.usage.floatingTimerWidth = 384
+                for mode in ["idle", "setup", "expanded", "compact", "detached", "detached-setup", "note", "check-in", "detached-note", "detached-check-in"] {
+                    fixture.usage.floatingTimerDetached = mode.hasPrefix("detached")
+                    fixture.usage.floatingPetIslandFolded = mode == "compact"
+                    if mode.hasSuffix("note") || mode.hasSuffix("check-in") {
+                        var issue = FocusPinnedIssue.pomodoro(title: "Scaled prompt").summary
+                        issue.id = "scale-prompt"
+                        fixture.focus.pin(issue, openDesk: false, minutes: 50)
+                        if mode.hasSuffix("note") { fixture.focus.toggleNoteComposer() }
+                        else { fixture.focus.tick(now: Date(timeIntervalSince1970: 1_700_000_000 + 30 * 60)) }
+                    } else if mode == "setup" || mode == "detached-setup" { fixture.focus.openPomodoroSetup() }
+                    else if mode != "idle" { fixture.focus.startPomodoro() }
+                    try await settle()
+                    let detached = fixture.usage.floatingTimerDetached
+                    let window = detached ? try XCTUnwrap(NSApp.windows.first {
+                        $0.identifier?.rawValue == FloatingPetController.timerPanelIdentifier && $0.isVisible
+                    }) : pet
+                    window.appearance = NSAppearance(named: appearance)
+                    let host = try XCTUnwrap(window.contentView)
+                    if mode == "idle" {
+                        XCTAssertEqual(pet.frame.width, 48 + 40 * scale, accuracy: 1)
+                    } else if mode == "compact" {
+                        XCTAssertEqual(pet.frame.width, 48 + 161 * scale, accuracy: 1)
+                        try click(pet, x: 80 * scale, y: 17 * scale)
+                        XCTAssertTrue(fixture.focus.session?.userPaused == true, "Scaled compact Pause must accept clicks")
+                    } else {
+                        XCTAssertEqual(window.frame.width, detached ? 384 * scale : 48 + 432 * scale, accuracy: 1)
+                        let contentHeight: CGFloat = mode.hasSuffix("note") ? 110 : mode.hasSuffix("check-in") ? 226 : 42
+                        XCTAssertEqual(window.frame.height, detached ? contentHeight * scale : max(48, contentHeight * scale), accuracy: 1)
+                        let resize = try XCTUnwrap(handles(host).first { $0.mode == .resize })
+                        XCTAssertEqual(resize.timerScale, scale)
+                        XCTAssertEqual(resize.convert(resize.bounds, to: host).width, 12 * scale, accuracy: 1)
+                        if mode.hasSuffix("note") || mode.hasSuffix("check-in") {
+                            func fields(_ view: NSView) -> [NSTextField] {
+                                (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(fields)
+                            }
+                            let field = try XCTUnwrap(fields(host).first { $0.isEditable })
+                            let point = field.convert(NSPoint(x: field.bounds.midX, y: field.bounds.midY), to: nil)
+                            NSApp.postEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseUp, location: point,
+                                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 0)), atStart: true)
+                            window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: point,
+                                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+                            let editor = try XCTUnwrap(field.currentEditor() as? NSTextView,
+                                                       "Scaled text fields must accept clicks")
+                            XCTAssertTrue(window.firstResponder === editor,
+                                          "\(mode), \(scale): the clicked editor must receive keyboard events; key=\(window.isKeyWindow)")
+                            // Use native text input after the real click; desktop focus can steal synthetic key events.
+                            editor.insertText("N", replacementRange: NSRange(location: NSNotFound, length: 0))
+                            try await settle()
+                            XCTAssertEqual(mode.hasSuffix("note") ? fixture.focus.noteDraft : fixture.focus.checkInDraft, "N",
+                                           "\(mode), \(scale), \(appearance): typed input must reach the draft")
+                        } else if mode == "setup" || mode == "detached-setup" {
+                            try click(window, x: (384 - 64.5) * scale, y: 21 * scale)
+                            XCTAssertTrue(fixture.focus.isActive, "Scaled Start must accept clicks")
+                        } else {
+                            _ = try XCTUnwrap(handles(host).first { $0.mode == .move }).becomeFirstResponder()
+                            try await settle()
+                            try click(window, x: (384 - 139.5) * scale, y: 21 * scale)
+                            XCTAssertTrue(fixture.focus.session?.userPaused == true, "Scaled Pause must accept clicks")
+                        }
+                        let right = window.frame.maxX
+                        resize.keyDown(with: try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                            modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+                            characters: "", charactersIgnoringModifiers: "", isARepeat: false, keyCode: 123)))
+                        try await settle()
+                        XCTAssertEqual(window.frame.width, (detached ? 384 * scale : 48 + 432 * scale) + 8, accuracy: 1)
+                        XCTAssertEqual(window.frame.maxX, right, accuracy: 1)
+                    }
+                    XCTAssertEqual(pet.frame.maxX - 48, petAnchor, accuracy: 1)
+                    XCTAssertLessThanOrEqual(host.fittingSize.width, window.frame.width + 1)
+                    XCTAssertLessThanOrEqual(host.fittingSize.height, window.frame.height + 1)
+                    if let path = ProcessInfo.processInfo.environment["PTB_FLOATING_PREVIEW_DIR"] {
+                        let directory = URL(fileURLWithPath: path)
+                        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                        host.cacheDisplay(in: host.bounds, to: bitmap)
+                        try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                            .write(to: directory.appendingPathComponent("scale-\(mode)-\(scale)-\(appearance.rawValue).png"))
+                    }
+                    fixture.focus.cancelPomodoroSetup()
+                    fixture.focus.finishLeavingInProgress()
+                    fixture.usage.floatingTimerWidth = 384
+                    try await settle()
+                }
+            }
+        }
+    }
+
+    func testEdgePeekGeometryStaysOnItsDisplay() {
+        for visible in [NSRect(x: 0, y: 40, width: 1440, height: 860),
+                        NSRect(x: -1440, y: -300, width: 1440, height: 900)] {
+            for edge in [FloatingPetController.TuckEdge.left, .right] {
+                for petSize: CGFloat in [48, 96, 384] {
+                    let expanded = NSRect(x: visible.midX, y: visible.maxY - 10,
+                                          width: 720, height: petSize + 72)
+                    for tucked in [true, false] {
+                        let frame = FloatingPetController.edgeFrame(expanded: expanded, edge: edge,
+                            visible: visible, petSize: petSize, tucked: tucked)
+                        XCTAssertTrue(visible.contains(frame))
+                        XCTAssertEqual(frame.width, tucked ? 24 : expanded.width)
+                        XCTAssertEqual(edge == .left ? frame.minX : frame.maxX,
+                                       edge == .left ? visible.minX : visible.maxX)
+                    }
+                }
+            }
+        }
+    }
+
+    func testEdgePeekContainsSpritePixelsAtAllPetSizes() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        for petSize: Double in [48, 96, 384] {
+            fixture.usage.floatingPetSize = petSize
+            for edge in [FloatingPetController.TuckEdge.left, .right] {
+                let root = FloatingPetView(animated: false, tuckedEdge: edge)
+                    .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+                let bitmap = NSBitmapImageRep(cgImage: try XCTUnwrap(ImageRenderer(content: root).cgImage))
+                XCTAssertEqual(bitmap.pixelsWide, 24)
+                let visiblePixels = (0..<bitmap.pixelsWide).contains { x in
+                    (0..<bitmap.pixelsHigh).contains { y in
+                        (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.1
+                    }
+                }
+                XCTAssertTrue(visiblePixels, "\(edge), \(petSize): transparent sprite padding must not hide the peek")
+            }
+        }
+    }
+
+    func testNativeEdgeMenuHoverTimerAndRestore() async throws {
+        let screen = try XCTUnwrap(NSScreen.main)
+        let originalMouse = NSEvent.mouseLocation
+        func movePointer(_ point: NSPoint) {
+            CGWarpMouseCursorPosition(CGPoint(x: point.x,
+                y: (NSScreen.screens.first?.frame.maxY ?? 0) - point.y))
+        }
+        defer { movePointer(originalMouse) }
+        movePointer(NSPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.maxY - 5))
+        let output = ProcessInfo.processInfo.environment["PTB_EDGE_PREVIEW_DIR"].map { URL(fileURLWithPath: $0) }
+        if let output { try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true) }
+
+        for edge in [FloatingPetController.TuckEdge.left, .right] {
+            let fixture = try Fixture()
+            defer { fixture.remove() }
+            fixture.companion.setLanguage(.en)
+            fixture.usage.floatingPetEnabled = true
+            fixture.defaults.set(edge == .left ? screen.visibleFrame.minX + 48 : screen.visibleFrame.maxX - 160,
+                                 forKey: "floatingPetOriginX")
+            fixture.defaults.set(screen.visibleFrame.minY + 100, forKey: "floatingPetOriginY")
+            fixture.focus.startPomodoro()
+            let controller = FloatingPetController(store: fixture.usage, companion: fixture.companion,
+                session: fixture.focus, defaults: fixture.defaults)
+            defer { controller.setDisplayAwake(false) }
+            let panel = try XCTUnwrap(NSApp.windows.compactMap { $0 as? FloatingPetPanel }.first { $0.isVisible })
+            let host = try XCTUnwrap(panel.contentView as? PetHostingView)
+            let normal = panel.frame
+            let savedX = fixture.defaults.double(forKey: "floatingPetOriginX")
+            let savedY = fixture.defaults.double(forKey: "floatingPetOriginY")
+
+            func settle() async throws { try await Task.sleep(for: .milliseconds(100)) }
+            func toggleFromMenu() throws {
+                let menu = host.makeContextMenu()
+                let index = menu.indexOfItem(withTitle: "Tuck at screen edge")
+                XCTAssertGreaterThanOrEqual(index, 0)
+                let item = try XCTUnwrap(menu.item(at: index))
+                XCTAssertEqual(item.state, controller.tuckEdge == nil ? .off : .on)
+                menu.performActionForItem(at: index)
+            }
+            func snapshot(_ name: String) throws {
+                guard let output else { return }
+                host.layoutSubtreeIfNeeded()
+                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                    .write(to: output.appendingPathComponent("edge-\(edge)-\(name).png"))
+            }
+
+            try toggleFromMenu()
+            try await settle()
+            XCTAssertEqual(controller.tuckEdge, edge)
+            XCTAssertEqual(panel.frame.width, 24)
+            XCTAssertEqual(panel.frame.height, 96)
+            XCTAssertEqual(host.fittingSize.width, 24, accuracy: 1, "Tucked mode contains only the cropped sprite")
+            XCTAssertFalse(host.hasIsland)
+            XCTAssertEqual(fixture.defaults.string(forKey: FloatingPetController.tuckEdgeKey), edge.rawValue)
+            try snapshot("tucked")
+
+            host.onHoverChange?(true)
+            try await settle()
+            XCTAssertNil(host.tuckedEdge)
+            XCTAssertTrue(host.hasIsland)
+            XCTAssertEqual(panel.frame.size, normal.size)
+            XCTAssertTrue(screen.visibleFrame.contains(panel.frame))
+            XCTAssertEqual(edge == .left ? panel.frame.minX : panel.frame.maxX,
+                           edge == .left ? screen.visibleFrame.minX : screen.visibleFrame.maxX)
+            try snapshot("revealed")
+            controller.resizeTimer(to: 350, keepingRightEdge: NSPoint(x: panel.frame.maxX, y: panel.frame.minY))
+            try await settle()
+            XCTAssertEqual(controller.tuckEdge, edge, "Resizing must retain edge mode")
+            XCTAssertEqual(fixture.usage.floatingTimerWidth, 350)
+
+            fixture.usage.floatingPetIslandFolded = true
+            try await settle()
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                panel.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: 82, y: 17),
+                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+            }
+            XCTAssertTrue(fixture.focus.session?.userPaused == true, "Revealed controls must receive real clicks")
+
+            host.onHoverChange?(false)
+            try await Task.sleep(for: .milliseconds(100))
+            host.onHoverChange?(true)
+            try await Task.sleep(for: .milliseconds(400))
+            XCTAssertGreaterThan(panel.frame.width, 24, "Returning before the delay cancels tucking")
+
+            host.onMenuTrackingChange?(true)
+            host.onHoverChange?(false)
+            try await Task.sleep(for: .milliseconds(450))
+            XCTAssertGreaterThan(panel.frame.width, 24, "A right-click menu must hold the overlay open")
+            host.onMenuTrackingChange?(false)
+            host.onHoverChange?(true)
+            try await settle()
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                panel.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: 45, y: 17),
+                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+            }
+            try await Task.sleep(for: .milliseconds(300))
+            func fields(_ view: NSView) -> [NSTextField] {
+                (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(fields)
+            }
+            let field = try XCTUnwrap(NSApp.windows.filter(\.isVisible).compactMap(\.contentView)
+                .flatMap(fields).first { $0.isEditable && $0.placeholderString == "Minutes" })
+            let editorWindow = try XCTUnwrap(field.window)
+            XCTAssertNotNil(field.currentEditor())
+            host.onHoverChange?(false)
+            try await Task.sleep(for: .milliseconds(450))
+            XCTAssertGreaterThan(panel.frame.width, 24, "Open timer popovers must keep the overlay revealed")
+            editorWindow.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: editorWindow.windowNumber, context: nil, characters: "\u{1b}",
+                charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
+            try await Task.sleep(for: .milliseconds(450))
+            XCTAssertFalse(editorWindow.isVisible)
+            XCTAssertEqual(panel.frame.width, 24, "Leaving tucks after the popover closes")
+            XCTAssertEqual(fixture.defaults.double(forKey: "floatingPetOriginX"), savedX)
+            XCTAssertEqual(fixture.defaults.double(forKey: "floatingPetOriginY"), savedY)
+
+            controller.setDisplayAwake(false)
+            controller.setDisplayAwake(true)
+            XCTAssertEqual(panel.frame.width, 24, "Wake returns to the edge peek")
+            fixture.usage.floatingTimerWidth = 384
+            try toggleFromMenu()
+            fixture.usage.floatingPetIslandFolded = false
+            try await settle()
+            XCTAssertNil(controller.tuckEdge)
+            XCTAssertNil(fixture.defaults.string(forKey: FloatingPetController.tuckEdgeKey))
+            XCTAssertEqual(panel.frame.maxX - 96, normal.maxX - 96, accuracy: 1)
+            XCTAssertEqual(panel.frame.minY, normal.minY, accuracy: 1)
+
+            try toggleFromMenu()
+            controller.setDisplayAwake(false)
+            let restored = FloatingPetController(store: fixture.usage, companion: fixture.companion,
+                session: fixture.focus, defaults: fixture.defaults)
+            XCTAssertEqual(restored.tuckEdge, edge, "Edge choice survives relaunch")
+            let restoredPanel = try XCTUnwrap(NSApp.windows.compactMap { $0 as? FloatingPetPanel }.first { $0.isVisible })
+            XCTAssertEqual(restoredPanel.frame.width, 24)
+            let restoredHost = try XCTUnwrap(restoredPanel.contentView as? PetHostingView)
+            XCTAssertTrue(restoredHost.accessibilityPerformPress(), "The edge peek can be revealed without a pointer")
+            XCTAssertGreaterThan(restoredPanel.frame.width, 24)
+            let handle = FloatingTimerDragView(frame: NSRect(x: 0, y: 0, width: 16, height: 30))
+            restoredHost.addSubview(handle)
+            let beforeMove = restoredPanel.frame.minY
+            handle.keyDown(with: try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: restoredPanel.windowNumber, context: nil, characters: "",
+                charactersIgnoringModifiers: "", isARepeat: false, keyCode: 126)))
+            XCTAssertEqual(restoredPanel.frame.minY, beforeMove + 8)
+            XCTAssertNil(restored.tuckEdge, "Repositioning leaves edge mode instead of snapping the drag back")
+            XCTAssertNil(fixture.defaults.string(forKey: FloatingPetController.tuckEdgeKey))
+            restored.setDisplayAwake(false)
+        }
+    }
+
     func testPetHostingPreservesOtherTrackingAreasForSwiftUIHover() {
         let host = PetHostingView(rootView: AnyView(Color.clear))
         host.frame = NSRect(x: 0, y: 0, width: 500, height: 96)

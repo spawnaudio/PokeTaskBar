@@ -974,10 +974,20 @@ final class CompanionStore {
     private func applyGrowth(_ xp: Int) {
         guard xp > 0 else { return }
         if state.active == nil {
-            if !state.trainingEmpty { state.eggUsage += xp }
+            if !state.trainingEmpty {
+                state.eggUsage += xp
+                scheduleEggHatchIfReady()
+            }
         } else {
             applyUsage(xp)
         }
+    }
+
+    /// Every XP source uses this path; do not make hatching depend on a usage refresh tick.
+    private func scheduleEggHatchIfReady() {
+        guard state.eggUsage >= eggHatchThreshold, !state.trainingEmpty,
+              state.active == nil, !isHatching else { return }
+        Task { await hatchIfNeeded() }
     }
 
     // MARK: 상점 (재화 = Coins)

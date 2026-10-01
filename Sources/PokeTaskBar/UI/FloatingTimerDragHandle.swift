@@ -7,18 +7,23 @@ struct FloatingTimerDragHandle: NSViewRepresentable {
     var mode: FloatingTimerDragView.Mode
     var width: CGFloat
     var label: String
+    var scale: CGFloat = 1
+    var movementLocked = false
     var onResize: (CGFloat, NSPoint) -> Void
     var onFocusChange: (Bool) -> Void
 
     func makeNSView(context: Context) -> FloatingTimerDragView { FloatingTimerDragView() }
     func updateNSView(_ view: FloatingTimerDragView, context: Context) {
         view.mode = mode
+        view.movementLocked = movementLocked
         view.timerWidth = width
+        view.timerScale = scale
         view.onResize = onResize
         view.onFocusChange = onFocusChange
         view.setAccessibilityElement(true)
         view.setAccessibilityRole(mode == .resize ? .slider : .button)
         view.setAccessibilityLabel(label)
+        view.setAccessibilityEnabled(!movementLocked)
         if mode == .resize { view.setAccessibilityValue(Int(width)) }
     }
 }
@@ -26,21 +31,26 @@ struct FloatingTimerDragHandle: NSViewRepresentable {
 final class FloatingTimerDragView: NSView {
     enum Mode { case move, resize }
     var mode: Mode = .move
+    var movementLocked = false
     var timerWidth: CGFloat = FloatingTimerMetrics.defaultWidth
+    var timerScale: CGFloat = 1
     var onResize: (CGFloat, NSPoint) -> Void = { _, _ in }
     var onFocusChange: (Bool) -> Void = { _ in }
     private var startPoint: NSPoint?
     private var startFrame: NSRect?
     private var startWidth: CGFloat = 0
 
-    override var acceptsFirstResponder: Bool { true }
+    override var acceptsFirstResponder: Bool { !movementLocked }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }
     override func becomeFirstResponder() -> Bool { onFocusChange(true); return true }
     override func resignFirstResponder() -> Bool { onFocusChange(false); return true }
-    override func resetCursorRects() { addCursorRect(bounds, cursor: mode == .move ? .openHand : .resizeLeftRight) }
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: movementLocked ? .arrow : mode == .move ? .openHand : .resizeLeftRight)
+    }
 
     override func mouseDown(with event: NSEvent) {
+        guard !movementLocked else { return }
         startPoint = NSEvent.mouseLocation
         startFrame = window?.frame
         startWidth = timerWidth
@@ -60,12 +70,12 @@ final class FloatingTimerDragView: NSView {
     }
 
     private func apply(delta: NSPoint, frame: NSRect, width: CGFloat) {
-        guard let window else { return }
-        if mode == .resize { onResize(width - delta.x, NSPoint(x: frame.maxX, y: frame.minY)) }
+        guard !movementLocked, let window else { return }
+        if mode == .resize { onResize(width - delta.x / timerScale, NSPoint(x: frame.maxX, y: frame.minY)) }
         else {
             var target = frame.offsetBy(dx: delta.x, dy: delta.y)
-            let screen = NSScreen.screens.first { $0.visibleFrame.contains(NSEvent.mouseLocation) }
-                ?? window.screen
+            let screen = startPoint == nil ? window.screen
+                : (NSScreen.screens.first { $0.visibleFrame.contains(NSEvent.mouseLocation) } ?? window.screen)
             if let screen { target = FloatingTimerMetrics.constrained(target, to: screen.visibleFrame) }
             window.setFrameOrigin(target.origin)
         }
