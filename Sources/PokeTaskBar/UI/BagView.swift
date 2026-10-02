@@ -41,6 +41,7 @@ struct BagView: View {
 /// 이후 클릭을 먹통내는 기존 결함(PopoverView 주석) 회피.
 @MainActor
 struct ItemCard: View {
+    @Environment(FocusSessionStore.self) private var focus
     let store: CompanionStore
     let nav: PopoverNavigation
     let kind: ItemKind
@@ -104,6 +105,7 @@ struct ItemCard: View {
         switch kind {
         case .rareCandy: return store.canUseRareCandy
         case .mint:      return store.canUseMint
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return focus.isActive
         case .shinyCharm: return false   // 보유형 — 사용 개념 없음(상시 효과)
         }
     }
@@ -112,6 +114,7 @@ struct ItemCard: View {
         switch kind {
         case .rareCandy: return "+\(TokenFormatter.compact(selectedCandyCount * RareCandy.xp)) XP"
         case .mint:      return l.mintEffectHint
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return l.itemDescription(kind)
         case .shinyCharm: return l.shinyCharmEffectHint
         }
     }
@@ -119,13 +122,21 @@ struct ItemCard: View {
         switch kind {
         case .rareCandy: _ = store.useRareCandy(count: selectedCandyCount)
         case .mint:      _ = store.useMint()
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: focus.onOpenBattleBag?()
         case .shinyCharm: break   // 보유형 — 사용 동작 없음
         }
     }
 
     @ViewBuilder
     private func useControls(_ l: L) -> some View {
-        if kind.isPassive {
+        if kind.isFocusPotion {
+            HStack {
+                Text(effectHint(l)).font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("Use a Potion") { focus.onOpenBattleBag?() }
+                    .tahoeButtonStyle(.regular).controlSize(.small).disabled(!focus.isActive)
+            }
+        } else if kind.isPassive {
             // 보유형(이로치 부적) — 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(.green)

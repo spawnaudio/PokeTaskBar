@@ -8,6 +8,7 @@ let package = Package(
         .executableTarget(
             name: "PokeTaskBar",
             path: "Sources/PokeTaskBar",
+            resources: [.copy("Resources/BattleWindow")],
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .testTarget(

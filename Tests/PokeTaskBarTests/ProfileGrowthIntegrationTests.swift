@@ -31,7 +31,7 @@ final class ProfileGrowthIntegrationTests: XCTestCase {
         super.tearDown()
     }
     private func fixture(_ state: CompanionState = CompanionState(), difficulty: Double = 1,
-                         forms: Int = 3) throws -> (CompanionStore, URL, UserDefaults) {
+                         forms: Int = 3, seed: UInt64 = 7) throws -> (CompanionStore, URL, UserDefaults) {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("profile-integration-\(UUID())")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         paths.append(dir)
@@ -42,13 +42,15 @@ final class ProfileGrowthIntegrationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defaults.set(difficulty, forKey: "growthDifficulty")
         return (CompanionStore(provider: GrowthProfileProvider(forms: forms), fileURL: file,
-                               dittoDisguiseRollingEnabled: false, defaults: defaults), file, defaults)
+                               rng: SeededRNG(seed: seed), dittoDisguiseRollingEnabled: false, defaults: defaults), file, defaults)
     }
 
     func testEveryDifficultyAndRepeatHatchGraduatesAtLevel100() async throws {
         for difficulty in [0.1, 1, 2] {
             for forms in 1...3 {
-                let (s, _, _) = try fixture(difficulty: difficulty, forms: forms)
+                // Deterministic normal hatch followed by an unowned shiny.
+                let seed: UInt64 = [1: 45, 2: 46, 3: 1][forms]!
+                let (s, _, _) = try fixture(difficulty: difficulty, forms: forms, seed: seed)
                 for repeated in [false, true] {
                     await s.hatch(baseID: 1)
                     XCTAssertEqual(s.state.active?.hasGrowthBoost, repeated)

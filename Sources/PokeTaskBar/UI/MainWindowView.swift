@@ -8,6 +8,7 @@ struct MainWindowView: View {
     @Environment(FocusSessionStore.self) private var session
     @Environment(MainWindowNavigation.self) private var nav
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var searchFocused: Bool
     private var l: L { companion.l }
     private var theme: MainWindowTheme { MainWindowTheme(scheme: scheme) }
@@ -15,11 +16,13 @@ struct MainWindowView: View {
     var body: some View {
         GeometryReader { geometry in
             let width = max(0, geometry.size.width - 24)
-            let layout = store.todayDeskLayout.resolved(containerWidth: width)
+            let layout = store.todayDeskLayout.resolved(containerWidth: width, collapsedLeftWidth: 56)
             VStack(spacing: 0) {
                 toolbar(layout: layout)
                 HStack(alignment: .top, spacing: 0) {
-                    if !layout.leftCollapsed {
+                    if layout.leftCollapsed {
+                        iconNavigation.frame(width: layout.leftWidth)
+                    } else {
                         navigation.frame(width: layout.leftWidth)
                     }
                     MainWindowResizeBoundary(width: layout.leftWidth, reversed: false,
@@ -30,21 +33,33 @@ struct MainWindowView: View {
                         .environment(\.popoverContentWidth, max(280, layout.centerWidth - 48))
                     MainWindowResizeBoundary(width: layout.rightWidth, reversed: true,
                         collapsed: layout.rightCollapsed) { value in
-                            store.todayDeskLayout = store.todayDeskLayout.settingRightWidth(value, containerWidth: width)
+                            store.todayDeskLayout = store.todayDeskLayout.settingRightWidth(value, containerWidth: width, collapsedLeftWidth: 56)
                         }
                     if !layout.rightCollapsed {
-                        MainWindowExtrasView().frame(width: layout.rightWidth)
+                        Group {
+                            if nav.page == .today { TaskTimelineView() }
+                            else { MainWindowExtrasView() }
+                        }.frame(width: layout.rightWidth)
                     }
                 }
                 .padding(.horizontal, 12).padding(.bottom, 12)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.20), value: layout.leftCollapsed)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.20), value: layout.rightCollapsed)
             }
         }
+        .coordinateSpace(name: "main-window")
         .background(theme.shell).foregroundStyle(theme.text).tint(.blue)
         .font(.system(size: 14))
         .environment(nav.content)
         .environment(\.mainWindowChrome, true)
         .environment(\.menuBarChrome, true)
         .environment(\.menuBarContentFitting, false)
+        .background {
+            Button("") {
+                store.todayDeskLayout.leftCollapsed = false
+                searchFocused = true
+            }.keyboardShortcut("k", modifiers: .command).hidden()
+        }
         .onChange(of: nav.content.showSettings) { _, value in
             if value { nav.select(.settings) }
         }
@@ -103,7 +118,7 @@ struct MainWindowView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     Image(nsImage: MenuBarIcon.pokeBall).resizable().frame(width: 23, height: 23)
-                    Text("PokeTaskBar").font(.system(size: 17, weight: .semibold))
+                    Text("PokeTasks").font(.system(size: 17, weight: .semibold))
                 }
                 Text("Your workspace").foregroundStyle(theme.secondary).font(.system(size: 13))
             }.padding(.horizontal, 10).padding(.top, 12)
@@ -112,7 +127,7 @@ struct MainWindowView: View {
                 TextField("Search pages…", text: $nav.search)
                     .textFieldStyle(.plain).focused($searchFocused)
                     .onSubmit {
-                        if let first = MainWindowPage.allCases.first(where: {
+                        if let first = MainWindowPage.visiblePages.first(where: {
                             $0.title(l).localizedCaseInsensitiveContains(nav.search)
                         }) { nav.select(first); nav.search = "" }
                     }
@@ -122,7 +137,7 @@ struct MainWindowView: View {
             .mainWindowBorder(cornerRadius: 7)
             ScrollView {
                 VStack(spacing: 4) {
-                    ForEach(MainWindowPage.allCases.filter { $0 != .settings &&
+                    ForEach(MainWindowPage.visiblePages.filter { $0 != .settings &&
                         (nav.search.isEmpty || $0.title(l).localizedCaseInsensitiveContains(nav.search)) }) { page in
                         navigationRow(page)
                     }
@@ -131,8 +146,49 @@ struct MainWindowView: View {
             navigationRow(.settings)
         }
         .padding(.horizontal, 8).padding(.bottom, 12)
-        .background {
-            Button("") { searchFocused = true }.keyboardShortcut("k", modifiers: .command).hidden()
+        .contextMenu { layoutCommands }
+    }
+
+    private var iconNavigation: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: MenuBarIcon.pokeBall).resizable().frame(width: 23, height: 23).padding(.vertical, 12)
+            chromeButton("magnifyingglass", title: "Search pages") {
+                store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+                searchFocused = true
+            }
+            ScrollView {
+                VStack(spacing: 4) {
+                    ForEach(MainWindowPage.visiblePages.filter { $0 != .settings }) { page in
+                        iconRow(page)
+                    }
+                }
+            }.scrollIndicators(.hidden)
+            iconRow(.settings)
+        }.padding(.bottom, 12).contextMenu { layoutCommands }
+    }
+    private func iconRow(_ page: MainWindowPage) -> some View {
+        Button { nav.select(page) } label: {
+            Image(systemName: page.symbol).font(.system(size: 17))
+                .frame(width: 40, height: 40)
+                .background(nav.page == page ? theme.selected : .clear, in: RoundedRectangle(cornerRadius: 8))
+        }.buttonStyle(.plain).help(page.title(l)).accessibilityLabel(page.title(l))
+            .accessibilityIdentifier("main-nav-\(page.rawValue)")
+            .accessibilityAddTraits(nav.page == page ? .isSelected : [])
+    }
+    @ViewBuilder private var layoutCommands: some View {
+        Button(store.todayDeskLayout.leftCollapsed ? "Expand navigation" : "Fold navigation") {
+            store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+        }
+        Button(store.todayDeskLayout.rightCollapsed ? "Expand side panel" : "Fold side panel") {
+            store.todayDeskLayout = store.todayDeskLayout.togglingRight()
+        }
+        Button("Fold both panels") {
+            store.todayDeskLayout.leftCollapsed = true
+            store.todayDeskLayout.rightCollapsed = true
+        }
+        Button("Unfold both panels") {
+            store.todayDeskLayout.leftCollapsed = false
+            store.todayDeskLayout.rightCollapsed = false
         }
     }
 
@@ -156,7 +212,7 @@ struct MainWindowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(nav.page.title(l)).font(.system(size: 30, weight: .semibold))
                 if nav.page == .today {
-                    Text(Date(), format: .dateTime.weekday(.wide).day().month(.wide).year())
+                    Text(session.plan.selectedDay, format: .dateTime.weekday(.wide).day().month(.wide).year())
                         .foregroundStyle(theme.secondary)
                 }
             }
@@ -165,12 +221,13 @@ struct MainWindowView: View {
         .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(theme.canvas, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .mainWindowBorder(cornerRadius: 14)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     @ViewBuilder private var pageContent: some View {
         switch nav.page {
-        case .today: MainWindowTodayView()
+        case .today: TaskPlanningView()
+        case .insights: TaskInsightsView()
         case .focus: MainWindowFocusView()
         case .issues, .projects, .initiatives: MainWindowWorkspacesView(page: nav.page)
         case .collection: MainWindowCollectionView()
@@ -205,7 +262,7 @@ private struct MainWindowResizeBoundary: View {
                 }
             }
             .onDisappear { if hovering { NSCursor.pop(); hovering = false } }
-            .gesture(DragGesture(minimumDistance: 2).onChanged { value in
+            .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("main-window")).onChanged { value in
                 guard !collapsed else { return }
                 if origin == nil { origin = width }
                 onResize((origin ?? width) + value.translation.width * (reversed ? -1 : 1))

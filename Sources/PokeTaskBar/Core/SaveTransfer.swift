@@ -203,6 +203,7 @@ enum SaveTransfer {
                                      todayDate: String,
                                      hasUsageData: Bool) -> CompanionState {
         var state = imported
+        state.focusPotionTransactionID = current.focusPotionTransactionID
         state.language = current.language
         state.candyGrantTier = mergedGrantTier(imported.candyGrantTier, current.candyGrantTier)
         state.candyFeatureSeeded = imported.candyFeatureSeeded || current.candyFeatureSeeded

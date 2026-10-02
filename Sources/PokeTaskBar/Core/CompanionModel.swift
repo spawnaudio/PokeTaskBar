@@ -176,6 +176,28 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case rareCandy
     case mint
     case shinyCharm
+    case potion, superPotion, hyperPotion, revive, fullRestore
+
+    var isFocusPotion: Bool { FocusPotion.kinds.contains(self) }
+    var potionMinutes: Int? {
+        switch self {
+        case .potion: return 5
+        case .superPotion: return 15
+        case .hyperPotion: return 30
+        case .revive: return 60
+        default: return nil
+        }
+    }
+    var potionName: String {
+        switch self {
+        case .potion: return "Potion"
+        case .superPotion: return "Super Potion"
+        case .hyperPotion: return "Hyper Potion"
+        case .revive: return "Revive"
+        case .fullRestore: return "Full Restore"
+        default: return rawValue
+        }
+    }
 
     /// PokéAPI 아이템 스프라이트 파일명(.../sprites/items/{name}.png). nil = 스프라이트 없음(이모지 폴백만).
     var spriteName: String? {
@@ -183,6 +205,11 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy: return "rare-candy"
         case .mint: return nil   // PokéAPI 에 민트 스프라이트 없음(8세대 아이템) → 이모지 폴백
         case .shinyCharm: return "shiny-charm"
+        case .potion: return "potion"
+        case .superPotion: return "super-potion"
+        case .hyperPotion: return "hyper-potion"
+        case .revive: return "revive"
+        case .fullRestore: return "full-restore"
         }
     }
     /// 스프라이트 로딩 전/미제공/실패 시 폴백 이모지.
@@ -191,6 +218,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy: return "🍬"
         case .mint: return "🌿"
         case .shinyCharm: return "✨"
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return "🧪"
         }
     }
     /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매.
@@ -199,12 +227,17 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy: return RareCandy.price
         case .mint: return Mint.price
         case .shinyCharm: return ShinyCharm.price
+        case .potion: return 100
+        case .superPotion: return 300
+        case .hyperPotion: return 600
+        case .revive: return 1_200
+        case .fullRestore: return 3_600
         }
     }
     /// 보유형(패시브) 아이템 — 소비하지 않고 보유하는 동안 상시 효과. 1회 구매(재구매 불가), 가방엔 "적용 중" 표시.
     var isPassive: Bool {
         switch self {
-        case .rareCandy, .mint: return false
+        case .rareCandy, .mint, .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return false
         case .shinyCharm: return true
         }
     }
@@ -688,6 +721,7 @@ struct CompanionState: Codable, Sendable {
     var linearIssueXP: [LinearIssueXPRecord] = []
     var linearCreditedProjectIDs: [String] = []
     var linearProjectSeeded = false
+    var focusPotionTransactionID: String? = nil
 
     init() {}
 
@@ -738,6 +772,7 @@ struct CompanionState: Codable, Sendable {
         bonusXP = c.lenient(Int.self, forKey: .bonusXP, default: 0)
         trainingEmpty = c.lenient(Bool.self, forKey: .trainingEmpty, default: false)
         pokemonStorage = c.lenient([PokemonStorageItem].self, forKey: .pokemonStorage, default: [])
+        focusPotionTransactionID = c.lenientOptional(String.self, forKey: .focusPotionTransactionID)
         mintExpiresAt = c.lenientOptional(Date.self, forKey: .mintExpiresAt)
     }
 

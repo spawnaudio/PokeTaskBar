@@ -182,10 +182,16 @@ struct LinearCardFlowLayout: Layout {
 struct LinearCardMetadata: View {
     let issue: LinearIssueSummary
     let allMetadata: Bool
+    var parentProjectID: String? = nil
+    var showsIdentifier = false
     @Environment(CompanionStore.self) private var companion
 
     var body: some View {
         LinearCardFlowLayout(maximumItemWidth: allMetadata ? 160 : 220) {
+            if showsIdentifier {
+                LinearIssueIDButton(identifier: issue.identifier, url: issue.issueURL,
+                                    style: .system(size: 12), padded: false)
+            }
             LinearPriorityButton(issue: issue, iconOnly: true)
             if allMetadata, let started = issue.startedAt {
                 let end = issue.completedAt ?? Date()
@@ -203,7 +209,8 @@ struct LinearCardMetadata: View {
                 LinearCardPill(text: String(number), symbol: "circle.dotted.circle", tint: .indigo)
                     .help(issue.cycleName ?? "Cycle \(number)")
             }
-            if let project = issue.projectName, !project.isEmpty {
+            if let project = issue.projectName, !project.isEmpty,
+               parentProjectID == nil || issue.projectID != parentProjectID {
                 LinearCardPill(text: project, symbol: "rectangle.topthird.inset.filled",
                                tint: LinearCardColor.color(issue.projectColor, fallback: .green))
             }

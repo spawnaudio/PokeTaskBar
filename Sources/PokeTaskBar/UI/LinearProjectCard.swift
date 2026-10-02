@@ -8,20 +8,37 @@ struct LinearProjectCard: View {
     var hiddenIssueStatuses: Set<String> = []
     var issuesInitiallyMinimized = false
     var onViewIssues: (() -> Void)? = nil
+    @Binding private var externalExpanded: Bool
+    private var usesExternalExpansion: Bool
     let onPin: () -> Void
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var expanded = false
+    @State private var localExpanded = false
     @State private var minimized = false
     @State private var hovering = false
     @State private var loading = false
     @State private var failed = false
 
+    init(project: LinearProjectSummary, hiddenIssueStatuses: Set<String> = [], issuesInitiallyMinimized: Bool = false,
+         onViewIssues: (() -> Void)? = nil, expansion: Binding<Bool>? = nil, onPin: @escaping () -> Void) {
+        self.project = project
+        self.hiddenIssueStatuses = hiddenIssueStatuses
+        self.issuesInitiallyMinimized = issuesInitiallyMinimized
+        self.onViewIssues = onViewIssues
+        _externalExpanded = expansion ?? .constant(false)
+        usesExternalExpansion = expansion != nil
+        self.onPin = onPin
+    }
+
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 10, style: .continuous) }
     private var l: L { companion.l }
+    private var expanded: Bool {
+        get { usesExternalExpansion ? externalExpanded : localExpanded }
+        nonmutating set { if usesExternalExpansion { externalExpanded = newValue } else { localExpanded = newValue } }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -59,8 +76,10 @@ struct LinearProjectCard: View {
                                 .font(.caption).foregroundStyle(.secondary).padding(.top, 10)
                         } else {
                             LinearContainerIssuesView(issues: visible, nested: true,
+                                parentProjectID: project.id,
                                 includesClosed: project.issuesFullyLoaded,
-                                initiallyMinimized: issuesInitiallyMinimized, onPin: onPin)
+                                initiallyMinimized: issuesInitiallyMinimized,
+                                hiddenIssueStatuses: hiddenIssueStatuses, onPin: onPin)
                         }
                     }
                 }.padding(.horizontal, 12).padding(.bottom, 12)
@@ -76,6 +95,8 @@ struct LinearProjectCard: View {
         .contentShape(shape)
         .onHover { hovering = $0 }
         .contextMenu {
+            Button(expanded ? "Fold project" : "Unfold project") { expanded.toggle() }
+            Button(minimized ? "Show details" : "Hide details") { minimized.toggle() }
             if let url = project.url { Link(l.linearOpenProject, destination: url) }
             if let onViewIssues { Button(l.linearIssuesTab, action: onViewIssues) }
         }
@@ -119,7 +140,8 @@ struct LinearProjectCard: View {
             HStack(alignment: .top, spacing: 7) {
                 LinearProjectIcon(icon: project.icon, color: project.color, fallback: "square.dashed")
                 Text(project.name).font(.system(size: 14))
-                    .lineLimit(expanded && !minimized ? nil : 2).fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .help(project.name)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .allowsHitTesting(false)
                 LinearCardMinimizeButton(minimized: $minimized)
@@ -127,7 +149,7 @@ struct LinearProjectCard: View {
             if !minimized {
                 if let description = project.descriptionText, !description.isEmpty {
                     Text(description).font(.system(size: 13)).foregroundStyle(.secondary)
-                        .lineSpacing(2).lineLimit(expanded ? nil : 2)
+                        .lineSpacing(2).lineLimit(2).help(description)
                         .fixedSize(horizontal: false, vertical: true).allowsHitTesting(false)
                 }
                 metadata.padding(.top, 4).allowsHitTesting(false)

@@ -26,6 +26,9 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private let companion: CompanionStore
     private let session: FocusSessionStore
     private let defaults: UserDefaults
+    private var battle: BattleWindow?
+    private var battleHeight: CGFloat = 180
+    private var battleInput = false
     private var panel: NSPanel?
     private var timerPanel: NSPanel?
     private var timerTextInputArmed = false
@@ -140,6 +143,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         self.onOpenToday = onOpenToday
         self.onNewIssue = onNewIssue
         super.init()
+        session.onOpenBattleBag = { [weak self] in
+            guard let self else { return }
+            self.store.floatingPetStyle = .battle
+            self.store.floatingPetEnabled = true
+            self.sync()
+            self.battle?.openBag()
+        }
         observeSettings()
         observePowerState()
         sync()
@@ -184,6 +194,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     /// Layout / hosting — not token totals. Token polls must not `setFrame` the pet.
     private func observeLayout() {
         withObservationTracking {
+            _ = store.floatingPetStyle
             _ = store.floatingPetEnabled
             _ = store.floatingPetSize
             _ = store.floatingPetIslandFolded
@@ -391,7 +402,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func syncDetachedTimer() {
-        guard store.floatingTimerDetached, displayAwake,
+        guard store.floatingPetStyle != .battle, store.floatingTimerDetached, displayAwake,
               session.isActive || session.pomodoroSetupOpen else {
             timerPanel?.orderOut(nil)
             timerPanel?.contentView = nil
@@ -444,7 +455,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     private var displayedTuckEdge: TuckEdge? {
         guard !edgeRevealed,
-              store.floatingTimerDetached || !Self.overlayNeedsKeyWindow(
+              store.floatingTimerDetached || !battleInput, !Self.overlayNeedsKeyWindow(
                 composingNote: session.isComposingNote, prompt: session.prompt)
         else { return nil }
         return tuckEdge
@@ -480,7 +491,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
                 while !Task.isCancelled {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
                     guard let self, let panel = self.panel, panel.isVisible else { return }
-                    guard !self.menuTracking, NSEvent.pressedMouseButtons == 0,
+                    guard !self.menuTracking, !self.battleInput, NSEvent.pressedMouseButtons == 0,
                           panel.childWindows?.contains(where: \.isVisible) != true,
                           !Self.overlayNeedsKeyWindow(composingNote: self.session.isComposingNote,
                                                       prompt: self.session.prompt)
@@ -510,7 +521,60 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             }).environment(store).environment(companion).environment(session))
     }
 
+    private func showBattle() {
+        let p = panel ?? makePanel()
+        panel = p
+        p.identifier = NSUserInterfaceItemIdentifier("PokeTasks.BattleWindow")
+        if battle == nil {
+            let game = BattleWindow(usage: store, companion: companion, focus: session)
+            game.onLayout = { [weak self] height, input in
+                guard let self else { return }
+                if self.battleHeight != height || self.battleInput != input {
+                    self.battleHeight = height; self.battleInput = input
+                    self.showBattle()
+                }
+            }
+            game.onTuck = { [weak self] in self?.toggleEdgeTucking() }
+            game.onHover = { [weak self] in self?.hoverChanged($0) }
+            battle = game
+            p.contentView = game.content
+            builtAnimated = nil
+        }
+        let scale = CGFloat(store.floatingTimerScale)
+        let size = NSSize(width: 360 * scale, height: battleHeight * scale)
+        let petSize = CGFloat(store.floatingPetSize)
+        let fallback = Self.defaultPetOrigin(petSize: petSize)
+        let origin = NSPoint(x: defaults.object(forKey: Self.originXKey) as? Double ?? fallback.x,
+                             y: defaults.object(forKey: Self.originYKey) as? Double ?? fallback.y)
+        var target = NSRect(x: origin.x + petSize - size.width, y: origin.y, width: size.width, height: size.height)
+        let screen = NSScreen.screens.first { $0.visibleFrame.intersects(target) } ?? NSScreen.main
+        if let screen {
+            target = FloatingTimerMetrics.constrained(target, to: screen.visibleFrame)
+            if let tuckEdge {
+                target = Self.edgeFrame(expanded: target, edge: tuckEdge, visible: screen.visibleFrame,
+                                        petSize: size.height, tucked: displayedTuckEdge != nil)
+            }
+        }
+        battle?.content.gameSize = size
+        battle?.content.tuckedRight = displayedTuckEdge == .right
+        if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
+            applyingFrame = true; p.setFrame(target, display: true); applyingFrame = false
+        }
+        if !p.isVisible { p.orderFrontRegardless() }
+        if battleInput, !textInputArmed {
+            NSApp.activate(ignoringOtherApps: true)
+            p.makeKeyAndOrderFront(nil)
+        }
+        textInputArmed = battleInput
+        battle?.publish()
+    }
+
     private func show() {
+        if store.floatingPetStyle == .battle { showBattle(); return }
+        if battle != nil {
+            battle?.stop(); battle = nil; panel?.contentView = nil
+            battleHeight = 180; battleInput = false
+        }
         let p = panel ?? makePanel()
         panel = p
         let wantAnimated = Self.shouldAnimate(lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
@@ -578,6 +642,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func hide() {
+        battle?.stop(); battle = nil
+        battleHeight = 180; battleInput = false
         tuckTask?.cancel()
         edgeRevealed = false
         hideHoverCallout()
@@ -605,7 +671,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func showHoverCallout() {
-        guard displayedTuckEdge == nil, let pet = panel, pet.isVisible else { return }
+        guard store.floatingPetStyle != .battle, displayedTuckEdge == nil, let pet = panel, pet.isVisible else { return }
         // Don't cover an active limit bubble — the speech bubble is the priority surface.
         if store.currentSpeechBubble != nil || session.prompt != .none
             || session.forfeitPrompt != nil || session.resetPrompt

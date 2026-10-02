@@ -530,12 +530,12 @@ final class SaveTransferTests: XCTestCase {
         let progress: Set<String> = ["usedSinceInstall", "spentTokens", "eggUsage", "eggTier",
                                      "pendingHatchID", "pendingUnownForm", "active",
                                      "representativeSpeciesID", "representativeUnownForm", "dex",
-                                     "collectedFinals", "inventory"]
+                                     "collectedFinals", "inventory", "pokemonStorage", "trainingEmpty", "bonusXP", "mintExpiresAt"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate",
-                                     "lastTimeOpenAwardAt", "timeOpenAwardDay", "timeOpenAwardedToday"]
+                                     "lastTimeOpenAwardAt", "timeOpenAwardDay", "timeOpenAwardedToday", "focusPotionTransactionID"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyFeatureSeeded",
                                       "linearCreditedIssueIDs", "linearIntegrationSeeded",
-                                      "linearIssueXP"]
+                                      "linearIssueXP", "linearProjectSeeded", "linearCreditedProjectIDs"]
         let devicePreference: Set<String> = ["language"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)

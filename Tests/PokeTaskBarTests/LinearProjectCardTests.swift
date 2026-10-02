@@ -183,6 +183,7 @@ final class LinearProjectCardTests: XCTestCase {
         let focus = FocusSessionStore(usage: usage, companion: companion,
             fileURL: stateDirectory.appendingPathComponent("focus.json"), ticksOnTimer: false)
         var project = try XCTUnwrap(LinearClient.parseIssueDashboard(data(["projects": ["nodes": [projectNode()]]])).projects.first)
+        project.descriptionText = Array(repeating: try XCTUnwrap(project.descriptionText), count: 3).joined(separator: " ")
         project.issues += try [issue("4", state: "Review", type: "started"), issue("5", state: "Done", type: "completed")].map(LinearClient.parseIssueSummary)
         project.issuesFullyLoaded = true
         for scheme in [ColorScheme.light, .dark] {
@@ -218,6 +219,15 @@ final class LinearProjectCardTests: XCTestCase {
                 try click()
                 try await Task.sleep(for: .milliseconds(250))
                 XCTAssertGreaterThan(host.fittingSize.height, collapsed + 300, "Card body click must reveal status sections and issues")
+                let children = NSHostingView(rootView:
+                    LinearContainerIssuesView(issues: project.issues, nested: true, parentProjectID: project.id,
+                                              includesClosed: true, onPin: {})
+                        .frame(width: width - 44)
+                        .environment(usage).environment(companion).environment(focus)
+                        .environment(\.colorScheme, scheme).defaultAppStorage(defaults))
+                children.setFrameSize(children.fittingSize); children.layoutSubtreeIfNeeded()
+                XCTAssertEqual(host.fittingSize.height - collapsed, children.fittingSize.height + 13, accuracy: 2,
+                               "Opening issues must add only the children, divider and bottom padding; the summary stays stable")
                 host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
                 try capture(host, to: directory.appendingPathComponent("project-expanded-\(scheme)-\(Int(width)).png"))
                 let expandedHeight = host.fittingSize.height

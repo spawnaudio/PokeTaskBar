@@ -72,54 +72,69 @@ final class LinearIssueCardTests: XCTestCase {
         for scheme in [ColorScheme.dark, .light] {
             for all in [false, true] {
                 for width: CGFloat in [340, 240, 620] {
-                    defaults.set(all, forKey: "linearIssueCardAllMetadata")
-                    var issue = try Self.issue()
-                    if !all {
-                        issue.title = "Write up Weekly Reflection"
-                        issue.identifier = "PER-240"
-                        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
-                        var utc = Calendar(identifier: .gregorian); utc.timeZone = TimeZone(secondsFromGMT: 0)!
-                        issue.dueDate = utc.date(from: Calendar.current.dateComponents([.year, .month, .day], from: tomorrow))
-                    }
-                    let root = LinearIssueEntityRow(issue: issue, onPin: {})
-                        .padding(10).frame(width: width)
-                        .background(scheme == .dark ? Color(red: 0.12, green: 0.13, blue: 0.135) : Color(white: 0.95))
-                        .environment(usage).environment(companion).environment(focus)
-                        .environment(\.colorScheme, scheme)
-                        .defaultAppStorage(defaults)
-                    let host = NSHostingView(rootView: root)
-                    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 400),
-                                          styleMask: .borderless, backing: .buffered, defer: false)
-                    window.isReleasedWhenClosed = false
-                    window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
-                    window.contentView = host
-                    window.orderFrontRegardless()
-                    defer { window.orderOut(nil); window.contentView = nil }
-                    try await Task.sleep(for: .milliseconds(150))
-                    host.setFrameSize(host.fittingSize)
-                    host.layoutSubtreeIfNeeded()
-                    let collapsedHeight = host.fittingSize.height
-                    XCTAssertEqual(host.fittingSize.width, width, accuracy: 1)
-                    XCTAssertGreaterThan(collapsedHeight, 80)
-                    XCTAssertLessThan(collapsedHeight, 400)
-                    let name = "\(all ? "all" : "minimal")-\(scheme)-\(Int(width))"
-                    try capture(host, to: directory.appendingPathComponent("\(name).png"))
-                    if !all, width == 340 {
-                        // Empty header space belongs to the expand button; ID/status remain separate controls.
-                        let point = host.convert(NSPoint(x: 180, y: host.isFlipped ? 26 : host.bounds.height - 26), to: nil)
-                        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                            window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
-                                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                                windowNumber: window.windowNumber, context: nil, eventNumber: 1,
-                                clickCount: 1, pressure: 1)))
+                    var standaloneHeight: CGFloat = 0
+                    for context in ["standalone", "project", "initiative", "other-project"] {
+                        defaults.set(all, forKey: "linearIssueCardAllMetadata")
+                        var issue = try Self.issue()
+                        if !all {
+                            issue.title = "Write up Weekly Reflection"
+                            issue.identifier = "PER-240"
+                            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+                            var utc = Calendar(identifier: .gregorian); utc.timeZone = TimeZone(secondsFromGMT: 0)!
+                            issue.dueDate = utc.date(from: Calendar.current.dateComponents([.year, .month, .day], from: tomorrow))
                         }
-                        try await Task.sleep(for: .milliseconds(250))
-                        XCTAssertGreaterThan(host.fittingSize.height, collapsedHeight + 30,
-                                             "Clicking the native card must reveal its details and Focus action")
+                        let nested = context != "standalone"
+                        let parentID = context == "project" ? "routine" : (context == "other-project" ? "other" : nil)
+                        let root = LinearIssueEntityRow(issue: issue, nested: nested, parentProjectID: parentID, onPin: {})
+                            .padding(10).frame(width: width)
+                            .background(scheme == .dark ? Color(red: 0.12, green: 0.13, blue: 0.135) : Color(white: 0.95))
+                            .environment(usage).environment(companion).environment(focus)
+                            .environment(\.colorScheme, scheme)
+                            .defaultAppStorage(defaults)
+                        let host = NSHostingView(rootView: root)
+                        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 400),
+                                              styleMask: .borderless, backing: .buffered, defer: false)
+                        window.isReleasedWhenClosed = false
+                        window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
+                        window.contentView = host
+                        window.orderFrontRegardless()
+                        defer { window.orderOut(nil); window.contentView = nil }
+                        try await Task.sleep(for: .milliseconds(150))
                         host.setFrameSize(host.fittingSize)
                         host.layoutSubtreeIfNeeded()
-                        try capture(host, to: directory.appendingPathComponent("expanded-\(scheme).png"))
-                        XCTAssertNil(focus.session, "Expanding a card must not start a focus session")
+                        let collapsedHeight = host.fittingSize.height
+                        XCTAssertEqual(host.fittingSize.width, width, accuracy: 1)
+                        XCTAssertGreaterThan(collapsedHeight, nested ? 50 : 80)
+                        XCTAssertLessThan(collapsedHeight, 400)
+                        if !nested { standaloneHeight = collapsedHeight }
+                        if context == "project", !all, width >= 340 {
+                            XCTAssertLessThan(collapsedHeight, standaloneHeight - 12,
+                                              "Nested issues must reclaim height, not just hide a badge")
+                        }
+                        XCTAssertEqual(try containsProjectTint(host), context != "project",
+                                       "Only the matching enclosing project may replace the project badge")
+                        let prefix = nested ? context + "-" : ""
+                        let name = "\(prefix)\(all ? "all" : "minimal")-\(scheme)-\(Int(width))"
+                        try capture(host, to: directory.appendingPathComponent("\(name).png"))
+                        if !all, width == 340 {
+                            // Empty header space belongs to the expand button; ID/status remain separate controls.
+                            let point = host.convert(NSPoint(x: 180, y: host.isFlipped ? 26 : host.bounds.height - 26), to: nil)
+                            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                                window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                    windowNumber: window.windowNumber, context: nil, eventNumber: 1,
+                                    clickCount: 1, pressure: 1)))
+                            }
+                            try await Task.sleep(for: .milliseconds(250))
+                            XCTAssertGreaterThan(host.fittingSize.height, collapsedHeight + 30,
+                                                 "Clicking the native card must reveal its details and Focus action")
+                            host.setFrameSize(host.fittingSize)
+                            host.layoutSubtreeIfNeeded()
+                            try capture(host, to: directory.appendingPathComponent("\(prefix)expanded-\(scheme).png"))
+                            XCTAssertEqual(try containsProjectTint(host), context != "project",
+                                           "Opening issue details must also respect inherited project context")
+                            XCTAssertNil(focus.session, "Expanding a card must not start a focus session")
+                        }
                     }
                 }
             }
@@ -132,13 +147,28 @@ final class LinearIssueCardTests: XCTestCase {
         try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: url)
     }
 
+    private func containsProjectTint(_ host: NSView) throws -> Bool {
+        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        // The fixture's green project glyph is distinct from its yellow status and blue labels.
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide {
+                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
+                if color.greenComponent > color.redComponent + 0.15,
+                   color.greenComponent > color.blueComponent + 0.1,
+                   color.blueComponent > color.redComponent + 0.08 { return true }
+            }
+        }
+        return false
+    }
+
     private static func issue() throws -> LinearIssueSummary {
         try LinearClient.parseIssueSummary([
             "id": "card", "identifier": "PER-199", "title": "Figure out Scrum Workflow Implementation",
             "url": "https://linear.app/example/issue/PER-199", "priority": 3, "estimate": 2,
             "state": ["id": "started", "name": "In Progress", "type": "started", "color": "#e5df00"],
             "assignee": ["name": "Alex Brown"],
-            "project": ["name": "Goal: Stick to a Routine", "color": "#45b785"],
+            "project": ["id": "routine", "name": "Goal: Stick to a Routine", "color": "#45b785"],
             "team": ["key": "PER", "name": "Personal", "states": ["nodes": [
                 ["id": "started", "name": "In Progress", "type": "started"],
                 ["id": "done", "name": "Done", "type": "completed"],

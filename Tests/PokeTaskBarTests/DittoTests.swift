@@ -262,7 +262,7 @@ final class DittoRevealTests: XCTestCase {
         XCTAssertFalse(s.state.collectedFinals.contains("206:206"))
     }
 
-    func testDelayedRevealDoesNotConvertSameBaseReplacementDisguise() async throws {
+    func testBuyingStoredEggPreservesPendingDittoReveal() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("ditto-race-\(UUID().uuidString).json")
         let firstEvo = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 3, stageIndex: 0)
         let active = "{\"baseID\":1,\"pathIDs\":[1],\"plannedPathIDs\":[1,2,3],\"stageIndex\":0,\"usedAtStage\":\(firstEvo),\"rarity\":\"common\",\"totalForms\":3,\"dittoDisguise\":1}"
@@ -294,11 +294,11 @@ final class DittoRevealTests: XCTestCase {
 
         await provider.resume()
         for _ in 0..<200 { await Task.yield() }
-        XCTAssertEqual(s.state.active?.baseID, 1)
-        XCTAssertFalse(s.state.active?.dittoRevealed ?? true)
+        XCTAssertEqual(s.state.active?.baseID, PokemonOdds.dittoSpeciesID)
+        XCTAssertTrue(s.state.active?.dittoRevealed ?? false)
         XCTAssertNotNil(s.state.active?.dittoDisguise)
         XCTAssertEqual(s.state.active?.usedAtStage, 0)
-        XCTAssertNotEqual(s.currentSpeciesID, PokemonOdds.dittoSpeciesID)
+        XCTAssertEqual(s.currentSpeciesID, PokemonOdds.dittoSpeciesID)
     }
 
     /// 리빌 후 이로치가 공개된다(위장 중 숨겼던 것) + 이로치 리빌 연출.

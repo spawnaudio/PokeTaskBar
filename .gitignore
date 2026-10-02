@@ -1,6 +1,7 @@
 # Swift Package Manager
 .build/
 .swiftpm/
+node_modules
 Package.resolved
 
 # Python

@@ -702,6 +702,7 @@ struct LinearFocusButton: View {
 struct NewLinearIssueButton: View {
     var compact: Bool = true
     var showsTitle: Bool = false
+    var beforeOpen: () -> Void = {}
 
     @Environment(UsageStore.self) private var store
     @Environment(FocusSessionStore.self) private var session
@@ -729,6 +730,7 @@ struct NewLinearIssueButton: View {
 
     private var titledButton: some View {
         Button {
+            beforeOpen()
             session.openComposer()
         } label: {
             Label(l.newLinearIssue, systemImage: "plus")
@@ -738,6 +740,7 @@ struct NewLinearIssueButton: View {
 
     private var iconButton: some View {
         Button {
+            beforeOpen()
             session.openComposer()
         } label: {
             Image(systemName: "plus")

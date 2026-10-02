@@ -77,6 +77,8 @@ struct LinearIssueSummary: Equatable, Sendable, Identifiable {
     var cycleName: String? = nil
     var cycleNumber: Int? = nil
     var milestoneName: String? = nil
+    var parentID: String? = nil
+    var hasSubIssues = false
 }
 
 /// Fields the Today inspector (and tests) show from an already-fetched issue. Empty values are omitted.
@@ -226,6 +228,7 @@ struct LinearIssueDashboard: Equatable, Sendable {
     var todo: [LinearIssueSummary] = []
     var projectStatuses: [LinearWorkflowState] = []
     var completedPinnedInitiativeIDs: Set<String> = []
+    var relatedIssues: [LinearIssueSummary] = []
 }
 
 protocol LinearHTTPClient: Sendable {
@@ -456,6 +459,7 @@ struct LinearClient: Sendable {
                 continue
             }
         }
+        dashboard = try await fillingMissingParents(apiKey: apiKey, dashboard: dashboard)
         dashboard = Self.hydrateTeamStates(Self.includingQueuedIssuesInContainers(dashboard))
         dashboard = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: dashboard)
         for offset in stride(from: 0, to: dashboard.projects.count, by: 50) {
@@ -614,8 +618,68 @@ struct LinearClient: Sendable {
         let dashboard = LinearIssueDashboard(completedRecent: [], inProgress: [],
             projects: [LinearProjectSummary(id: projectID, name: "", issues: issues.filter { seen.insert($0.id).inserted })],
             initiatives: [])
+        let parents = try await fillingMissingParents(apiKey: apiKey, dashboard: dashboard)
+        let hydrated = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: Self.hydrateTeamStates(parents))
+        return Self.sortedByPriority(hydrated.projects[0].issues + hydrated.relatedIssues)
+    }
+
+    /// Load the expanded issue's children separately, without multiplying board query complexity.
+    func fetchSubIssues(apiKey: String, issueID: String) async throws -> [LinearIssueSummary] {
+        var issues: [LinearIssueSummary] = []
+        var cursor: String?
+        var seen = Set<String>()
+        repeat {
+            try Task.checkCancellation()
+            var variables: [String: Any] = ["id": issueID]
+            if let cursor { variables["after"] = cursor }
+            let data = try await postGraphQL(apiKey: apiKey, query: """
+            query IssueChildren($id: String!, $after: String) {
+              issue(id: $id) {
+                children(first: 100, after: $after) {
+                  nodes { \(Self.lightIssueNodeFields) labels { nodes { name color } } }
+                  pageInfo { hasNextPage endCursor }
+                }
+              }
+            }
+            """, variables: variables)
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let connection = ((root["data"] as? [String: Any])?["issue"] as? [String: Any])?["children"] as? [String: Any],
+                  let nodes = connection["nodes"] as? [[String: Any]] else { throw LinearAPIError.decoding }
+            issues += try nodes.map(Self.parseIssueSummary)
+            cursor = try Self.nextCursor(connection)
+            if let cursor, !seen.insert(cursor).inserted { throw LinearAPIError.decoding }
+        } while cursor != nil
+        let dashboard = LinearIssueDashboard(completedRecent: [], inProgress: [], projects: [], initiatives: [], relatedIssues: issues)
         let hydrated = try await fillingMissingTeamStates(apiKey: apiKey, dashboard: dashboard)
-        return Self.sortedByPriority(hydrated.projects[0].issues)
+        var ids = Set<String>()
+        return Self.sortedByPriority(hydrated.relatedIssues.filter { ids.insert($0.id).inserted })
+    }
+
+    private func fillingMissingParents(apiKey: String, dashboard: LinearIssueDashboard) async throws -> LinearIssueDashboard {
+        var result = dashboard
+        var attempted = Set<String>()
+        while true {
+            let all = result.completedRecent + result.inProgress + result.planned + result.todo +
+                result.projects.flatMap(\.issues) + result.initiatives.flatMap(\.issues) + result.relatedIssues
+            let known = Set(all.map(\.id))
+            let missing = Set(all.compactMap(\.parentID)).subtracting(known).subtracting(attempted).sorted()
+            guard !missing.isEmpty else { return result }
+            let ids = Array(missing.prefix(50))
+            attempted.formUnion(ids)
+            let data = try await postGraphQL(apiKey: apiKey, query: """
+            query IssueParents($ids: [ID!]!) {
+              issues(first: 50, filter: { id: { in: $ids } }) {
+                nodes { \(Self.lightIssueNodeFields) labels { nodes { name color } } }
+              }
+            }
+            """, variables: ["ids": ids])
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (root["errors"] as? [Any] ?? []).isEmpty,
+                  let nodes = ((root["data"] as? [String: Any])?["issues"] as? [String: Any])?["nodes"] as? [[String: Any]]
+            else { throw LinearAPIError.decoding }
+            result.relatedIssues += try nodes.map(Self.parseIssueSummary).filter { !known.contains($0.id) }
+        }
     }
 
     /// Nested project/initiative issues omit `team.states` (complexity). Copy states
@@ -659,7 +723,7 @@ struct LinearClient: Sendable {
     state { id name type color } assignee { name email avatarUrl } project { id name color } \
     team { id name key states { nodes { id name type position } } } \
     labels { nodes { name color } } createdAt updatedAt dueDate completedAt startedAt \
-    cycle { name number } projectMilestone { name }
+    cycle { name number } projectMilestone { name } parent { id } children(first: 1) { nodes { id } }
     """
 
     /// Nested project issues omit `team.states` (default page 50) so container queries
@@ -669,7 +733,7 @@ struct LinearClient: Sendable {
     id identifier title url description priority estimate \
     state { id name type color } assignee { name email avatarUrl } project { id name color } \
     team { id name key } createdAt updatedAt dueDate completedAt startedAt \
-    cycle { name number } projectMilestone { name }
+    cycle { name number } projectMilestone { name } parent { id } children(first: 1) { nodes { id } }
     """
 
     /// One lookup for nested issues whose team never appeared on the issues query.
@@ -1101,6 +1165,7 @@ struct LinearClient: Sendable {
         ingest(dashboard.inProgress)
         ingest(dashboard.planned)
         ingest(dashboard.todo)
+        ingest(dashboard.relatedIssues)
         for project in dashboard.projects { ingest(project.issues) }
         for initiative in dashboard.initiatives { ingest(initiative.issues) }
         return assigningTeamStates(dashboard, from: byTeam)
@@ -1121,6 +1186,7 @@ struct LinearClient: Sendable {
         walk(dashboard.inProgress)
         walk(dashboard.planned)
         walk(dashboard.todo)
+        walk(dashboard.relatedIssues)
         for project in dashboard.projects { walk(project.issues) }
         for initiative in dashboard.initiatives { walk(initiative.issues) }
         return ids
@@ -1154,6 +1220,7 @@ struct LinearClient: Sendable {
         copy.inProgress = fill(dashboard.inProgress)
         copy.planned = fill(dashboard.planned)
         copy.todo = fill(dashboard.todo)
+        copy.relatedIssues = fill(dashboard.relatedIssues)
         copy.projects = dashboard.projects.map { project in
             var next = project
             next.issues = fill(project.issues)
@@ -1493,7 +1560,9 @@ struct LinearClient: Sendable {
             startedAt: parseDate(node["startedAt"]),
             cycleName: (node["cycle"] as? [String: Any])?["name"] as? String,
             cycleNumber: parseInt((node["cycle"] as? [String: Any])?["number"]),
-            milestoneName: (node["projectMilestone"] as? [String: Any])?["name"] as? String)
+            milestoneName: (node["projectMilestone"] as? [String: Any])?["name"] as? String,
+            parentID: (node["parent"] as? [String: Any])?["id"] as? String,
+            hasSubIssues: !(((node["children"] as? [String: Any])?["nodes"] as? [Any]) ?? []).isEmpty)
     }
 
     private static func prioritySortValue(_ priority: Int?) -> Int {

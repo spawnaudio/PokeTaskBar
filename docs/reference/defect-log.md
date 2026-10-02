@@ -16,6 +16,62 @@ read_when:
 
 ## Attached panel sizing
 
+- **Sidebar fold icons belong in the window toolbar.** The v2 Day plan header
+  duplicated the toolbar's right-sidebar control. Existing native checks switched
+  to Projects before folding, so they missed Today's duplicate. The navigation
+  regression now clicks the former header control and verifies that only the top
+  control folds and reopens the timeline; it fails with the duplicate restored.
+  The sidebar-control sweep found no other duplicate inline icons.
+
+- **Issue pickup must share the whitespace click surface.** The containing stack's
+  `.draggable` was separate from the background expand button and did not initiate
+  a stationary hold. Destination-only checks injected issue IDs and missed pickup.
+  The shared native background now expands on a quick release, starts pickup after
+  150 ms or 4 points of movement, and prevents window-background dragging. Native
+  regressions check whitespace, held pickup, click cancellation, foreground controls,
+  and the actual drag payload at all three priority targets and the timeline.
+  Delaying pickup to 750 ms makes the hold regression fail.
+
+- **Drag translations need a stationary coordinate space.** Timeline blocks and
+  their lower-edge handles previously measured movement in their own moving local
+  frames. Repeated native updates with a direction change moved a 30-minute drag
+  by only 10 minutes; the existing check used one update, so it missed the feedback
+  loop. The shared sidebar divider had the same pattern (48 points became 16).
+  Blocks/handles now use the named timeline canvas; both dividers use the named
+  main window. Continuous preview geometry snaps only when committed. Native
+  regressions send several updates and verify the final move/resize, Escape and
+  Undo. The old implementations fail those assertions. Hour targets now belong
+  directly to the scroll content, and initial position reports cannot overwrite
+  the retained hour before restoration. Native wheel input verifies actual scroll
+  retention across timeline folding; setting clip bounds directly bypasses SwiftUI's
+  scroll-position reporting and is not a substitute for that user input. Window
+  tests use the existing queued-release click helper and wait beyond the 200 ms
+  fold animation before dragging. Issue drops are verified through the native
+  destination, including overlap rejection, unchanged status/session and Undo.
+
+- **Hover-only actions must release mouse-acquired focus after exit.** The active
+  timer's reveal gate also included SwiftUI button and native handle focus, which
+  could remain set indefinitely after the pointer left. Earlier previews mounted
+  `hovering: true`; click checks never exercised exit with retained focus. The shared
+  running strip now tracks inactive-panel exits with an `.activeAlways` native area,
+  keeps actions for two seconds, then clears stale focus and crossfades the title.
+  Re-entry cancels the pending hide; keyboard input and VoiceOver retain access;
+  an open More popover remains visible. The shared caller covers attached and
+  detached running timers; compact/setup hover only decorates persistent controls.
+  `testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn` checks native exits,
+  retained handle focus, the grace interval, re-entry and keyboard cancellation with
+  rendered snapshots. Removing the focus release produced two failing assertions.
+  The existing native New issue regression also leaves the bar for longer than the
+  deadline before using its still-open menu. Never replace unrelated tracking areas.
+
+- **External card state must be a SwiftUI dynamic binding.** Optional plain
+  `Binding<Bool>` fields let a native click change the stored expansion flag
+  without redrawing the issue card. Shared issue/project cards now wrap external
+  expansion/minimization in `@Binding`, retaining local state for compact surfaces.
+  `MainWindowTests.testV2ParentUnfoldShowsChildAndChildUsesSharedFocusSession`
+  verifies native expansion height, child visibility, shared focus, and project
+  expansion; its height assertion failed with the plain optional binding.
+
 - **Synthetic text-entry clicks must consume their queued mouse-up.** AppKit may
   leave the posted release pending after `mouseDown`; later native tests then use
   that release at the wrong coordinates. Both floating text-input helpers now use
@@ -39,6 +95,20 @@ read_when:
   controls may synchronously track until release, blocking a sequential send loop.
   Keep assertions on repeated selection, persistence and
   popover visibility; skipping the interaction would hide the regression.
+  Floating duration tests likewise anchor clicks to the actual text field and
+  dispatch shortcuts through `NSApp`. Detect a newly visible popover rather than
+  assuming AppKit allocates a new window: macOS 15 can reuse a hidden one. The
+  window-lookup sweep covers the timer and workspace tests. Detached-window sizing
+  tests request a height that fits the display, then verify navigation preserves it;
+  the CI display cannot accommodate the former fixed 800pt content height.
+  Wait for native close/focus transitions within a bounded two seconds. Opening
+  the composer from More explicitly clears its SwiftUI presentation binding;
+  closing the underlying popover window in a test leaves that binding stale and
+  can steal composer focus.
+  The More header click uses the app's explicit 272pt frame and compensates for
+  hosting margins; a fixed 35pt popup coordinate missed its circular button on
+  macOS 15. Assert key-window ownership when the test app is active; an inactive
+  headless runner still verifies visibility, keyboard capability and timer state.
 
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.
@@ -890,6 +960,25 @@ read_when:
 - **Graduation must leave a free un-guaranteed egg in training.** `graduate()` used to set `trainingEmpty = true`, so later token XP never incremented `eggUsage` (`applyGrowth` and `hatchIfNeeded` both no-op on an empty slot). Tests asserted `eggUsage == 0` and `eggTier == nil` after graduation — both true with *no egg* — so buying a shop egg and swapping it in looked like the only way to hatch again. Place a `eggTier == nil` egg in the slot (rarity rolls at hatch like a shop fresh egg). Guards: `testNewEggAfterGraduationReincubates`, `testGuaranteeDoesNotSurviveIntoTheNextEgg`, `testUseGraduatesFinalStage`.
 - **Open-panel snappiness is a different hitch than idle GIF wakeup.** Closed hosting teardown (`contentView=nil`) already stops relative-`Text` layout when hidden. With the panel **open**, three cheaper bugs still janked the main thread: ① focus `tick()` atomically encoded+wrote the session JSON every second; persist on phase/XP/check-in or a 10s cadence instead (`FocusSessionStore.tickPersistInterval`, `testAccrualTicksDoNotRewriteSessionFileEverySecond`). ② usage `refresh` assigned a new `snapshots` array (`fetchedAt: Date()`) even when daily/week/month payloads were identical, so every `@Observable` consumer rebuilt; skip with `ProviderSnapshot.payloadEquals` (`testIdenticalRefreshKeepsSnapshotPayloadIdentity`). ③ the floating pet observed `todayTotalTokens` and called `setFrame(display: true)` + `orderFrontRegardless` on every poll — split tooltip observation and skip the frame commit when the rect is unchanged (`shouldApplyPanelFrame`, `testVisiblePetSkipsRedundantFrameCommits`). Open Usage/Linear `Text(_, style: .relative)` still self-invalidates ~1Hz; those labels are `RelativeTimestampText` (15s `TimelineView`). Linear issue/project `ScrollView` lists are `LazyVStack` so off-screen foldable rows are not built on tab entry. Do **not** drop always-on GIF `frameFloor > 0`. Guards: `RefreshPublishPerformanceTests`, `RelativeTimestampPerformanceTests`, `FloatingPetEnergyTests.testVisiblePetSkipsRedundantFrameCommits`, Focus persist cadence tests.
 
+## Smooth planner and Insights rendering
+
+- **Check the real viewport, not the presence of a lazy outer stack.** The v2
+  planner built all 300 task cards inside eager groups on entry. Its original
+  tests used three tasks and checked interactions, so they missed the scaling
+  cost. Groups now use native `Section` inside lazy stacks; hierarchy scope is
+  computed once per group. Nested lazy groups also produced unreachable tail
+  rows when their estimated heights changed. `SmoothUXTests` verifies the planned
+  and unplanned branches mount fewer than 100 of 300 cards, reach the final task,
+  and restore expanded cards after scrolling back. Both original eager branches
+  failed the viewport assertion with all 300 controls mounted.
+
+- **Reports must not observe the live timer in their root.** Insights read the
+  running session for a footer, rebuilding charts on every accrual tick. That
+  label now owns its observation. The heatmap previously scanned history for
+  each of its 91 cells; a shared daily aggregation supplies seconds and unique
+  session counts together. The regression compares daily queries across pauses,
+  midnight, DST, repeated tasks, partial history and zero-length segments.
+
 ## 알림
 
 - **Timer expiry must survive a missed visual cue.** The old zero-time path only
@@ -1001,3 +1090,8 @@ read_when:
   both when a storage swap changes the trainee; the prefetch/restart storage test
   exercises that path. The species/letter identity is also used explicitly by the
   existing scrolling grid and main-window list.
+
+- **Local WebKit content must be tested after packaging.** ES-module scripts fail across file-URL origins, and SwiftPM's generated resource accessor looks beside the app bundle rather than inside its Resources directory. Battle UI builds as an offline IIFE, resolves the packaged resource bundle first, and tests the actual bridge, equal bar widths and native Start/Pause buttons (`BattleWindowTests`). The existing app had no other file-backed WebKit surface.
+- **A timer extension spends two persisted records.** Inventory and timer files can fail independently. Write a recovery journal first, persist inventory before publishing, and retain the transaction receipt in both stores. Recovery pauses the timer and skips consumption when the inventory receipt already exists; a journal whose timer receipt is committed never resurrects a finished session. Failed inventory/timer writes and repeated replay are exercised in `BattleWindowTests`; imports retain the device's receipt. Standard item purchases now persist before publishing Coins/inventory changes.
+- **Growth tests must obey ownership rules.** Repeated normal hatches are rejected once a species is owned. Older growth, branching, candy and performance fixtures still relied on unrestricted duplicates. Repeat fixtures now use a deterministic unowned shiny, and repeated-graduation performance uses distinct evolutionary lines. Buying a stored egg preserves a pending Ditto reveal because the active partner is unchanged.
+- **Native UI fixtures need the app's real activation policy and viewport.** Floating editor tests temporarily use accessory activation. The settings rendering fixture specifies the actual viewport height. The session-key shortcut opens its requested Advanced section first, avoiding competing scroll/focus adjustments on an oversized settings group. Native sidebar drag checks resizing and persistence without assuming every synthetic mouse translation survives event coalescing.

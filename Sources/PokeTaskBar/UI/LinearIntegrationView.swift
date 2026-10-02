@@ -129,7 +129,6 @@ struct LinearIntegrationView: View {
                 TahoeTabItem(
                     .projects, title: l.linearProjectsTab, symbol: LinearChromeSymbol.project,
                     symbolColor: LinearChromeTint.project),
-                TahoeTabItem(.initiatives, title: l.linearInitiativesTab, symbol: LinearChromeSymbol.initiative),
             ])
 
             if !store.linearIntegrationEnabled || !store.linearAPIKeyConfigured {
@@ -218,7 +217,7 @@ struct LinearIntegrationView: View {
         } else {
             ContentFittingScrollView(fillsViewport: visibleIssues.count > 8) {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(visibleIssues) { issue in
+                    ForEach(LinearIssueHierarchy.roots(visibleIssues, in: store.allLinearIssues)) { issue in
                         issueCard(issue)
                     }
                 }
@@ -294,15 +293,18 @@ struct LinearIssueStatusSection: Identifiable {
 struct LinearContainerIssuesView: View {
     let issues: [LinearIssueSummary]
     var nested = false
+    var parentProjectID: String? = nil
     var includesClosed = false
     var initiallyMinimized = false
+    var hiddenIssueStatuses: Set<String> = []
     let onPin: () -> Void
     @Environment(CompanionStore.self) private var companion
+    @Environment(UsageStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var collapsedStatusIDs: Set<String> = []
 
     var body: some View {
-        let sections = LinearIssueStatusSection.sections(issues)
+        let sections = LinearIssueStatusSection.sections(LinearIssueHierarchy.roots(issues, in: store.allLinearIssues))
         VStack(alignment: .leading, spacing: 0) {
             if issues.isEmpty {
                 Text(includesClosed ? companion.l.linearProjectEmptyIssues : companion.l.linearContainerEmptyIssues)
@@ -330,6 +332,14 @@ struct LinearContainerIssuesView: View {
                     .padding(.top, 10).padding(.bottom, 4).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).accessibilityValue(collapsed ? "Collapsed" : "Expanded")
+                .contextMenu {
+                    Button("Fold all") {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) { collapsedStatusIDs = Set(sections.map(\.id)) }
+                    }
+                    Button("Unfold all") {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) { collapsedStatusIDs = [] }
+                    }
+                }
                 if !collapsed { rows(section.issues) }
             }
         }
@@ -337,7 +347,8 @@ struct LinearContainerIssuesView: View {
 
     private func rows(_ values: [LinearIssueSummary]) -> some View {
         ForEach(values) { issue in
-            LinearIssueEntityRow(issue: issue, nested: nested, initiallyMinimized: initiallyMinimized, onPin: onPin)
+            LinearIssueEntityRow(issue: issue, nested: nested, parentProjectID: parentProjectID, initiallyMinimized: initiallyMinimized,
+                hiddenIssueStatuses: hiddenIssueStatuses, onPin: onPin)
                 .padding(.vertical, 4)
         }
     }
@@ -348,22 +359,58 @@ struct LinearContainerIssuesView: View {
 struct LinearIssueEntityRow: View {
     let issue: LinearIssueSummary
     var nested: Bool = false
+    var parentProjectID: String? = nil
     let onPin: () -> Void
 
     @AppStorage("linearIssueCardAllMetadata") private var allMetadata = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(UsageStore.self) private var store
+    @Binding private var externalMinimized: Bool
+    @Binding private var externalExpanded: Bool
+    private var usesExternalMinimization: Bool
+    private var usesExternalExpansion: Bool
+    var childScope: Set<String>? = nil
+    var hiddenIssueStatuses: Set<String> = []
+    var ancestors: Set<String> = []
     @State private var hovering = false
-    @State private var expanded = false
-    @State private var minimized = false
+    @State private var localExpanded = false
+    @State private var localMinimized = false
+    @State private var childrenFailed = false
 
-    init(issue: LinearIssueSummary, nested: Bool = false, initiallyMinimized: Bool = false,
+    init(issue: LinearIssueSummary, nested: Bool = false, parentProjectID: String? = nil, initiallyMinimized: Bool = false,
+         minimization: Binding<Bool>? = nil,
+         expansion: Binding<Bool>? = nil, childScope: Set<String>? = nil, ancestors: Set<String> = [],
+         hiddenIssueStatuses: Set<String> = [],
          onPin: @escaping () -> Void) {
         self.issue = issue
         self.nested = nested
+        self.parentProjectID = parentProjectID
         self.onPin = onPin
-        _minimized = State(initialValue: initiallyMinimized)
+        _externalMinimized = minimization ?? .constant(false)
+        _externalExpanded = expansion ?? .constant(false)
+        usesExternalMinimization = minimization != nil
+        usesExternalExpansion = expansion != nil
+        self.childScope = childScope
+        self.hiddenIssueStatuses = hiddenIssueStatuses
+        self.ancestors = ancestors
+        _localMinimized = State(initialValue: initiallyMinimized)
+    }
+    private var minimized: Bool {
+        get { usesExternalMinimization ? externalMinimized : localMinimized }
+        nonmutating set { if usesExternalMinimization { externalMinimized = newValue } else { localMinimized = newValue } }
+    }
+    private var minimizedBinding: Binding<Bool> { Binding(get: { minimized }, set: { minimized = $0 }) }
+    private var expanded: Bool {
+        get { usesExternalExpansion ? externalExpanded : localExpanded }
+        nonmutating set { if usesExternalExpansion { externalExpanded = newValue } else { localExpanded = newValue } }
+    }
+    private var children: [LinearIssueSummary] {
+        LinearClient.sortedByPriority(LinearProjectIssueFilter.visible(store.allLinearIssues, hiding: hiddenIssueStatuses).filter {
+            $0.parentID == issue.id && $0.id != issue.id && !ancestors.contains($0.id) &&
+                (childScope == nil || childScope!.contains($0.id))
+        })
     }
 
     private var rowShape: RoundedRectangle {
@@ -371,33 +418,38 @@ struct LinearIssueEntityRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: nested ? 6 : 8) {
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
-                    LinearIssueIDButton(identifier: issue.identifier, url: issue.issueURL,
-                                        style: .system(size: 12), padded: false)
-                    Spacer(minLength: 4)
-                    LinearFocusButton(issue: issue, durationMenu: true, openDeskOnPin: false, onPinned: onPin)
-                    LinearCardAssignee(issue: issue)
+                if !nested {
+                    HStack(spacing: 6) {
+                        identifier
+                        Spacer(minLength: 4)
+                        actions
+                    }
+                    .frame(minHeight: 18)
                 }
-                .frame(minHeight: 18)
 
                 HStack(alignment: .top, spacing: 6) {
                     LinearIssueStatusPicker(issue: issue, iconOnly: true)
-                    Text(issue.title)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.primary)
-                        .lineLimit(expanded && !minimized ? nil : 2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .allowsHitTesting(false)
-                    LinearCardMinimizeButton(minimized: $minimized)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(issue.title)
+                            .font(.system(size: 14))
+                            .foregroundStyle(.primary)
+                            .lineLimit(expanded && !minimized ? nil : 2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .allowsHitTesting(false)
+                        if nested && minimized { identifier }
+                    }
+                    if nested { actions }
+                    LinearCardMinimizeButton(minimized: minimizedBinding)
                 }
             }
 
             if !minimized {
-                LinearCardMetadata(issue: issue, allMetadata: allMetadata || expanded)
+                LinearCardMetadata(issue: issue, allMetadata: allMetadata || expanded,
+                                   parentProjectID: parentProjectID, showsIdentifier: nested)
 
                 if (allMetadata || expanded), issue.createdAt != nil || issue.updatedAt != nil {
                     LinearCardDates(issue: issue).allowsHitTesting(false)
@@ -414,34 +466,150 @@ struct LinearIssueEntityRow: View {
                         Spacer()
                         LinearFocusButton(issue: issue, openDeskOnPin: false, onPinned: onPin)
                     }
+                    if !children.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Sub-issues · \(children.count)").font(.caption).foregroundStyle(.secondary)
+                            ForEach(children) { child in
+                                AnyView(LinearIssueEntityRow(issue: child, nested: true, parentProjectID: parentProjectID, childScope: childScope,
+                                    ancestors: ancestors.union([issue.id]), hiddenIssueStatuses: hiddenIssueStatuses, onPin: onPin))
+                            }
+                        }.padding(.leading, 12)
+                    }
+                    if childrenFailed {
+                        Button("Retry loading sub-issues") { Task { await loadChildren() } }
+                            .buttonStyle(.link).font(.caption)
+                    }
                 }
             }
         }
-        .padding(10)
+        .padding(nested ? 8 : 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
-                    if minimized { minimized = false } else { expanded.toggle() }
+            rowShape
+                .fill(colorScheme == .dark
+                      ? Color(red: 0.15, green: 0.155, blue: 0.16)
+                      : Color(nsColor: .controlBackgroundColor))
+                .overlay { rowShape.fill(Color.primary.opacity(hovering || (expanded && !minimized) ? 0.025 : 0)) }
+                .overlay {
+                    rowShape.strokeBorder(Color.primary.opacity(contrast == .increased ? 0.35 : 0.045), lineWidth: 1)
                 }
-            } label: {
-                rowShape
-                    .fill(colorScheme == .dark
-                          ? Color(red: 0.15, green: 0.155, blue: 0.16)
-                          : Color(nsColor: .controlBackgroundColor))
-                    .overlay { rowShape.fill(Color.primary.opacity(hovering || (expanded && !minimized) ? 0.025 : 0)) }
-                    .overlay {
-                        rowShape.strokeBorder(Color.primary.opacity(contrast == .increased ? 0.35 : 0.045), lineWidth: 1)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(rowShape)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(issue.title)
-            .accessibilityValue(minimized ? "Minimized" : (expanded ? "Expanded" : "Collapsed"))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(rowShape)
+                .overlay {
+                    LinearIssueDragSurface(issueID: issue.id, title: issue.title,
+                        value: minimized ? "Minimized" : (expanded ? "Expanded" : "Collapsed"), onClick: toggleExpanded)
+                }
         }
         .contentShape(rowShape)
         .onHover { hovering = $0 }
         .accessibilityAddTraits(expanded && !minimized ? .isSelected : [])
+        .task(id: "\(expanded && !minimized)-\(store.linearIssuesUpdatedAt?.timeIntervalSince1970 ?? 0)") {
+            guard expanded && !minimized, childScope == nil, issue.hasSubIssues || !children.isEmpty else { return }
+            await loadChildren()
+        }
+        .contextMenu {
+            TaskPlanningIssueMenu(issue: issue)
+            Divider()
+            Button(minimized ? "Show details" : "Hide details") { minimized.toggle() }
+            Button(expanded ? "Fold issue" : "Unfold issue") { expanded.toggle() }
+            Picker("Metadata", selection: $allMetadata) {
+                Text("Minimal").tag(false); Text("All").tag(true)
+            }
+        }
     }
+    private var identifier: some View {
+        LinearIssueIDButton(identifier: issue.identifier, url: issue.issueURL,
+                            style: .system(size: 12), padded: false)
+    }
+
+    private var actions: some View {
+        HStack(spacing: 6) {
+            LinearFocusButton(issue: issue, durationMenu: true, openDeskOnPin: false, onPinned: onPin)
+            LinearCardAssignee(issue: issue)
+        }
+    }
+
+    private func toggleExpanded() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+            if minimized { minimized = false } else { expanded.toggle() }
+        }
+    }
+    private func loadChildren() async {
+        do { try await store.loadLinearSubIssues(issueID: issue.id); childrenFailed = false }
+        catch is CancellationError { }
+        catch { childrenFailed = true }
+    }
+}
+
+/// The background owns click/hold; foreground issue controls keep their own actions.
+private struct LinearIssueDragSurface: NSViewRepresentable {
+    let issueID: String
+    let title: String
+    let value: String
+    let onClick: () -> Void
+    func makeNSView(context: Context) -> LinearIssueDragView { LinearIssueDragView() }
+    func updateNSView(_ view: LinearIssueDragView, context: Context) {
+        view.issueID = issueID
+        view.onClick = onClick
+        view.setAccessibilityElement(true)
+        view.setAccessibilityRole(.button)
+        view.setAccessibilityLabel(title)
+        view.setAccessibilityValue(value)
+    }
+}
+
+final class LinearIssueDragView: NSView, NSDraggingSource {
+    var issueID = ""
+    var onClick: () -> Void = {}
+    private var pressedEvent: NSEvent?
+    private var hold: Task<Void, Never>?
+    override var acceptsFirstResponder: Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        hold?.cancel()
+        pressedEvent = event
+        hold = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .milliseconds(150)) } catch { return }
+            self?.startDrag(with: event)
+        }
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard let pressedEvent else { return }
+        let dx = event.locationInWindow.x - pressedEvent.locationInWindow.x
+        let dy = event.locationInWindow.y - pressedEvent.locationInWindow.y
+        if dx * dx + dy * dy >= 16 { startDrag(with: event) }
+    }
+    override func mouseUp(with event: NSEvent) {
+        hold?.cancel(); hold = nil
+        guard pressedEvent != nil else { return }
+        pressedEvent = nil
+        if bounds.contains(convert(event.locationInWindow, from: nil)) { onClick() }
+    }
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil { hold?.cancel(); hold = nil; pressedEvent = nil }
+        super.viewWillMove(toWindow: newWindow)
+    }
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 36 || event.keyCode == 49 { onClick() }
+        else if event.keyCode == 53 { hold?.cancel(); hold = nil; pressedEvent = nil }
+        else { super.keyDown(with: event) }
+    }
+    override func accessibilityPerformPress() -> Bool { onClick(); return true }
+    private func startDrag(with event: NSEvent) {
+        guard pressedEvent != nil, window?.isVisible == true, let parent = superview else { return }
+        hold?.cancel(); hold = nil; pressedEvent = nil
+        let rect = convert(bounds, to: parent)
+        let image = NSImage(size: bounds.size)
+        if let bitmap = parent.bitmapImageRepForCachingDisplay(in: rect) {
+            parent.cacheDisplay(in: rect, to: bitmap)
+            image.addRepresentation(bitmap)
+        }
+        let item = NSDraggingItem(pasteboardWriter: issueID as NSString)
+        item.setDraggingFrame(bounds, contents: image)
+        beginDraggingSession(with: [item], event: event, source: self)
+    }
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation { .copy }
 }

@@ -157,9 +157,9 @@ struct MainWindowCollectionView: View {
         @Bindable var content = nav.content
         return VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Picker("Collection records", selection: $content.showingCollectionLog) {
-                    Text(l.dexSegment).tag(false); Text("Catch log").tag(true)
-                }.pickerStyle(.segmented).labelsHidden().frame(width: 220)
+                TahoeTabBar(selection: $content.showingCollectionLog,
+                    items: [TahoeTabItem(false, title: l.dexSegment), TahoeTabItem(true, title: "Catch log")])
+                    .frame(width: 220)
                 Spacer()
                 Text("\(content.showingCollectionLog ? store.dexEntries.count : store.dexSpecies.count) \(content.showingCollectionLog ? "catches" : "species")")
                     .font(.system(size: 12)).foregroundStyle(.secondary)

@@ -4,7 +4,559 @@ import XCTest
 @testable import PokeTaskBar
 
 @MainActor
+private final class TimelineDragInfo: NSObject, NSDraggingInfo {
+    let draggingDestinationWindow: NSWindow?
+    let draggingPasteboard: NSPasteboard
+    var draggingLocation: NSPoint
+    var draggingSourceOperationMask: NSDragOperation { .copy }
+    var draggedImageLocation: NSPoint { draggingLocation }
+    nonisolated var draggedImage: NSImage? { nil }
+    var draggingSource: Any? { nil }
+    var draggingSequenceNumber: Int { 1 }
+    var draggingFormation: NSDraggingFormation = .none
+    var animatesToDestination = false
+    var numberOfValidItemsForDrop = 1
+    var springLoadingHighlight: NSSpringLoadingHighlight { .none }
+    init(window: NSWindow, pasteboard: NSPasteboard, location: NSPoint) {
+        draggingDestinationWindow = window; draggingPasteboard = pasteboard; draggingLocation = location
+    }
+    func slideDraggedImage(to screenPoint: NSPoint) {}
+    nonisolated override func namesOfPromisedFilesDropped(atDestination dropDestination: URL) -> [String]? { nil }
+    func resetSpringLoading() {}
+    func enumerateDraggingItems(options: NSDraggingItemEnumerationOptions, for view: NSView?,
+        classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey: Any],
+        using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
+        let items = draggingPasteboard.readObjects(forClasses: classArray, options: searchOptions) ?? []
+        for (index, item) in items.enumerated() {
+            guard let item = item as? NSPasteboardWriting else { continue }
+            var stop: ObjCBool = false
+            block(NSDraggingItem(pasteboardWriter: item), index, &stop)
+            if stop.boolValue { break }
+        }
+    }
+}
+
+@MainActor
 final class MainWindowTests: XCTestCase {
+    func testV2NativeIssueWhitespaceStartsDrag() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        let issue = try XCTUnwrap(fixture.usage.linearInProgressIssues.first)
+        let host = NSHostingView(rootView: LinearIssueEntityRow(issue: issue,
+            minimization: Binding(get: { fixture.nav.issueMinimization[issue.id] ?? false },
+                set: { fixture.nav.issueMinimization[issue.id] = $0 }),
+            expansion: Binding(get: { fixture.nav.issueExpansion[issue.id] ?? false },
+                set: { fixture.nav.issueExpansion[issue.id] = $0 }), onPin: {})
+            .fixedSize(horizontal: false, vertical: true).padding(10).frame(width: 540)
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+            .defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 300, y: 300, width: 540, height: 220),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.isMovableByWindowBackground = true
+        window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(250))
+        host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+        let pasteboard = NSPasteboard(name: .drag)
+        for point in [NSPoint(x: 240, y: 25), NSPoint(x: 240, y: 45), NSPoint(x: 15, y: 45)] {
+            pasteboard.clearContents()
+            let origin = window.frame.origin
+            func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
+                let location = host.convert(NSPoint(x: point.x + offset,
+                    y: host.isFlipped ? point.y : host.bounds.height - point.y), to: nil)
+                return try XCTUnwrap(NSEvent.mouseEvent(with: type, location: location,
+                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+            }
+            NSApp.postEvent(try event(.leftMouseDragged, offset: 20), atStart: false)
+            NSApp.postEvent(try event(.leftMouseUp, offset: 20), atStart: false)
+            window.sendEvent(try event(.leftMouseDown))
+            while let next = NSApp.nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: Date(), inMode: .default, dequeue: true) {
+                window.sendEvent(next)
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            XCTAssertEqual(pasteboard.string(forType: .string), issue.id, "Whitespace at \(point) must start the issue drag")
+            XCTAssertEqual(window.frame.origin, origin, "Dragging an issue must not move the window")
+            XCTAssertFalse(fixture.nav.issueExpansion[issue.id] ?? false, "Dragging must not expand the issue")
+        }
+        // A stationary hold must pick up the issue without requiring a preliminary click.
+        pasteboard.clearContents()
+        let location = host.convert(NSPoint(x: 240, y: host.isFlipped ? 25 : host.bounds.height - 25), to: nil)
+        func heldEvent(_ type: NSEvent.EventType, at point: NSPoint? = nil) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point ?? location, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+        }
+        let windowNumber = window.windowNumber
+        let timer = Timer(timeInterval: 0.25, repeats: false) { _ in
+            MainActor.assumeIsolated {
+                if let release = NSEvent.mouseEvent(with: .leftMouseUp, location: location, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: windowNumber,
+                    context: nil, eventNumber: 1, clickCount: 1, pressure: 1) {
+                    NSApp.postEvent(release, atStart: false)
+                }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        defer { timer.invalidate() }
+        window.sendEvent(try heldEvent(.leftMouseDown))
+        try await Task.sleep(for: .milliseconds(350))
+        XCTAssertEqual(pasteboard.string(forType: .string), issue.id, "A short hold starts dragging before the pointer moves")
+        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            window.sendEvent(release)
+        }
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertFalse(fixture.nav.issueExpansion[issue.id] ?? false)
+        pasteboard.clearContents()
+        try await click(window, in: host, x: 240, top: 45)
+        XCTAssertEqual(fixture.nav.issueExpansion[issue.id], true, "A quick click still expands exactly once")
+        XCTAssertNil(pasteboard.string(forType: .string), "Releasing a quick click cancels the pending drag")
+        try await click(window, in: host, x: 240, top: 45)
+        XCTAssertEqual(fixture.nav.issueExpansion[issue.id], false)
+        try await click(window, in: host, x: 510, top: 48)
+        XCTAssertEqual(fixture.nav.issueMinimization[issue.id], true, "Foreground controls keep their own click actions")
+        XCTAssertEqual(fixture.nav.issueExpansion[issue.id], false)
+        XCTAssertNil(fixture.focus.session)
+        let local = NSPoint(x: 240, y: host.isFlipped ? 25 : host.bounds.height - 25)
+        let source = try XCTUnwrap(host.hitTest(local) as? LinearIssueDragView)
+        XCTAssertTrue(source.accessibilityPerformPress())
+        XCTAssertEqual(fixture.nav.issueMinimization[issue.id], false)
+        XCTAssertTrue(window.makeFirstResponder(source))
+        for key: UInt16 in [49, 36] {
+            window.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
+                characters: key == 49 ? " " : "\r", charactersIgnoringModifiers: key == 49 ? " " : "\r",
+                isARepeat: false, keyCode: key)))
+            XCTAssertEqual(fixture.nav.issueExpansion[issue.id], key == 49)
+        }
+        pasteboard.clearContents()
+        try await Task.sleep(for: .milliseconds(200))
+        let cancelPoint = source.convert(NSPoint(x: source.bounds.midX, y: source.bounds.midY), to: nil)
+        window.sendEvent(try heldEvent(.leftMouseDown, at: cancelPoint))
+        XCTAssertTrue(window.firstResponder === source, "A pointer press gives the card keyboard focus")
+        window.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
+            characters: "\u{001B}", charactersIgnoringModifiers: "\u{001B}", isARepeat: false, keyCode: 53)))
+        window.sendEvent(try heldEvent(.leftMouseUp, at: cancelPoint))
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertNil(pasteboard.string(forType: .string), "Escape cancels a pending pickup")
+        XCTAssertEqual(fixture.nav.issueExpansion[issue.id], false)
+    }
+
+    func testV2ParentUnfoldShowsChildAndChildUsesSharedFocusSession() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(hierarchy: true); defer { fixture.remove() }
+        await fixture.prepare()
+        let parent = try XCTUnwrap(fixture.usage.linearInProgressIssues.first)
+        let child = try XCTUnwrap(fixture.usage.linearTodoIssues.first)
+        XCTAssertEqual(child.parentID, parent.id)
+        XCTAssertEqual(LinearIssueHierarchy.roots([parent, child], in: fixture.usage.allLinearIssues).map(\.id), [parent.id])
+        let host = NSHostingView(rootView: LinearIssueEntityRow(issue: parent,
+            expansion: Binding(get: { fixture.nav.issueExpansion[parent.id] ?? false },
+                set: { fixture.nav.issueExpansion[parent.id] = $0 }), onPin: { fixture.nav.select(.focus) })
+            .fixedSize(horizontal: false, vertical: true).padding(10).frame(width: 540).environment(fixture.usage).environment(fixture.companion)
+            .environment(fixture.focus).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 300, y: 300, width: 540, height: 700),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(200))
+        host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+        let foldedHeight = host.fittingSize.height
+        try await click(window, in: host, x: 240, top: 45)
+        host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+        XCTAssertEqual(fixture.nav.issueExpansion[parent.id], true)
+        XCTAssertGreaterThan(host.fittingSize.height, foldedHeight + 100)
+        XCTAssertNil(fixture.focus.session, "Expanding a parent must not start a timer")
+        fixture.focus.pin(child, openDesk: false, minutes: 25)
+        XCTAssertEqual(fixture.focus.session?.issue.id, child.id)
+        XCTAssertEqual(fixture.focus.session?.issue.title, child.title)
+        XCTAssertEqual(fixture.focus.session?.issue.completedStateId, "done")
+        await fixture.focus.plan.move(child, to: .today, usage: fixture.usage)
+        XCTAssertEqual(fixture.focus.plan.entry(child.id)?.group, .today)
+        XCTAssertNil(fixture.focus.plan.entry(parent.id), "Planning a child must not move its parent")
+        try await click(window, in: host, x: 240, top: 45)
+        XCTAssertEqual(fixture.nav.issueExpansion[parent.id], false)
+        XCTAssertEqual(host.fittingSize.height, foldedHeight, accuracy: 1)
+        XCTAssertEqual(fixture.focus.session?.issue.id, child.id)
+        let project = try XCTUnwrap(fixture.usage.linearProjects.first { $0.id == "project" })
+        let projectHost = NSHostingView(rootView: LinearProjectCard(project: project,
+            expansion: Binding(get: { fixture.nav.projectExpansion[project.id] ?? false },
+                set: { fixture.nav.projectExpansion[project.id] = $0 }), onPin: {})
+            .fixedSize(horizontal: false, vertical: true).frame(width: 540)
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus))
+        window.contentView = projectHost
+        try await Task.sleep(for: .milliseconds(200))
+        projectHost.setFrameSize(projectHost.fittingSize)
+        let closedProjectHeight = projectHost.fittingSize.height
+        try await click(window, in: projectHost, x: 240, top: 36)
+        XCTAssertEqual(fixture.nav.projectExpansion[project.id], true)
+        XCTAssertGreaterThan(projectHost.fittingSize.height, closedProjectHeight + 70)
+    }
+
+    func testRenderV2RevisedTodayAndSubIssues() async throws {
+        guard let path = ProcessInfo.processInfo.environment["PTB_V2_REVISION_PREVIEW_DIR"] else {
+            throw XCTSkip("Set PTB_V2_REVISION_PREVIEW_DIR for revised native previews")
+        }
+        let fixture = try Fixture(hierarchy: true); defer { fixture.remove() }
+        fixture.now = Date()
+        await fixture.prepare()
+        let tray = try Fixture(); defer { tray.remove() }
+        tray.now = Date(); await tray.prepare()
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fixture.usage.todayDeskLayout.rightWidth = 300
+        tray.usage.todayDeskLayout.rightWidth = 300
+        for scheme in [ColorScheme.light, .dark] {
+            tray.nav.select(.today)
+            try await render(tray, scheme: scheme, name: "v2-revised-today-\(scheme)", height: 1080, directory: directory)
+            fixture.nav.select(.issues)
+            fixture.nav.issueExpansion["issue"] = true
+            try await render(fixture, scheme: scheme, name: "v2-sub-issues-\(scheme)", directory: directory)
+        }
+    }
+
+    func testV2NativeCalendarChoosesDayWithoutChangingSession() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        fixture.focus.startPomodoro()
+        let beforeSession = fixture.focus.session
+        let beforeDay = fixture.focus.plan.selectedDay
+        let host = NSHostingView(rootView: MainWindowView().environment(fixture.usage)
+            .environment(fixture.companion).environment(fixture.focus).environment(fixture.nav)
+            .environment(UpdateChecker()).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 100, y: 100, width: 1280, height: 860),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(200))
+        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
+        try await click(window, in: host, x: 350, top: 167)
+        let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
+        defer { popup.orderOut(nil) }
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let picker = try XCTUnwrap(descendants(try XCTUnwrap(popup.contentView)).compactMap { $0 as? NSDatePicker }.first)
+        XCTAssertEqual(picker.datePickerStyle, .clockAndCalendar)
+        if let path = ProcessInfo.processInfo.environment["PTB_V2_REVISION_PREVIEW_DIR"] {
+            // NSDatePicker draws through native layers; capture the visible popup rather than its backing bitmap.
+            let capture = Process()
+            capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+            capture.arguments = ["-x", "-l", String(popup.windowNumber),
+                URL(fileURLWithPath: path).appendingPathComponent("v2-planning-calendar.png").path]
+            try capture.run(); capture.waitUntilExit()
+            XCTAssertEqual(capture.terminationStatus, 0)
+        }
+        picker.dateValue = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: beforeDay))
+        if let action = picker.action { picker.sendAction(action, to: picker.target) }
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(fixture.focus.plan.dayKey, TaskPlanningStore.dayKey(picker.dateValue))
+        XCTAssertNotEqual(fixture.focus.plan.dayKey, TaskPlanningStore.dayKey(beforeDay))
+        XCTAssertEqual(fixture.focus.session, beforeSession)
+    }
+
+    func testRenderV2PlannerAndInsights() async throws {
+        guard let path = ProcessInfo.processInfo.environment["PTB_V2_PREVIEW_DIR"] else {
+            throw XCTSkip("Set PTB_V2_PREVIEW_DIR for native v2 visual verification")
+        }
+        let fixture = try Fixture(); defer { fixture.remove() }
+        fixture.now = Date().addingTimeInterval(-3600)
+        await fixture.prepare()
+        let issues = TaskPlanningStore.issues(in: fixture.usage)
+        XCTAssertEqual(issues.count, 3)
+        await fixture.focus.plan.move(issues[0], to: .today, usage: fixture.usage)
+        await fixture.focus.plan.move(issues[1], to: .soon, usage: fixture.usage)
+        await fixture.focus.plan.move(issues[2], to: .later, usage: fixture.usage)
+        let block = try XCTUnwrap(fixture.focus.plan.schedule(issues[0], start: 570, duration: 50))
+        _ = fixture.focus.plan.schedule(issues[1], start: 660, duration: 30)
+        // Return the scheduled second task to Soon without changing its saved block.
+        await fixture.focus.plan.move(issues[1], to: .soon, usage: fixture.usage)
+        fixture.focus.pin(issues[0], openDesk: false, minutes: 50, blockID: block.id)
+        fixture.now = fixture.now.addingTimeInterval(1200)
+        fixture.focus.finishLeavingInProgress()
+        fixture.focus.pin(issues[1], openDesk: false, minutes: 25)
+        fixture.now = fixture.now.addingTimeInterval(600)
+        fixture.focus.finishLeavingInProgress()
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fixture.usage.todayDeskLayout.rightWidth = 300
+        for scheme in [ColorScheme.light, .dark] {
+            fixture.nav.select(.today)
+            try await render(fixture, scheme: scheme, name: "v2-today-\(scheme)", directory: directory)
+            fixture.nav.select(.insights)
+            try await render(fixture, scheme: scheme, name: "v2-insights-\(scheme)", directory: directory)
+            fixture.nav.select(.projects)
+            fixture.nav.projectExpansion["project"] = true
+            try await render(fixture, scheme: scheme, name: "v2-projects-\(scheme)", directory: directory)
+        }
+        fixture.nav.select(.today)
+        fixture.usage.todayDeskLayout.leftCollapsed = true
+        fixture.focus.plan.fold(.soon); fixture.focus.plan.fold(.later)
+        try await render(fixture, scheme: .dark, name: "v2-icon-rail", width: 860, height: 620, directory: directory)
+        fixture.usage.todayDeskLayout.rightCollapsed = true
+        try await render(fixture, scheme: .dark, name: "v2-panels-folded", width: 860, height: 620, directory: directory)
+    }
+
+    func testV2FloatingTimerFixedClockAndNativePause() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires access to the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        fixture.focus.pin(try XCTUnwrap(fixture.usage.linearInProgressIssues.first), openDesk: false, minutes: 50)
+        let directory = ProcessInfo.processInfo.environment["PTB_V2_PREVIEW_DIR"].map { URL(fileURLWithPath: $0) }
+        for width in [288.0, 384.0] {
+            fixture.usage.floatingTimerWidth = width
+            var bitmaps: [NSBitmapImageRep] = []
+            for hovering in [false, true] {
+                let host = NSHostingView(rootView: FloatingTimerStrip(hovering: hovering)
+                    .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+                    .environment(\.colorScheme, .dark))
+                let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 42),
+                    styleMask: .borderless, backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.appearance = NSAppearance(named: .darkAqua)
+                window.contentView = host
+                window.orderFrontRegardless()
+                defer { window.orderOut(nil); window.contentView = nil }
+                try await Task.sleep(for: .milliseconds(180))
+                host.layoutSubtreeIfNeeded()
+                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                bitmaps.append(bitmap)
+                if let directory {
+                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                        .write(to: directory.appendingPathComponent("v2-timer-\(Int(width))-\(hovering ? "hover" : "rest").png"))
+                }
+                if hovering {
+                    let before = fixture.focus.session?.userPaused ?? false
+                    try await click(window, in: host, x: 117.5, top: 21)
+                    XCTAssertEqual(fixture.focus.session?.userPaused, !before, "\(width): Pause accepts a native click in the title slot")
+                    if fixture.focus.session?.userPaused == true { fixture.focus.togglePause() }
+                    if width == 384, let path = ProcessInfo.processInfo.environment["PTB_V2_REVISION_PREVIEW_DIR"] {
+                        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
+                        try await click(window, in: host, x: 317, top: 21)
+                        let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
+                        let content = try XCTUnwrap(popup.contentView)
+                        let menuBitmap = try XCTUnwrap(content.bitmapImageRepForCachingDisplay(in: content.bounds))
+                        content.cacheDisplay(in: content.bounds, to: menuBitmap)
+                        try menuBitmap.representation(using: .png, properties: [:])?.write(to:
+                            URL(fileURLWithPath: path).appendingPathComponent("v2-timer-more-menu.png"))
+                        popup.close()
+                    }
+                }
+            }
+            XCTAssertEqual(bitmaps[0].pixelsWide, bitmaps[1].pixelsWide)
+            XCTAssertEqual(bitmaps[0].pixelsHigh, bitmaps[1].pixelsHigh)
+            let scale = bitmaps[0].pixelsWide / Int(width)
+            for x in (22 * scale)..<(93 * scale) {
+                for y in (8 * scale)..<(32 * scale) {
+                    XCTAssertEqual(bitmaps[0].colorAt(x: x, y: y), bitmaps[1].colorAt(x: x, y: y),
+                        "Hover must not move or redraw the clock")
+                }
+            }
+        }
+    }
+
+    func testV2NativeFoldAndTimeBlockMoveResizeCancel() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires access to the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        fixture.now = Calendar.current.startOfDay(for: Date())
+        await fixture.prepare()
+        let issue = try XCTUnwrap(fixture.usage.linearInProgressIssues.first)
+        await fixture.focus.plan.move(issue, to: .today, usage: fixture.usage)
+        _ = try XCTUnwrap(fixture.focus.plan.schedule(issue, start: 570, duration: 50))
+        fixture.usage.todayDeskLayout.rightWidth = 300
+        let host = NSHostingView(rootView: MainWindowView()
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+            .environment(fixture.nav).environment(UpdateChecker()).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        func settle() async throws { try await Task.sleep(for: .milliseconds(250)); host.layoutSubtreeIfNeeded() }
+        func event(_ type: NSEvent.EventType, x: CGFloat, top: CGFloat) throws {
+            let point = host.convert(NSPoint(x: x, y: host.isFlipped ? top : host.bounds.height - top), to: nil)
+            window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
+        }
+        try await settle()
+        try await click(window, in: host, x: 330, top: 311)
+        XCTAssertTrue(fixture.focus.plan.folded.contains(.today))
+        try await click(window, in: host, x: 330, top: 311)
+        XCTAssertFalse(fixture.focus.plan.folded.contains(.today))
+        try await settle()
+        if let path = ProcessInfo.processInfo.environment["PTB_V2_TIMELINE_DEBUG_DIR"] {
+            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            try bitmap.representation(using: .png, properties: [:])?.write(to:
+                URL(fileURLWithPath: path).appendingPathComponent("timeline-drag-start.png"))
+        }
+        try event(.leftMouseDown, x: 1100, top: 280)
+        for delta: CGFloat in [10, 20, 15, 25, 30] {
+            try event(.leftMouseDragged, x: 1100, top: 280 + delta)
+            try await settle()
+        }
+        try event(.leftMouseUp, x: 1100, top: 310)
+        try await settle()
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.startMinute, 600, "Native block drag moves by 30 minutes")
+        // The moved block is 50 pt high; its lower edge is now near 340.
+        try event(.leftMouseDown, x: 1150, top: 339)
+        for delta: CGFloat in [5, 10, 15, 20] {
+            try event(.leftMouseDragged, x: 1150, top: 339 + delta)
+            try await settle()
+        }
+        try event(.leftMouseUp, x: 1150, top: 359)
+        try await settle()
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.durationMinutes, 70, "Native lower-edge drag resizes by 20 minutes")
+        let beforeCancel = try XCTUnwrap(fixture.focus.plan.blocks.first)
+        try event(.leftMouseDown, x: 1100, top: 310)
+        try event(.leftMouseDragged, x: 1100, top: 340)
+        window.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
+            characters: "\u{001B}", charactersIgnoringModifiers: "\u{001B}", isARepeat: false, keyCode: 53)))
+        try event(.leftMouseUp, x: 1100, top: 340)
+        try await settle()
+        XCTAssertEqual(fixture.focus.plan.blocks.first, beforeCancel, "Escape discards the in-progress drag")
+        fixture.focus.plan.undoBlock()
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.durationMinutes, 50)
+        XCTAssertFalse(fixture.focus.plan.canUndoBlock)
+    }
+
+    func testV2NativeIssueWhitespaceDragDropsIntoPrioritiesAndTimeline() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        await fixture.prepare()
+        let host = NSHostingView(rootView: MainWindowView().environment(fixture.usage)
+            .environment(fixture.companion).environment(fixture.focus).environment(fixture.nav)
+            .environment(UpdateChecker()).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.isMovableByWindowBackground = true
+        window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(250))
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let source = try XCTUnwrap(descendants(host).compactMap { $0 as? LinearIssueDragView }.first { $0.issueID == "issue" })
+        let point = source.convert(NSPoint(x: source.bounds.midX, y: source.bounds.midY), to: nil)
+        func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: point.x + offset, y: point.y),
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+        }
+        let pasteboard = NSPasteboard(name: .drag)
+        pasteboard.clearContents()
+        NSApp.postEvent(try event(.leftMouseDragged, offset: 20), atStart: false)
+        NSApp.postEvent(try event(.leftMouseUp, offset: 20), atStart: false)
+        window.sendEvent(try event(.leftMouseDown))
+        while let next = NSApp.nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: Date(), inMode: .default, dequeue: true) {
+            window.sendEvent(next)
+        }
+        XCTAssertEqual(pasteboard.string(forType: .string), "issue")
+        let targets = descendants(host).filter { !$0.registeredDraggedTypes.isEmpty && $0.bounds.width > 400 }
+            .sorted { $0.convert($0.bounds, to: host).minY < $1.convert($1.bounds, to: host).minY }
+        XCTAssertEqual(targets.count, 3)
+        for (group, destination) in zip(PlanningGroup.allCases, targets) {
+            let info = TimelineDragInfo(window: window, pasteboard: pasteboard,
+                location: destination.convert(NSPoint(x: destination.bounds.midX, y: destination.bounds.midY), to: nil))
+            XCTAssertEqual(destination.draggingEntered(info), .copy)
+            try await Task.sleep(for: .milliseconds(150))
+            XCTAssertTrue(destination.prepareForDragOperation(info))
+            XCTAssertTrue(destination.performDragOperation(info))
+            destination.concludeDragOperation(info)
+            try await Task.sleep(for: .milliseconds(250))
+            XCTAssertEqual(fixture.focus.plan.entry("issue")?.group, group)
+            XCTAssertEqual(fixture.focus.plan.entry("issue")?.day, group == .today ? fixture.focus.plan.dayKey : nil)
+            XCTAssertEqual(fixture.usage.linearIssue(id: "issue")?.stateName, "In Progress")
+            XCTAssertNil(fixture.focus.session)
+        }
+        let timeline = try XCTUnwrap(descendants(host).first { !$0.registeredDraggedTypes.isEmpty && $0.bounds.height == 1440 })
+        let info = TimelineDragInfo(window: window, pasteboard: pasteboard,
+            location: timeline.convert(NSPoint(x: 100, y: timeline.isFlipped ? 663 : 777), to: nil))
+        XCTAssertEqual(timeline.draggingEntered(info), .copy)
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertTrue(timeline.prepareForDragOperation(info))
+        XCTAssertTrue(timeline.performDragOperation(info))
+        timeline.concludeDragOperation(info)
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.issueID, "issue")
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.startMinute, 665)
+        XCTAssertEqual(fixture.focus.plan.entry("issue")?.group, .today)
+        XCTAssertNil(fixture.focus.session)
+    }
+
+    func testV2NativeIssueDropOntoTimeline() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(); defer { fixture.remove() }
+        fixture.now = Calendar.current.startOfDay(for: Date())
+        await fixture.prepare()
+        fixture.usage.todayDeskLayout.rightWidth = 300
+        let host = NSHostingView(rootView: MainWindowView().environment(fixture.usage)
+            .environment(fixture.companion).environment(fixture.focus).environment(fixture.nav)
+            .environment(UpdateChecker()).defaultAppStorage(fixture.defaults))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = host; window.orderFrontRegardless()
+        defer { window.orderOut(nil); window.contentView = nil }
+        try await Task.sleep(for: .milliseconds(250))
+        try await click(window, in: host, x: 350, top: 584)
+        XCTAssertEqual(fixture.nav.planningIssueFolded, [.today])
+        XCTAssertTrue(fixture.focus.plan.folded.isEmpty, "Status disclosures are independent of personal priorities")
+        try await click(window, in: host, x: 350, top: 584)
+        XCTAssertTrue(fixture.nav.planningIssueFolded.isEmpty)
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let destination = try XCTUnwrap(descendants(host).first {
+            !$0.registeredDraggedTypes.isEmpty && $0.bounds.height == 1440
+        })
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        XCTAssertTrue(pasteboard.writeObjects(["todo" as NSString]))
+        let info = TimelineDragInfo(window: window, pasteboard: pasteboard,
+            location: destination.convert(NSPoint(x: 100, y: destination.isFlipped ? 663 : 777), to: nil))
+        XCTAssertEqual(destination.draggingEntered(info), .copy)
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(destination.draggingUpdated(info), .copy)
+        XCTAssertTrue(destination.prepareForDragOperation(info))
+        XCTAssertTrue(destination.performDragOperation(info))
+        destination.concludeDragOperation(info)
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.issueID, "todo")
+        XCTAssertEqual(fixture.focus.plan.blocks.first?.startMinute, 665)
+        XCTAssertEqual(fixture.focus.plan.entry("todo")?.group, .today)
+        XCTAssertEqual(fixture.usage.linearIssue(id: "todo")?.stateName, "Todo")
+        XCTAssertNil(fixture.focus.session, "Scheduling must not start the focus timer")
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.writeObjects(["planned" as NSString]))
+        XCTAssertEqual(destination.draggingEntered(info), .copy)
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertTrue(destination.performDragOperation(info))
+        destination.concludeDragOperation(info)
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertEqual(fixture.focus.plan.blocks.count, 1, "An overlapping drop is rejected")
+        XCTAssertNotNil(fixture.focus.plan.blockError)
+        XCTAssertNil(fixture.focus.plan.entry("planned"))
+        fixture.focus.plan.undoBlock()
+        XCTAssertTrue(fixture.focus.plan.blocks.isEmpty)
+        XCTAssertNil(fixture.focus.plan.entry("todo"))
+        var ancestor: NSView? = destination.superview
+        while ancestor != nil && !(ancestor is NSScrollView) { ancestor = ancestor?.superview }
+        let scroll = try XCTUnwrap(ancestor as? NSScrollView)
+        let wheel = try XCTUnwrap(CGEvent(scrollWheelEvent2Source: nil, units: .pixel,
+            wheelCount: 1, wheel1: -180, wheel2: 0, wheel3: 0))
+        scroll.scrollWheel(with: try XCTUnwrap(NSEvent(cgEvent: wheel)))
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertEqual(fixture.focus.plan.timelineHour, 11, "Scrolling retains the visible timeline hour")
+        fixture.usage.todayDeskLayout.rightCollapsed = true
+        try await Task.sleep(for: .milliseconds(250))
+        fixture.usage.todayDeskLayout.rightCollapsed = false
+        try await Task.sleep(for: .milliseconds(350))
+        let restored = try XCTUnwrap(descendants(host).compactMap { $0 as? NSScrollView }.first {
+            ($0.documentView?.bounds.height ?? 0) > 1400 && $0.bounds.width < 350
+        })
+        XCTAssertEqual(restored.documentVisibleRect.minY, 668, accuracy: 2, "Unfolding restores the actual viewport")
+    }
+
     func testNavigationHistoryPreservesCollectionSelection() {
         let nav = MainWindowNavigation()
         nav.select(.collection)
@@ -64,7 +616,7 @@ final class MainWindowTests: XCTestCase {
         window.contentView = host
         window.orderFrontRegardless()
         defer { window.orderOut(nil); window.contentView = nil }
-        func settle() async throws { try await Task.sleep(for: .milliseconds(180)); host.layoutSubtreeIfNeeded() }
+        func settle() async throws { try await Task.sleep(for: .milliseconds(250)); host.layoutSubtreeIfNeeded() }
         func event(_ type: NSEvent.EventType, x: CGFloat, top: CGFloat) throws {
             let point = host.convert(NSPoint(x: x, y: host.isFlipped ? top : host.bounds.height - top), to: nil)
             window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
@@ -72,19 +624,33 @@ final class MainWindowTests: XCTestCase {
                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
         }
         func click(x: CGFloat, top: CGFloat) async throws {
-            try event(.leftMouseDown, x: x, top: top); try event(.leftMouseUp, x: x, top: top)
+            try await self.click(window, in: host, x: x, top: top)
             try await settle()
         }
         try await settle()
+        try await click(x: 1245, top: 74)
+        XCTAssertFalse(fixture.usage.todayDeskLayout.rightCollapsed,
+                       "The Day plan header must not duplicate the toolbar fold control")
+        fixture.usage.todayDeskLayout.rightCollapsed = false
+        try await settle()
+        try await click(x: 1245, top: 24)
+        XCTAssertTrue(fixture.usage.todayDeskLayout.rightCollapsed)
+        try await click(x: 1245, top: 24)
+        XCTAssertFalse(fixture.usage.todayDeskLayout.rightCollapsed,
+                       "The top control must also reopen the timeline")
         try await click(x: 100, top: 341)
         XCTAssertEqual(fixture.nav.page, .projects, "The native navigation row must route the main window")
         try await click(x: 1245, top: 24)
         XCTAssertTrue(fixture.usage.todayDeskLayout.rightCollapsed)
         try event(.leftMouseDown, x: 230, top: 450)
-        try event(.leftMouseDragged, x: 278, top: 450)
+        for delta: CGFloat in [16, 32, 24, 40, 48] {
+            try event(.leftMouseDragged, x: 230 + delta, top: 450)
+            try await settle()
+        }
         try event(.leftMouseUp, x: 278, top: 450)
         try await settle()
-        XCTAssertGreaterThan(fixture.usage.todayDeskLayout.leftWidth, TodayDeskMetrics.leftSidebarWidth)
+        XCTAssertGreaterThan(fixture.usage.todayDeskLayout.leftWidth, TodayDeskMetrics.leftSidebarWidth,
+                             "Native drag must resize; event coalescing can shorten the synthetic translation")
         XCTAssertEqual(fixture.defaults.double(forKey: "todayDeskLeftWidth"), fixture.usage.todayDeskLayout.leftWidth)
         try await click(x: 102, top: 24)
         XCTAssertTrue(fixture.usage.todayDeskLayout.leftCollapsed)
@@ -212,7 +778,7 @@ final class MainWindowTests: XCTestCase {
         window.contentView = host; window.orderFrontRegardless()
         defer { window.orderOut(nil); window.contentView = nil }
         try await Task.sleep(for: .milliseconds(150))
-        let existing = Set(NSApp.windows.map(\.windowNumber))
+        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
         try await click(window, in: host, x: 150, top: 30)
         let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
         defer { popup.orderOut(nil) }
@@ -347,10 +913,11 @@ final class MainWindowTests: XCTestCase {
         let companion: CompanionStore
         let usage: UsageStore
         let nav = MainWindowNavigation()
+        var now = Date(timeIntervalSince1970: 1_789_740_000)
         lazy var focus = FocusSessionStore(usage: usage, companion: companion,
-            clock: { Date(timeIntervalSince1970: 1_789_740_000) },
+            clock: { self.now },
             fileURL: directory.appendingPathComponent("focus.json"), ticksOnTimer: false)
-        init() throws {
+        init(hierarchy: Bool = false) throws {
             directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -372,7 +939,7 @@ final class MainWindowTests: XCTestCase {
             let keys = LinearAPIKeyStore(fileURL: directory.appendingPathComponent("key.json"))
             try keys.save(.init(key: "lin_api_preview_fixture_not_a_real_key"))
             usage = UsageStore(providers: [], autoRefresh: false, defaults: defaults,
-                               linearClient: LinearClient(http: PreviewHTTP()), linearAPIKeys: keys)
+                               linearClient: LinearClient(http: PreviewHTTP(hierarchy: hierarchy)), linearAPIKeys: keys)
         }
         func prepare() async {
             companion.update(todayTokensByProvider: [:], todayDate: "2026-09-18", monthTotal: 0,
@@ -387,6 +954,7 @@ final class MainWindowTests: XCTestCase {
     }
 
     private struct PreviewHTTP: LinearHTTPClient {
+        var hierarchy = false
         func postGraphQL(apiKey: String, body: Data) async throws -> (status: Int, data: Data) {
             let projectStatuses: [[String: Any]] = [
                 ["id": "backlog", "name": "Backlog", "type": "backlog", "position": 0],
@@ -405,7 +973,7 @@ final class MainWindowTests: XCTestCase {
                 ["id": "started", "name": "In Progress", "type": "started"],
                 ["id": "done", "name": "Done", "type": "completed"],
             ]]]
-            let issue: [String: Any] = ["id": "issue", "identifier": "PKT-142", "title": "Refine the main app window",
+            var issue: [String: Any] = ["id": "issue", "identifier": "PKT-142", "title": "Refine the main app window",
                 "state": ["id": "started", "name": "In Progress", "type": "started"],
                 "description": "Bring the approved dashboard and navigation to the native app.",
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
@@ -414,12 +982,17 @@ final class MainWindowTests: XCTestCase {
             let planned: [String: Any] = ["id": "planned", "identifier": "PKT-143", "title": "Plan the next focus session",
                 "state": ["id": "planned-state", "name": "Planned", "type": "unstarted"],
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 3, "team": team]
-            let todo: [String: Any] = ["id": "todo", "identifier": "PKT-144", "title": "Choose the next small task",
+            var todo: [String: Any] = ["id": "todo", "identifier": "PKT-144", "title": "Choose the next small task",
                 "state": ["id": "todo-state", "name": "Todo", "type": "unstarted"],
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
+            if hierarchy {
+                issue["children"] = ["nodes": [["id": "todo"]]]
+                todo["parent"] = ["id": "issue"]
+            }
             return (200, try JSONSerialization.data(withJSONObject: ["data": [
                 "projectStatuses": ["nodes": projectStatuses, "pageInfo": ["hasNextPage": false]],
                 "inProgress": ["nodes": [issue]], "completedRecent": ["nodes": []], "planned": ["nodes": [planned]], "todo": ["nodes": [todo]],
+                "issue": ["children": ["nodes": hierarchy ? [todo] : [], "pageInfo": ["hasNextPage": false]]],
                 "project": ["issues": ["nodes": [issue, planned, todo], "pageInfo": ["hasNextPage": false]]],
                 "projects": ["nodes": [project, ["id": "other-project", "name": "Weekly Planning",
                     "status": ["id": "planned", "type": "planned", "name": "Planned"], "issues": ["nodes": []]]]],

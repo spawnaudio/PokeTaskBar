@@ -210,7 +210,7 @@ final class TahoeButtonStyleTests: XCTestCase {
         XCTAssertFalse(linear.contains("hoveringHeader ? 0.08 : 0.04"))
         XCTAssertFalse(linear.contains("strokeBorder(Color.primary.opacity(0.08)"))
 
-        XCTAssertTrue(today.contains("LinearPropertyRow"))
+        XCTAssertTrue(today.contains("SessionPromptCard"))
         XCTAssertTrue(today.contains("TodayDeskPinRow"))
         XCTAssertFalse(today.contains("pinned ? Color.accentColor.opacity(0.14)"))
 
@@ -255,7 +255,7 @@ final class TahoeButtonStyleTests: XCTestCase {
             issueRow.contains("ScrollView(.horizontal"),
             "folded project and labels must not share a horizontal chip strip with team")
         XCTAssertTrue(issueRow.contains(".font(.system(size: 14))"))
-        XCTAssertTrue(issueRow.contains(".padding(10)"))
+        XCTAssertTrue(issueRow.contains(".padding(nested ? 8 : 10)"))
         let initiative = try String(contentsOf: root.appendingPathComponent("LinearInitiativeCard.swift"), encoding: .utf8)
         XCTAssertTrue(initiative.contains("nested: true"), "issues under an initiative use the nested title size")
         XCTAssertTrue(initiative.contains("LinearProjectCard("))
