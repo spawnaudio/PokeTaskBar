@@ -5,6 +5,12 @@ import XCTest
 
 @MainActor
 final class FloatingTimerOverlayTests: XCTestCase {
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        for _ in 0..<40 {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
     // Anchor to the app's text field; system popover margins differ between macOS versions.
     private func clickRelative(to field: NSTextField, x: CGFloat, fromTop: CGFloat) async throws {
         let window = try XCTUnwrap(field.window)
@@ -964,6 +970,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
             try await Task.sleep(for: .milliseconds(180))
             XCTAssertEqual(fixture.focus.clockDisplay().text, "8:00", "Escape cancels the pending edit")
+            try await waitUntil { !editorWindow.isVisible }
             XCTAssertFalse(editorWindow.isVisible)
             fixture.focus.finishLeavingInProgress()
             fixture.usage.floatingPetIslandFolded = false
@@ -1038,7 +1045,9 @@ final class FloatingTimerOverlayTests: XCTestCase {
                     y: host.isFlipped ? 35 : host.bounds.height - 35), to: nil)
                 try click(popup, x: location.x, y: location.y)
                 try await settle()
-                if popup.isVisible { popup.close() }
+                if !fixture.usage.canComposeLinearIssue { try click(panel, x: 219, y: 21) }
+                try await waitUntil { !popup.isVisible }
+                XCTAssertFalse(popup.isVisible, "Close the More menu through its SwiftUI binding")
                 return
             }
             for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
@@ -1074,6 +1083,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 try await clickNewIssue(mode: mode)
                 try await settle()
                 let window = try XCTUnwrap(composerWindow(), "The plus must open the shared composer in \(mode)")
+                try await waitUntil { window.isKeyWindow }
                 XCTAssertTrue(window.isKeyWindow)
                 XCTAssertEqual(fixture.focus.session, beforeSession, "Opening the composer must not alter the timer")
                 XCTAssertEqual(panel.frame, beforeFrame)
@@ -1192,6 +1202,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 if scheme == .dark { try key("\u{1b}", code: 53) }
                 else { try await clickRelative(to: field, x: 33, fromTop: field.bounds.height + 50) }
                 try await settle()
+                try await waitUntil { !picker.isVisible }
                 XCTAssertFalse(picker.isVisible)
                 XCTAssertNil(fixture.focus.session)
                 XCTAssertEqual(fixture.focus.plannedMinutes, 50)
@@ -1214,6 +1225,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 try await settle()
                 XCTAssertEqual(fixture.focus.session?.plannedSeconds, 17 * 60)
                 XCTAssertEqual(navigations, 1)
+                try await waitUntil { !picker.isVisible }
                 XCTAssertFalse(picker.isVisible)
                 fixture.focus.finishLeavingInProgress()
                 window.close()

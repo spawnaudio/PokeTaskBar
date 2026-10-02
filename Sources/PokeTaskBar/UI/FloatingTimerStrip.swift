@@ -200,7 +200,8 @@ struct FloatingTimerStrip: View {
                                 Text(current.issue.title).font(.system(size: 12)).lineLimit(1)
                             }
                             Spacer()
-                            NewLinearIssueButton().accessibilityIdentifier("floating-timer-menu-new-issue")
+                            NewLinearIssueButton(beforeOpen: { showActions = false })
+                                .accessibilityIdentifier("floating-timer-menu-new-issue")
                             if !current.issue.isLocal {
                                 SessionNoteButton()
                             }
