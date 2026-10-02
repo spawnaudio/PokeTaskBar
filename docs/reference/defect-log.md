@@ -105,6 +105,10 @@ read_when:
   the composer from More explicitly clears its SwiftUI presentation binding;
   closing the underlying popover window in a test leaves that binding stale and
   can steal composer focus.
+  The More header click uses the app's explicit 272pt frame and compensates for
+  hosting margins; a fixed 35pt popup coordinate missed its circular button on
+  macOS 15. Assert key-window ownership when the test app is active; an inactive
+  headless runner still verifies visibility, keyboard capability and timer state.
 
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.

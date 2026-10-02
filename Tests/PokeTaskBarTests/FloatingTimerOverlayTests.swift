@@ -1041,11 +1041,20 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 let host = try XCTUnwrap(descendants(try XCTUnwrap(popup.contentView)).first {
                     NSStringFromClass(type(of: $0)).contains("HostingView")
                 })
-                let location = host.convert(NSPoint(x: host.bounds.width - 37,
-                    y: host.isFlipped ? 35 : host.bounds.height - 35), to: nil)
+                // The app's 272pt content has 12pt padding and a 24pt header.
+                // macOS 26 adds hosting margins; macOS 15 keeps them outside this view.
+                let inset = max(0, (host.bounds.width - 272) / 2)
+                let top = 24 + inset
+                let location = host.convert(NSPoint(x: 248 + inset,
+                    y: host.isFlipped ? top : host.bounds.height - top), to: nil)
                 try click(popup, x: location.x, y: location.y)
                 try await settle()
-                if !fixture.usage.canComposeLinearIssue { try click(panel, x: 219, y: 21) }
+                if !fixture.usage.canComposeLinearIssue {
+                    NSApp.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                        modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: popup.windowNumber, context: nil, characters: "\u{1b}",
+                        charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
+                }
                 try await waitUntil { !popup.isVisible }
                 XCTAssertFalse(popup.isVisible, "Close the More menu through its SwiftUI binding")
                 return
@@ -1083,8 +1092,13 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 try await clickNewIssue(mode: mode)
                 try await settle()
                 let window = try XCTUnwrap(composerWindow(), "The plus must open the shared composer in \(mode)")
-                try await waitUntil { window.isKeyWindow }
-                XCTAssertTrue(window.isKeyWindow)
+                XCTAssertTrue(window.canBecomeKey)
+                if NSApp.isActive {
+                    try await waitUntil { window.isKeyWindow }
+                    XCTAssertTrue(window.isKeyWindow, "An active app must focus the composer in \(mode)")
+                } else {
+                    print("Composer \(mode): inactive test app; verified keyboard-capable visible window")
+                }
                 XCTAssertEqual(fixture.focus.session, beforeSession, "Opening the composer must not alter the timer")
                 XCTAssertEqual(panel.frame, beforeFrame)
                 composer.close()
