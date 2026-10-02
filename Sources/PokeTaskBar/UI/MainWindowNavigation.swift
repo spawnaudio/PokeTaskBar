@@ -1,7 +1,8 @@
 import SwiftUI
 
 enum MainWindowPage: String, CaseIterable, Identifiable {
-    case today, focus, issues, projects, initiatives, collection, usage, settings
+    case today, focus, issues, projects, initiatives, insights, collection, usage, settings
+    static var visiblePages: [Self] { allCases.filter { $0 != .initiatives } }
     var id: String { rawValue }
     var symbol: String {
         switch self {
@@ -10,6 +11,7 @@ enum MainWindowPage: String, CaseIterable, Identifiable {
         case .issues: "list.bullet.rectangle"
         case .projects: "folder"
         case .initiatives: "flag"
+        case .insights: "chart.xyaxis.line"
         case .collection: "square.grid.2x2"
         case .usage: "chart.bar"
         case .settings: "gearshape"
@@ -22,6 +24,7 @@ enum MainWindowPage: String, CaseIterable, Identifiable {
         case .issues: l.linearIssuesTab
         case .projects: l.linearProjectsTab
         case .initiatives: l.linearInitiativesTab
+        case .insights: "Insights"
         case .collection: l.collection
         case .usage: l.usageTab
         case .settings: l.settings
@@ -44,6 +47,11 @@ final class MainWindowNavigation {
     var selectedStorageID: String?
     var selectedItem: ItemKind = .rareCandy
     var workspaceQueries: [MainWindowPage: String] = [:]
+    var workspaceScrollIDs: [MainWindowPage: String] = [:]
+    var projectExpansion: [String: Bool] = [:]
+    var issueMinimization: [String: Bool] = [:]
+    var issueExpansion: [String: Bool] = [:]
+    var planningIssueFolded: Set<PlanningGroup> = []
     var issuesTab: LinearIssuesTab = .inProgress
     var issueSorts: [LinearIssuesTab: LinearIssueSort] = [:]
     var projectStatus = ""
@@ -54,6 +62,7 @@ final class MainWindowNavigation {
     var canGoForward: Bool { !forwardStack.isEmpty }
 
     func select(_ next: MainWindowPage) {
+        let next: MainWindowPage = next == .initiatives ? .projects : next
         guard next != page else { return }
         backStack.append(page)
         forwardStack.removeAll()
@@ -144,8 +153,27 @@ private struct MainWindowBorder: ViewModifier {
 }
 
 extension View {
+    func roundedScrollViewport() -> some View {
+        clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    func proximityUtility() -> some View { modifier(ProximityUtility()) }
     func mainWindowCard() -> some View { modifier(MainWindowCard()) }
     func mainWindowBorder(cornerRadius: CGFloat) -> some View {
         modifier(MainWindowBorder(cornerRadius: cornerRadius))
+    }
+}
+
+@MainActor
+private struct ProximityUtility: ViewModifier {
+    @State private var hovering = false
+    @FocusState private var focused: Bool
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        content.focused($focused)
+            .opacity(hovering || focused || voiceOver ? 1 : 0)
+            .frame(width: 36, height: 32).contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovering || focused)
     }
 }

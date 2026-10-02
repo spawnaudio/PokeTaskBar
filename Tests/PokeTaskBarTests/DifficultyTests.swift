@@ -15,7 +15,7 @@ final class DifficultyTests: XCTestCase {
     }
 
     /// `used` 를 주면 지갑 잔액이 시드된 상태 파일로 시작한다(ShopTests 와 같은 JSON 시드 패턴).
-    private func store(growth: Double = 1.0, shop: Double = 1.0, used: Int = 0) -> CompanionStore {
+    private func store(growth: Double = 1.0, shop: Double = 1.0, used: Int = 0, seed: UInt64 = 7) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("ptb-diff-\(UUID().uuidString).json")
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":0,"
             + "\"lastDate\":\"d\",\"dex\":[],\"collectedFinals\":[]}"
@@ -25,7 +25,7 @@ final class DifficultyTests: XCTestCase {
         suite.set(shop, forKey: "shopDifficulty")
         return CompanionStore(provider: StubDiffProvider(value: line()),
                               clock: { Date(timeIntervalSince1970: 1_700_000_000) },
-                              fileURL: url, rng: SeededDiffRNG(seed: 7),
+                              fileURL: url, rng: SeededDiffRNG(seed: seed),
                               dittoDisguiseRollingEnabled: false,
                               defaults: suite)
     }
@@ -37,7 +37,8 @@ final class DifficultyTests: XCTestCase {
     }
 
     func testRepeatBoostComposesWithDifficultyAndLiveChanges() async {
-        let s = await hatched(growth: 0.5)
+        let s = store(growth: 0.5, seed: 1) // Normal first hatch, shiny repeat.
+        await s.hatch(baseID: 1)
         s.applyUsage(PokemonBalance.graduationTotal(.common) / 2)
         XCTAssertNil(s.state.active)
         await s.hatch(baseID: 1)

@@ -111,10 +111,10 @@ final class StoreTerminationTests: XCTestCase {
 
     func testRepeatedGraduationGrowsDexLinearly() async {
         // 무진화 라인을 반복 졸업 — dex 가 선형으로 증가하고 상태가 매번 정합한지.
-        let provider = StubProvider(value: pline(base: 1, rarity: .common))
+        let provider = DistinctGraduationProvider()
         let s = CompanionStore(provider: provider, clock: { pNow }, fileURL: tmpURL(), rng: SeededRNG(seed: 9))
         for n in 1...20 {
-            await s.hatch(baseID: 1)
+            await s.hatch(baseID: (n - 1) * 3 + 1)
             s.applyUsage(Int(PokemonBalance.graduationTotal(.common)) * 10)
             XCTAssertEqual(s.dexEntries.count, n)
             XCTAssertNil(s.state.active)
@@ -648,4 +648,10 @@ final class RelativeTimestampPerformanceTests: XCTestCase {
             source.contains("LazyVStack(alignment: .leading,"),
             "Linear issue/project lists must lazy-load rows (eager VStack+ForEach builds every card)")
     }
+}
+
+private struct DistinctGraduationProvider: PokeProviding {
+    func baseSpeciesIndex() async throws -> [BaseSpecies] { [] }
+    func baseSpecies(id: Int) async throws -> BaseSpecies? { nil }
+    func line(baseSpeciesID: Int) async throws -> EvoLine { pline(base: baseSpeciesID, rarity: .common) }
 }

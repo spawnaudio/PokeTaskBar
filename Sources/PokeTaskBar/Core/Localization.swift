@@ -1606,14 +1606,18 @@ struct L {
 
     /// 아이템 표시명 — species 처럼 공식 현지명.
     func itemName(_ kind: ItemKind) -> String {
+        if kind.isFocusPotion { return kind.potionName }
         switch kind {
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return kind.potionName
         case .rareCandy: return t("이상한 사탕", "Rare Candy", "ふしぎなアメ", "Caramelo Raro", "Super Bonbon", "Doce Raro", "Sonderbonbon")
         case .mint:      return t("민트", "Mint", "ミント", "Menta", "Menthe", "Menta", "Minze")
         case .shinyCharm: return t("이로치 부적", "Shiny Charm", "ひかるおまもり", "Amuleto Iris", "Charme Chroma", "Amuleto Shiny", "Schillerpin")
         }
     }
     func itemDescription(_ kind: ItemKind) -> String {
+        if kind.isFocusPotion { return kind.potionMinutes.map { "Adds \($0) minutes to your timer." } ?? "Adds custom extra minutes to your timer." }
         switch kind {
+        case .potion, .superPotion, .hyperPotion, .revive, .fullRestore: return ""
         case .rareCandy:
             let xp = TokenFormatter.compact(RareCandy.xp)   // 상수에서 파생(하드코딩 드리프트 방지)
             return t("현재 포켓몬의 경험치를 \(xp) 올려줘요.",

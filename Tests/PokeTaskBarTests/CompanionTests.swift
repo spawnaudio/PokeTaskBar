@@ -1235,23 +1235,23 @@ final class CompanionStoreTests: XCTestCase {
         ])
     }
 
-    func testBranchingPrefersUncollectedFinals() async {
-        let s = store(branch3)
+    func testShinyRepeatPrefersUncollectedFinal() async {
+        let s = store(branch3, seed: 46) // Normal first hatch, shiny second hatch.
         let evo = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 0)
         let grad = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 1)
         var finals: [Int] = []
-        for _ in 0..<3 {
+        for _ in 0..<2 {
             await s.hatch(baseID: 10)
             s.applyUsage(evo)    // 분기 진화
             s.applyUsage(grad)   // 졸업
             finals.append(s.dexEntries.last!.finalID)
         }
-        XCTAssertEqual(Set(finals).count, 3)   // 같은 base 재부화 시 매번 다른 분기
-        XCTAssertEqual(Set(finals), [11, 12, 13])
+        XCTAssertEqual(Set(finals).count, 2)
+        XCTAssertTrue(Set(finals).isSubset(of: [11, 12, 13]))
     }
 
     func testRepeatGrowthIsDecidedFromTheCollectedBaseNotThePlannedFinal() async throws {
-        let s = store(branch3)
+        let s = store(branch3, seed: 46) // The repeat must be an unowned shiny.
         let evolution = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 0)
         let graduation = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 1)
 

@@ -25,7 +25,7 @@ final class LinearCardMinimizeTests: XCTestCase {
         let issue = try LinearClient.parseIssueSummary([
             "id": "issue", "identifier": "PER-123", "title": "Plan the next small step", "priority": 2,
             "description": "Details that must disappear while minimized.",
-            "assignee": ["name": "Alex Brown"], "project": ["name": "Weekly planning"],
+            "assignee": ["name": "Alex Brown"], "project": ["id": "project", "name": "Weekly planning"],
             "state": ["id": "started", "name": "In Progress", "type": "started"],
             "createdAt": "2026-09-13T00:00:00Z", "dueDate": "2026-09-30",
             "labels": ["nodes": [["name": "Planning", "color": "#26b5ce"]]],
@@ -42,13 +42,16 @@ final class LinearCardMinimizeTests: XCTestCase {
 
         for scheme in [ColorScheme.light, .dark] {
             for width: CGFloat in [240, 1000] {
-                for kind in ["issue", "project", "initiative"] {
+                for kind in ["issue", "nested-issue", "project", "initiative"] {
                     // Both metadata modes must yield the same title-only minimum.
                     for all in [false, true] {
                         defaults.set(all, forKey: "linearIssueCardAllMetadata")
                         let card: AnyView
                         switch kind {
                         case "issue": card = AnyView(LinearIssueEntityRow(issue: issue, onPin: { XCTFail("Unexpected focus navigation") }))
+                        case "nested-issue":
+                            card = AnyView(LinearIssueEntityRow(issue: issue, nested: true, parentProjectID: project.id,
+                                onPin: { XCTFail("Unexpected focus navigation") }))
                         case "project": card = AnyView(LinearProjectCard(project: project, onPin: { XCTFail("Unexpected focus navigation") }))
                         default:
                             card = AnyView(LinearInitiativeCard(initiative: initiative) {
@@ -90,7 +93,8 @@ final class LinearCardMinimizeTests: XCTestCase {
                         }
                         let isInitiative = kind == "initiative"
                         let foldX = width - (isInitiative ? 88 : kind == "project" ? 32 : 30)
-                        let foldY: CGFloat = isInitiative ? 32 : kind == "project" ? 56 : 49
+                        let foldY: CGFloat = isInitiative ? 32 : kind == "project" ? 56 : kind == "nested-issue" ? 30 : 49
+                        let titleY: CGFloat = isInitiative ? 32 : kind == "nested-issue" ? 30 : 54
                         try await settle()
                         let summaryHeight = host.fittingSize.height
                         try capture("summary")
@@ -102,14 +106,14 @@ final class LinearCardMinimizeTests: XCTestCase {
                         try capture("minimized")
                         try await click(foldX, foldY)
                         XCTAssertEqual(host.fittingSize.height, summaryHeight, accuracy: 1, kind)
-                        try await click(70, isInitiative ? 32 : 54)
+                        try await click(70, titleY)
                         let expandedHeight = host.fittingSize.height
                         XCTAssertGreaterThan(expandedHeight, summaryHeight + 30, kind)
                         try await click(foldX, foldY)
                         XCTAssertEqual(host.fittingSize.height, minimumHeight, accuracy: 1,
                             "\(kind): expanded children and details must also disappear")
                         // Clicking the title restores the view as well as the explicit button.
-                        try await click(70, isInitiative ? 32 : 54)
+                        try await click(70, titleY)
                         XCTAssertEqual(host.fittingSize.height, expandedHeight, accuracy: 1,
                             "\(kind): restore must retain the previous expansion state")
                         XCTAssertNil(focus.session)

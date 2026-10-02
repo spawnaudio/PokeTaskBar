@@ -279,7 +279,7 @@ final class ShopTests: XCTestCase {
     /// 상점 목록은 가격 오름차순(민트 < 사탕 < 이로치 부적).
     func testItemsSortedByPriceAscending() {
         let items = store(used: 0).purchasableItems
-        XCTAssertEqual(items, [.mint, .rareCandy, .shinyCharm])
+        XCTAssertEqual(items, [.potion, .superPotion, .hyperPotion, .mint, .revive, .fullRestore, .rareCandy, .shinyCharm])
         let prices = items.compactMap(\.shopPrice)
         XCTAssertEqual(prices, prices.sorted(), "shopPrice 오름차순 — 가격 상수가 바뀌어도 정렬 불변식 유지")
     }
@@ -312,8 +312,8 @@ final class ShopTests: XCTestCase {
         let s = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
         XCTAssertTrue(s.hasActive)
         XCTAssertEqual(s.shopEntries,
-                       [.item(.mint),
-                        .item(.rareCandy),
+                       [.item(.potion), .item(.superPotion), .item(.hyperPotion), .item(.mint),
+                        .item(.revive), .item(.fullRestore), .item(.rareCandy),
                         .egg(nil),
                         .egg(.uncommon),
                         .item(.shinyCharm),
@@ -327,15 +327,15 @@ final class ShopTests: XCTestCase {
         let s = store(used: 5_000_000_000)
         XCTAssertFalse(s.hasActive)
         XCTAssertEqual(s.shopEntries,
-                       [.item(.mint),
-                        .item(.rareCandy),
+                       [.item(.potion), .item(.superPotion), .item(.hyperPotion), .item(.mint),
+                        .item(.revive), .item(.fullRestore), .item(.rareCandy),
                         .egg(nil),
                         .egg(.uncommon),
                         .item(.shinyCharm),
                         .egg(.rare)])
         let prices = s.shopEntries.map(\.price)
         XCTAssertEqual(prices, prices.sorted(), "가격 상수가 바뀌어도 오름차순 불변식 유지")
-        XCTAssertEqual(prices, [Mint.price, RareCandy.price, FreshEgg.price,
+        XCTAssertEqual(prices, [100, 300, 600, Mint.price, 1200, 3600, RareCandy.price, FreshEgg.price,
                                 FreshEgg.price(guaranteeing: .uncommon), ShinyCharm.price,
                                 FreshEgg.price(guaranteeing: .rare)])
         for tier in FreshEgg.shopTiers {

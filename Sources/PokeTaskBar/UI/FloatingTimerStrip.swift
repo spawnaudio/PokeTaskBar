@@ -47,12 +47,13 @@ struct FloatingTimerStrip: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State var hovering = false
+    @State private var pointerInside = false
+    @State private var hideControlsTask: Task<Void, Never>?
     @State private var handleFocused = false
     @State private var showActions = false
-    @State private var addingTime = false
     @State private var completing = false
     @FocusState private var focusedControl: Control?
-    private enum Control { case pause, add, done, more }
+    private enum Control { case pause, note, done, more }
 
     private var l: L { companion.l }
     private var theme: MenuBarTheme { MenuBarTheme(scheme: scheme) }
@@ -65,99 +66,109 @@ struct FloatingTimerStrip: View {
                 dragHandle(.resize, label: l.resizeFloatingTimer)
                     .frame(width: 12, height: 30)
                     .overlay {
-                        Capsule().fill(revealsControls ? theme.accent.opacity(0.6) : theme.border)
+                        Capsule().fill(theme.accent.opacity(revealsControls ? 0.6 : 0))
                             .frame(width: 2, height: 16)
                             .allowsHitTesting(false).accessibilityHidden(true)
                     }
                 FloatingTimerClock()
                     .frame(width: 74, alignment: .leading)
                 Rectangle().fill(theme.border).frame(width: 1, height: 16).accessibilityHidden(true)
-                HStack(spacing: 5) {
-                    if !current.issue.isLocal, !revealsControls || store.floatingTimerWidth >= 400 {
-                        LinearIssueIDButton(identifier: current.issue.identifier, url: current.issue.url)
-                            .font(.system(size: 11)).foregroundStyle(theme.secondary)
-                            .fixedSize()
-                    }
-                    Text(current.issue.title).font(.system(size: 11))
+                ZStack(alignment: .leading) {
+                    Text(current.issue.title).font(.system(size: 13))
                         .foregroundStyle(theme.text).lineLimit(1).truncationMode(.tail)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                controls(current: current, paused: paused)
-                    .frame(width: revealsControls ? 98 : 0, alignment: .trailing)
-                    .opacity(revealsControls ? 1 : 0)
-                    .clipped().allowsHitTesting(revealsControls)
-                FloatingTimerNewIssueButton()
-                dragHandle(.move, label: l.moveFloatingTimer)
-                    .frame(width: 16, height: 30)
-                    .overlay {
-                        Image(systemName: store.floatingTimerDetached && store.floatingTimerPinned
-                              ? "pin.fill" : "circle.grid.2x2.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(theme.secondary.opacity(revealsControls ? 1 : 0.55))
-                            .allowsHitTesting(false).accessibilityHidden(true)
+                        .opacity(revealsControls ? 0 : 1)
+                    HStack(spacing: 4) {
+                        ViewThatFits(in: .horizontal) {
+                            controls(current: current, paused: paused, labeled: true).fixedSize()
+                            controls(current: current, paused: paused, labeled: false).fixedSize()
+                        }
+                        dragHandle(.move, label: l.moveFloatingTimer)
+                            .frame(width: 12, height: 30)
+                            .overlay {
+                                Image(systemName: store.floatingTimerDetached && store.floatingTimerPinned
+                                      ? "pin.fill" : "circle.grid.2x2.fill")
+                                    .font(.system(size: 9)).foregroundStyle(theme.secondary)
+                                    .allowsHitTesting(false).accessibilityHidden(true)
+                            }
                     }
+                    .opacity(revealsControls ? 1 : 0).allowsHitTesting(revealsControls)
+                }.frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 4)
             .frame(width: CGFloat(store.floatingTimerWidth), height: FloatingTimerMetrics.height)
-            .background(theme.canvas, in: RoundedRectangle(cornerRadius: 8))
+            .background(theme.canvas, in: RoundedRectangle(cornerRadius: 12))
             .overlay {
-                RoundedRectangle(cornerRadius: 8).strokeBorder(
+                RoundedRectangle(cornerRadius: 12).strokeBorder(
                     contrast == .increased ? theme.secondary : theme.border, lineWidth: 1)
                     .allowsHitTesting(false)
             }
-            .overlay(alignment: .bottom) {
-                GeometryReader { geometry in
-                    Capsule().fill(theme.border)
-                        .overlay(alignment: .leading) {
-                            Capsule().fill(theme.accent)
-                                .frame(width: geometry.size.width * session.plannedProgress)
-                        }
-                }
-                .frame(height: 2).padding(.horizontal, 9)
-                .accessibilityHidden(true).allowsHitTesting(false)
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .background(FloatingTimerHoverArea(onHover: pointerChanged))
+            .onKeyPress(phases: .down) { _ in
+                keepKeyboardControlsVisible()
+                return .ignored
             }
-            .contentShape(RoundedRectangle(cornerRadius: 8))
-            .onHover { hovering = $0 }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: revealsControls)
+            .onChange(of: focusedControl) { _, control in
+                if control != nil, NSApp.currentEvent?.type == .keyDown { keepKeyboardControlsVisible() }
+            }
+            .onChange(of: showActions) { _, open in
+                if !open, !pointerInside { pointerChanged(false) }
+            }
+            .onDisappear { hideControlsTask?.cancel() }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: revealsControls)
             .onChange(of: session.isComposingNote) { _, open in if open { showActions = false } }
             .onChange(of: session.resetPrompt) { _, open in if open { showActions = false } }
             .onChange(of: session.forfeitPrompt) { _, prompt in if prompt != nil { showActions = false } }
         }
     }
 
+    private func pointerChanged(_ inside: Bool) {
+        pointerInside = inside
+        hideControlsTask?.cancel()
+        if inside { hovering = true; return }
+        hideControlsTask = Task { @MainActor in
+            do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            // Mouse clicks can leave SwiftUI or a native drag handle focused after exit.
+            focusedControl = nil
+            handleFocused = false
+            hovering = false
+        }
+    }
+
+    private func keepKeyboardControlsVisible() {
+        hideControlsTask?.cancel()
+        hovering = pointerInside
+    }
+
     private func dragHandle(_ mode: FloatingTimerDragView.Mode, label: String) -> some View {
         FloatingTimerDragHandle(mode: mode, width: CGFloat(store.floatingTimerWidth), label: label,
                                 scale: CGFloat(store.floatingTimerScale),
                                 movementLocked: mode == .move && store.floatingTimerDetached && store.floatingTimerPinned,
-                                onResize: onResizeTimer, onFocusChange: { handleFocused = $0 })
+                                onResize: onResizeTimer, onFocusChange: {
+                                    handleFocused = $0
+                                    if $0 { keepKeyboardControlsVisible() }
+                                })
             .help(label)
     }
 
-    private func controls(current: FocusSession, paused: Bool) -> some View {
-        HStack(spacing: 2) {
+    private func controls(current: FocusSession, paused: Bool, labeled: Bool) -> some View {
+        HStack(spacing: 5) {
             Button { session.togglePause() } label: {
                 Image(systemName: paused ? "play" : "pause")
             }
-            .buttonStyle(FloatingTimerButtonStyle(selected: paused))
+            .buttonStyle(FloatingTimerButtonStyle(selected: paused, width: 28, filled: true))
             .focused($focusedControl, equals: .pause)
             .disabled(current.phase == .awaitingChoice)
             .help(paused ? l.resumeTimer : l.pauseTimer)
             .accessibilityLabel(paused ? l.resumeTimer : l.pauseTimer)
 
-            Button {
-                session.addRemainingMinutes(5)
-                addingTime = true
-            } label: { Text("+5").font(.system(size: 11, weight: .medium)) }
-            .buttonStyle(FloatingTimerButtonStyle(selected: addingTime))
-            .focused($focusedControl, equals: .add)
-            .disabled(!session.canAddRemainingTime)
-            .help(l.addTimeMinutes(5)).accessibilityLabel(l.addTimeMinutes(5))
-            .task(id: addingTime) {
-                guard addingTime else { return }
-                try? await Task.sleep(for: .milliseconds(600))
-                guard !Task.isCancelled else { return }
-                addingTime = false
+            Button { session.toggleNoteComposer() } label: {
+                HStack(spacing: 5) { Image(systemName: "doc.text"); if labeled { Text("Notes") } }
             }
+                .buttonStyle(FloatingTimerButtonStyle(width: labeled ? 67 : 28, filled: true))
+                .focused($focusedControl, equals: .note)
+                .disabled(current.issue.isLocal)
+                .help(l.sessionNoteHelp).accessibilityLabel(l.checkInAddNote)
 
             Button {
                 if current.issue.isLocal { session.finishLeavingInProgress() }
@@ -165,25 +176,32 @@ struct FloatingTimerStrip: View {
                     completing = true
                     Task { await session.markIssueDone(); completing = false }
                 }
-            } label: { Image(systemName: "checkmark") }
-            .buttonStyle(FloatingTimerButtonStyle())
+            } label: {
+                HStack(spacing: 5) { Image(systemName: "checkmark.circle"); if labeled { Text("Complete") } }
+            }
+            .buttonStyle(FloatingTimerButtonStyle(width: labeled ? 86 : 28, filled: true))
             .focused($focusedControl, equals: .done)
             .disabled(completing || store.updatingLinearIssueID != nil || !canComplete(current))
             .help(current.issue.isLocal ? l.finishFocusTimer : l.markDone)
             .accessibilityLabel(current.issue.isLocal ? l.finishFocusTimer : l.markDone)
 
             Button { showActions.toggle() } label: { Image(systemName: "ellipsis") }
-                .buttonStyle(FloatingTimerButtonStyle(selected: showActions))
+                .buttonStyle(FloatingTimerButtonStyle(selected: showActions, width: 28, filled: true))
                 .focused($focusedControl, equals: .more)
+                .accessibilityIdentifier("floating-timer-more")
                 .help(l.floatingTimerActions).accessibilityLabel(l.floatingTimerActions)
                 .popover(isPresented: $showActions, arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        if !current.issue.isLocal {
-                            let issue = store.linearIssue(id: current.issue.id) ?? current.issue.summary
-                            HStack {
+                        HStack {
+                            if !current.issue.isLocal {
+                                let issue = store.linearIssue(id: current.issue.id) ?? current.issue.summary
                                 LinearIssueStatusPicker(issue: issue)
-                                Spacer()
-                                NewLinearIssueButton()
+                            } else {
+                                Text(current.issue.title).font(.system(size: 12)).lineLimit(1)
+                            }
+                            Spacer()
+                            NewLinearIssueButton().accessibilityIdentifier("floating-timer-menu-new-issue")
+                            if !current.issue.isLocal {
                                 SessionNoteButton()
                             }
                         }
@@ -223,8 +241,34 @@ struct FloatingTimerStrip: View {
     }
 }
 
+/// Track exits even when an always-on-top timer is not the key window.
+private struct FloatingTimerHoverArea: NSViewRepresentable {
+    var onHover: (Bool) -> Void
+    func makeNSView(context: Context) -> FloatingTimerHoverView { FloatingTimerHoverView() }
+    func updateNSView(_ view: FloatingTimerHoverView, context: Context) { view.onHover = onHover }
+}
+
+final class FloatingTimerHoverView: NSView {
+    var onHover: (Bool) -> Void = { _ in }
+    private var hoverArea: NSTrackingArea?
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverArea { removeTrackingArea(hoverArea) }
+        let area = NSTrackingArea(rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+        addTrackingArea(area)
+        hoverArea = area
+    }
+    override func mouseEntered(with event: NSEvent) { onHover(true) }
+    override func mouseExited(with event: NSEvent) { onHover(false) }
+}
+
 struct FloatingTimerButtonStyle: ButtonStyle {
     var selected = false
+    var width: CGFloat = 23
+    var filled = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -233,13 +277,16 @@ struct FloatingTimerButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let theme = MenuBarTheme(scheme: scheme)
         configuration.label
-            .frame(width: 23, height: 26)
-            .foregroundStyle(selected ? theme.accent : (hovering ? theme.text : theme.secondary))
+            .frame(width: width, height: filled ? 28 : 26)
+            .foregroundStyle(selected ? theme.accent : (filled || hovering ? theme.text : theme.secondary))
             .background {
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: filled ? 8 : 5)
                     .fill(selected ? theme.accent.opacity(scheme == .dark ? 0.14 : 0.10)
                           : configuration.isPressed ? theme.border
-                          : hovering ? theme.selected : Color.clear)
+                          : hovering || filled ? theme.selected : Color.clear)
+                    .overlay {
+                        if filled { RoundedRectangle(cornerRadius: 8).strokeBorder(theme.border.opacity(0.7), lineWidth: 1) }
+                    }
             }
             .contentShape(RoundedRectangle(cornerRadius: 5))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)

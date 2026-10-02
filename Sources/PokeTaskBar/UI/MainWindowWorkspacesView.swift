@@ -8,6 +8,7 @@ struct MainWindowWorkspacesView: View {
     @Environment(CompanionStore.self) private var companion
     @Environment(MainWindowNavigation.self) private var nav
     @AppStorage("mainWindowProjectsGrid") private var projectGrid = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var l: L { companion.l }
     private var secondary: Bool { nav.workspaceSecondaryTabs[page] ?? false }
     private var query: String { nav.workspaceQueries[page] ?? "" }
@@ -74,7 +75,9 @@ struct MainWindowWorkspacesView: View {
                     case .initiatives: initiativeContent
                     default: EmptyView()
                     }
-                }.scrollIndicators(.hidden)
+                }.scrollIndicators(.hidden).roundedScrollViewport()
+                    .scrollPosition(id: Binding(get: { nav.workspaceScrollIDs[page] }, set: { nav.workspaceScrollIDs[page] = $0 }))
+                    .contextMenu { viewCommands }
             }
         }
     }
@@ -112,14 +115,15 @@ struct MainWindowWorkspacesView: View {
                 NewLinearIssueButton(showsTitle: true)
             }
             if page == .projects {
-                Picker("View", selection: $projectGrid) {
-                    Text("List").tag(false); Text("Grid").tag(true)
-                }.pickerStyle(.segmented).labelsHidden().frame(width: 140)
+                TahoeTabBar(selection: $projectGrid,
+                    items: [TahoeTabItem(false, title: "List"), TahoeTabItem(true, title: "Grid")])
+                    .frame(width: 140)
             }
             Button { Task { _ = await store.refreshLinearIssues() } } label: {
                 Image(systemName: "arrow.clockwise")
             }.buttonStyle(.plain).help(l.refreshNow)
                 .disabled(store.isRefreshingLinearIssues || !store.linearAPIKeyConfigured)
+                .proximityUtility()
         }
     }
     private func tab(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -133,10 +137,12 @@ struct MainWindowWorkspacesView: View {
         LazyVStack(alignment: .leading, spacing: 12) {
             if values.isEmpty { Text(query.isEmpty ? (emptyText ?? l.linearContainerEmptyIssues) : "No matching issues.")
                 .foregroundStyle(.secondary).padding(.vertical, 24) }
-            ForEach(values) { issue in
-                LinearIssueEntityRow(issue: issue) { nav.select(.focus) }
+            ForEach(LinearIssueHierarchy.roots(values, in: store.allLinearIssues)) { issue in
+                LinearIssueEntityRow(issue: issue, minimization: Binding(
+                    get: { nav.issueMinimization[issue.id] ?? false }, set: { nav.issueMinimization[issue.id] = $0 }),
+                    expansion: Binding(get: { nav.issueExpansion[issue.id] ?? false }, set: { nav.issueExpansion[issue.id] = $0 })) { nav.select(.focus) }
             }
-        }
+        }.scrollTargetLayout()
     }
     @ViewBuilder private var projectContent: some View {
         let values = projects
@@ -155,20 +161,50 @@ struct MainWindowWorkspacesView: View {
                     VStack(spacing: 12) {
                         if project.id == dividerID { Divider() }
                         projectCard(project)
-                    }
+                    }.id(project.id)
                 }
-            }
+            }.scrollTargetLayout()
         }
     }
     private func projectGridGroup(_ values: [LinearProjectSummary]) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 12, alignment: .top)], spacing: 12) {
             ForEach(values) { project in projectCard(project) }
-        }
+        }.scrollTargetLayout()
     }
     private func projectCard(_ project: LinearProjectSummary) -> some View {
         LinearProjectCard(project: project, hiddenIssueStatuses: store.hiddenLinearIssueStatuses,
-                          onViewIssues: { nav.showProjectIssues(project) }) {
+                          onViewIssues: { nav.showProjectIssues(project) },
+                          expansion: Binding(get: { nav.projectExpansion[project.id] ?? false },
+                                             set: { nav.projectExpansion[project.id] = $0 })) {
             nav.select(.focus)
+        }
+    }
+    @ViewBuilder private var viewCommands: some View {
+        Button("Fold all") { foldAll(true) }
+        Button("Unfold all") { foldAll(false) }
+        if page == .projects {
+            Picker("Sort", selection: Binding(get: { nav.projectSort }, set: { nav.projectSort = $0 })) {
+                ForEach(LinearProjectSort.allCases, id: \.self) { Text($0.title(l)).tag($0) }
+            }
+            Picker("View", selection: $projectGrid) { Text("List").tag(false); Text("Grid").tag(true) }
+        } else if page == .issues {
+            Picker("Sort", selection: Binding(get: { nav.issueSorts[nav.issuesTab] ?? .priority },
+                set: { nav.issueSorts[nav.issuesTab] = $0 })) {
+                ForEach(LinearIssueSort.allCases, id: \.self) { Text($0.title(l)).tag($0) }
+            }
+        }
+        Divider()
+        Button(store.todayDeskLayout.rightCollapsed ? "Show side panel" : "Hide side panel") {
+            store.todayDeskLayout = store.todayDeskLayout.togglingRight()
+        }
+    }
+    private func foldAll(_ folded: Bool) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            if page == .projects { for project in projects { nav.projectExpansion[project.id] = !folded } }
+            else { for issue in store.allLinearIssues {
+                nav.issueMinimization[issue.id] = folded
+                nav.issueExpansion[issue.id] = !folded
+            } }
         }
     }
     @ViewBuilder private var initiativeContent: some View {

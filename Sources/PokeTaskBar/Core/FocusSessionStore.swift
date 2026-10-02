@@ -18,6 +18,11 @@ final class FocusSessionStore {
     private(set) var log: [FocusLogEntry] = []
     private(set) var logDay = ""
     private(set) var issueHistory: [FocusIssueHistory] = []
+    private(set) var sessionRecords: [TaskSessionRecord] = []
+    private(set) var trackingBeganAt: Date = Date()
+    private(set) var storageError: String?
+    private var canSave = true
+    let plan: TaskPlanningStore
     private var sessionGrantedXP = 0
     private var sessionCheckIns: [FocusCheckInSummary] = []
     private var sessionNotes: [String] = []
@@ -46,8 +51,12 @@ final class FocusSessionStore {
     private(set) var pomodoroSetupOpen = false
     private(set) var timerAlarmSilenced = false
     var onOpenDesk: (() -> Void)?
+    var onOpenPlanning: (() -> Void)?
     var onOpenComposer: (() -> Void)?
     var onRevealOverlay: (() -> Void)?
+    private var potionTransactionID: String?
+    private(set) var isFinishingBattle = false
+    var onOpenBattleBag: (() -> Void)?
     private var isLoading = false
     private var pendingAfterForfeit: PendingAfterForfeit = .none
     private let createIssue: ((LinearIssueDraft) async -> LinearIssueSummary?)?
@@ -59,7 +68,7 @@ final class FocusSessionStore {
     private enum PendingAfterForfeit: Equatable {
         case none
         case idle
-        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int)
+        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int, blockID: UUID?)
         case createAndFocus(LinearIssueDraft, minutes: Int)
     }
 
@@ -76,12 +85,15 @@ final class FocusSessionStore {
         self.companion = companion
         self.clock = clock
         self.fileURL = fileURL ?? AppStatePaths.directory().appendingPathComponent("focus-session.json")
+        plan = TaskPlanningStore(fileURL: self.fileURL.deletingLastPathComponent().appendingPathComponent("task-planning.json"), clock: clock)
+        trackingBeganAt = clock()
         self.ticksOnTimer = ticksOnTimer
         self.postComment = postComment
         self.createIssue = createIssue
         plannedMinutes = SessionXP.defaultPlannedMinutes
         checkInMinutes = SessionXP.defaultCheckInMinutes
         load()
+        recoverPotion()
     }
 
     var prompt: FocusPrompt {
@@ -114,6 +126,7 @@ final class FocusSessionStore {
     }
 
     func openDesk() { onOpenDesk?() }
+    func openPlanning() { onOpenPlanning?() }
 
     func openComposer() { onOpenComposer?() }
 
@@ -127,7 +140,7 @@ final class FocusSessionStore {
         return FocusTick.addRemaining(session, minutes: 5, now: clock()) != nil
     }
 
-    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int) {
+    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int, blockID: UUID? = nil) {
         guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
         pomodoroSetupOpen = false
         if let current = session, current.issue.id == issue.id {
@@ -135,10 +148,10 @@ final class FocusSessionStore {
             return
         }
         if session != nil {
-            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes))
+            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes, blockID: blockID))
             return
         }
-        start(issue, minutes: minutes)
+        start(issue, minutes: minutes, blockID: blockID)
         if openDesk { self.openDesk() }
     }
 
@@ -199,8 +212,8 @@ final class FocusSessionStore {
         switch pending {
         case .none, .idle:
             break
-        case .pin(let issue, let openDesk, let minutes):
-            start(issue, minutes: minutes)
+        case .pin(let issue, let openDesk, let minutes, let blockID):
+            start(issue, minutes: minutes, blockID: blockID)
             if openDesk { self.openDesk() }
         case .createAndFocus(let draft, let minutes):
             if let created = await performCreate(draft) {
@@ -251,6 +264,70 @@ final class FocusSessionStore {
         self.session = next
         persist()
         syncTimer()
+    }
+
+    private var potionJournalURL: URL { fileURL.deletingLastPathComponent().appendingPathComponent("focus-potion-pending.json") }
+
+    func usePotion(_ kind: ItemKind, customMinutes: Int?) -> String? {
+        guard !FileManager.default.fileExists(atPath: potionJournalURL.path) else {
+            return "A timer extension is waiting to be saved. Restart to recover it."
+        }
+        guard kind.isFocusPotion, companion.itemCount(kind) > 0 else { return "This item is not in your bag." }
+        guard let current = session else { return "Start a timer first." }
+        guard let minutes = kind.potionMinutes ?? customMinutes,
+              let next = FocusPotion.extending(current, minutes: minutes, now: clock()) else {
+            return "Enter whole extra minutes within the 180-minute limit."
+        }
+        let journal = FocusPotionJournal(id: UUID().uuidString, kind: kind, session: next)
+        do {
+            let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+            try encoder.encode(journal).write(to: potionJournalURL, options: .atomic)
+            try companion.consumeFocusPotion(kind, transactionID: journal.id)
+        } catch {
+            // Keep a written journal for recovery; no second request may consume again.
+            return "The item could not be saved. Restart to recover the pending extension."
+        }
+        session = next
+        potionTransactionID = journal.id
+        guard persist() else { return "Time was added, but its save is pending. Restart to recover it." }
+        try? FileManager.default.removeItem(at: potionJournalURL)
+        syncTimer()
+        return nil
+    }
+
+    private func recoverPotion() {
+        guard FileManager.default.fileExists(atPath: potionJournalURL.path), canSave else { return }
+        do {
+            let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+            let journal = try decoder.decode(FocusPotionJournal.self, from: Data(contentsOf: potionJournalURL))
+            if potionTransactionID != journal.id {
+                try companion.consumeFocusPotion(journal.kind, transactionID: journal.id)
+                session = FocusTick.restoreAsPaused(journal.session)
+                potionTransactionID = journal.id
+                companion.setTimeOpenXPSuspended(true)
+                guard persist() else { return }
+            }
+            try FileManager.default.removeItem(at: potionJournalURL)
+        } catch { storageError = "The pending timer extension has been preserved for recovery." }
+        syncTimer()
+    }
+
+    /// Rest completes through the existing reward/completion paths, with no local Linear write.
+    func finishBattleTask() async -> Bool {
+        guard let current = session, !isFinishingBattle else { return false }
+        isFinishingBattle = true
+        defer { isFinishingBattle = false }
+        if current.issue.isLocal {
+            let result = FocusTick.apply(current, now: clock())
+            grantSessionXP(result.sessionXP)
+            grantSessionXP(FocusTick.settleLeaveInProgress(result.session))
+            appendSessionLog(result.session)
+            recordHistory(result.session, finish: .doneOnTime)
+            clearSession(resumeTimeOpen: true)
+        } else {
+            return await markIssueDone()
+        }
+        return session?.issue.id != current.issue.id
     }
 
     var editableTimerMinuteRange: ClosedRange<Int>? {
@@ -304,7 +381,7 @@ final class FocusSessionStore {
     }
 
     func continueOvertime() {
-        guard var session, session.phase == .awaitingChoice else { return }
+        guard var session, session.phase == .awaitingChoice, session.battleRewardsDeferred != true else { return }
         let result = FocusTick.continueOvertime(session, now: clock())
         session = result.session
         self.session = session
@@ -329,19 +406,22 @@ final class FocusSessionStore {
         clearSession(resumeTimeOpen: resumeTimeOpen)
     }
 
-    func markIssueDone() async {
-        guard let session, !session.issue.isLocal else { return }
+    @discardableResult
+    func markIssueDone() async -> Bool {
+        guard let session, !session.issue.isLocal else { return false }
         let issue = usage.linearIssue(id: session.issue.id) ?? session.issue.summary
         guard let stateID = session.issue.completedStateId
                 ?? issue.completedStateId
                 ?? issue.teamStates.first(where: { $0.type.lowercased() == "completed" })?.id
-        else { return }
+        else { return false }
         let completed = await usage.updateLinearIssueState(issue, stateID: stateID)
         if let completed {
             let outcome = companion.creditLinearCompletions([completed])
             usage.announceLinearCompletions(outcome.newlyCredited)
             handleLinearCompletion(completed)
+            return true
         }
+        return false
     }
 
     func handleLinearCompletion(_ completed: LinearCompletedIssue) {
@@ -480,7 +560,7 @@ final class FocusSessionStore {
             identifier: session.issue.identifier,
             leaveInProgressXP: result.warning.leaveInProgressXP)
         appendForfeitLog(session, leaveInProgressXP: result.warning.leaveInProgressXP)
-        recordHistory(session, finish: .forfeited)
+        recordHistory(FocusTick.apply(session, now: clock()).session, finish: .forfeited)
         forfeitPrompt = nil
         resetPrompt = false
         clearSession(resumeTimeOpen: resumeTimeOpen)
@@ -508,9 +588,11 @@ final class FocusSessionStore {
         grantSessionXP(marked.topUpXP)
     }
 
-    private func start(_ issue: LinearIssueSummary, minutes: Int) {
+    private func start(_ issue: LinearIssueSummary, minutes: Int, blockID: UUID? = nil) {
         plannedMinutes = minutes
         startPinned(FocusPinnedIssue(issue))
+        session?.plannedBlockID = blockID
+        persist()
     }
 
     private func startPinned(_ issue: FocusPinnedIssue) {
@@ -528,6 +610,8 @@ final class FocusSessionStore {
             plannedMinutes: plannedMinutes,
             checkInMinutes: checkInMinutes,
             now: now)
+        session?.battleOpponentID = [94, 25, 43].randomElement()
+        session?.battleRewardsDeferred = usage.floatingPetStyle == .battle
         persist()
         syncTimer()
     }
@@ -559,6 +643,17 @@ final class FocusSessionStore {
     }
 
     private func recordHistory(_ session: FocusSession, finish: FocusFinishKind) {
+        let id = session.recordID?.uuidString ?? "legacy-\(session.issue.id)-\(session.startedAt.timeIntervalSince1970)"
+        if !sessionRecords.contains(where: { $0.id == id }) {
+            let segments = session.activeSegments ?? []
+            sessionRecords.append(TaskSessionRecord(id: id, issueID: session.issue.id,
+                identifier: session.issue.identifier, title: session.issue.title,
+                projectID: session.issue.projectID, projectName: session.issue.projectName,
+                blockID: session.plannedBlockID, segments: segments,
+                activeSeconds: session.activeSegments == nil ? session.accumulatedSeconds : segments.reduce(0) { $0 + $1.seconds },
+                plannedSeconds: session.plannedSeconds, finishedAt: clock(), finish: finish,
+                xp: sessionGrantedXP, partial: session.activeSegments == nil))
+        }
         let overtime = session.enteredOvertime
             ? max(0, session.accumulatedSeconds - session.plannedSeconds)
             : 0
@@ -653,20 +748,43 @@ final class FocusSessionStore {
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let data = try? Data(contentsOf: fileURL),
-              let saved = try? decoder.decode(FocusPersistedState.self, from: data)
-        else { return }
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        let saved: FocusPersistedState
+        do { saved = try decoder.decode(FocusPersistedState.self, from: Data(contentsOf: fileURL)) }
+        catch {
+            canSave = false
+            storageError = "The session file could not be read. It has been preserved."
+            return
+        }
         plannedMinutes = SessionXP.clampMinutes(saved.plannedMinutes)
         checkInMinutes = SessionXP.clampMinutes(saved.checkInMinutes)
         log = saved.log
         logDay = saved.logDay
         issueHistory = Array(saved.issueHistory.prefix(FocusIssueHistory.maxStored))
+        var seen = Set<String>()
+        sessionRecords = saved.sessionRecords.filter { seen.insert($0.id).inserted }
+        trackingBeganAt = saved.trackingBeganAt ?? clock()
+        potionTransactionID = saved.potionTransactionID
+        if saved.sessionRecords.isEmpty {
+            sessionRecords = saved.issueHistory.map { value in
+                TaskSessionRecord(id: "legacy-\(value.id)-\(value.finishedAt.timeIntervalSince1970)",
+                    issueID: value.id, identifier: value.identifier, title: value.identifier,
+                    projectID: nil, projectName: nil, blockID: nil, segments: [],
+                    activeSeconds: value.durationSeconds, plannedSeconds: value.plannedSeconds,
+                    finishedAt: value.finishedAt, finish: value.finish, xp: value.sessionXP, partial: true)
+            }
+        }
         sessionGrantedXP = max(0, saved.sessionGrantedXP)
         sessionCheckIns = saved.sessionCheckIns
         sessionNotes = saved.sessionNotes
         rolloverLogIfNeeded()
         if var restored = saved.session {
             restored = FocusTick.restoreAsPaused(restored)
+            if restored.activeSegments == nil {
+                // Start measurement at v2 adoption; retain the legacy clock and summary.
+                restored.activeSegments = []
+                restored.recordID = UUID()
+            }
             session = restored
             companion.setTimeOpenXPSuspended(true)
         } else {
@@ -676,12 +794,14 @@ final class FocusSessionStore {
         }
     }
 
-    private func persist() {
+    @discardableResult
+    private func persist() -> Bool {
         persist(at: clock())
     }
 
-    private func persist(at now: Date) {
-        guard !isLoading else { return }
+    @discardableResult
+    private func persist(at now: Date) -> Bool {
+        guard !isLoading, canSave else { return false }
         let snapshot = FocusPersistedState(
             plannedMinutes: plannedMinutes,
             checkInMinutes: checkInMinutes,
@@ -691,13 +811,16 @@ final class FocusSessionStore {
             sessionGrantedXP: sessionGrantedXP,
             sessionCheckIns: sessionCheckIns,
             sessionNotes: sessionNotes,
-            issueHistory: Array(issueHistory.prefix(FocusIssueHistory.maxStored)))
+            issueHistory: Array(issueHistory.prefix(FocusIssueHistory.maxStored)),
+            sessionRecords: sessionRecords, trackingBeganAt: trackingBeganAt, potionTransactionID: potionTransactionID)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(snapshot) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        guard let data = try? encoder.encode(snapshot) else { return false }
+        do { try data.write(to: fileURL, options: .atomic); storageError = nil }
+        catch { storageError = "Focus history could not be saved. Check the storage location."; return false }
         lastPersistAt = now
+        return true
     }
 }
 

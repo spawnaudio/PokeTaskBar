@@ -368,7 +368,7 @@ final class RareCandyStoreTests: XCTestCase {
     }
 
     func testSingleCandyAdvancesAtMostOneBoostedStage() async {
-        let s = store(rcLinear3)
+        let s = store(rcLinear3, seed: 1) // Unowned shiny repeat.
         await s.hatch(baseID: 1)
         for stage in 0..<3 {
             s.applyUsage(PokemonBalance.phaseThreshold(

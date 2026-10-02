@@ -23,7 +23,7 @@ final class SessionKeySettingsRenderingTests: XCTestCase {
         let host = NSHostingController(rootView: SettingsView(
             onClose: {}, onChooseRepresentative: {}, startExpanded: navigation.expandAdvancedOnOpen)
             .environment(usage).environment(companion).environment(UpdateChecker())
-            .frame(width: PopoverMetrics.width))
+            .frame(width: PopoverMetrics.width, height: 460))
         let previousKeyWindow = NSApp.keyWindow
         let window = SessionKeyTestWindow(contentRect: NSRect(x: -10000, y: -10000, width: PopoverMetrics.width, height: 460),
                               styleMask: [.borderless], backing: .buffered, defer: false)
@@ -39,7 +39,7 @@ final class SessionKeySettingsRenderingTests: XCTestCase {
         let views = descendants(of: host.view)
         let secure = try XCTUnwrap(views.compactMap { $0 as? NSSecureTextField }.first)
         let rect = secure.convert(secure.bounds, to: host.view)
-        XCTAssertTrue(host.view.bounds.contains(rect), "session key entry must be visible after scrolling")
+        XCTAssertTrue(host.view.bounds.contains(rect), "session key entry must be visible after scrolling: \(rect) within \(host.view.bounds)")
         // Hosted CI renders the layout but does not grant this XCTest window an editor.
         // Verify keyboard focus on an interactive Mac with PTB_VERIFY_KEYBOARD_FOCUS=1.
         if ProcessInfo.processInfo.environment["PTB_VERIFY_KEYBOARD_FOCUS"] == "1" {

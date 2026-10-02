@@ -276,6 +276,8 @@ struct FocusPinnedIssue: Codable, Equatable, Identifiable {
     var completedStateId: String?
     var teamStates: [LinearWorkflowState]
     var taskDescription: String? = nil
+    var projectID: String? = nil
+    var projectName: String? = nil
 
     init(_ issue: LinearIssueSummary) {
         id = issue.id
@@ -287,6 +289,8 @@ struct FocusPinnedIssue: Codable, Equatable, Identifiable {
         completedStateId = issue.completedStateId
             ?? issue.teamStates.first { $0.type.lowercased() == "completed" }?.id
         teamStates = issue.teamStates
+        projectID = issue.projectID
+        projectName = issue.projectName
     }
 
     /// Timer with no Linear issue. Same clock / XP path; Linear chrome is hidden.
@@ -366,6 +370,11 @@ struct FocusPinnedIssue: Codable, Equatable, Identifiable {
 }
 
 struct FocusSession: Codable, Equatable {
+    var battleOpponentID: Int? = nil
+    var battleRewardsDeferred: Bool? = nil
+    var recordID: UUID? = nil
+    var activeSegments: [FocusActiveSegment]? = nil
+    var plannedBlockID: UUID? = nil
     var issue: FocusPinnedIssue
     var phase: FocusPhase
     var plannedSeconds: TimeInterval
@@ -397,6 +406,8 @@ struct FocusSession: Codable, Equatable {
         now: Date
     ) -> FocusSession {
         return FocusSession(
+            recordID: UUID(),
+            activeSegments: [],
             issue: issue,
             phase: .running,
             plannedSeconds: TimeInterval(SessionXP.clampMinutes(plannedMinutes) * 60),
@@ -466,6 +477,7 @@ enum FocusTick {
         if let start = s.segmentStartedAt, s.isAccruing {
             let delta = now.timeIntervalSince(start)
             if delta > 0 {
+                recordActiveSegment(&s, from: start, until: now)
                 s.accumulatedSeconds += delta
                 s.checkInAccumulatedSeconds += delta
                 s.segmentStartedAt = now
@@ -723,12 +735,26 @@ enum FocusTick {
         if let start = s.segmentStartedAt, s.isAccruing {
             let delta = now.timeIntervalSince(start)
             if delta > 0 {
+                recordActiveSegment(&s, from: start, until: now)
                 s.accumulatedSeconds += delta
                 s.checkInAccumulatedSeconds += delta
             }
         }
         s.segmentStartedAt = nil
         return s
+    }
+
+    private static func recordActiveSegment(_ session: inout FocusSession, from start: Date, until now: Date) {
+        guard session.activeSegments != nil else { return }
+        let duration = session.phase == .running
+            ? min(now.timeIntervalSince(start), max(0, session.plannedSeconds - session.accumulatedSeconds))
+            : now.timeIntervalSince(start)
+        guard duration.isFinite, duration > 0 else { return }
+        let end = start.addingTimeInterval(duration)
+        if var segments = session.activeSegments, segments.last?.end == start {
+            segments[segments.count - 1].end = end
+            session.activeSegments = segments
+        } else { session.activeSegments?.append(FocusActiveSegment(start: start, end: end)) }
     }
 
     private static func settlePlanned(_ session: inout FocusSession, multiplier: Int) -> Int {
@@ -901,10 +927,14 @@ struct FocusPersistedState: Equatable, Codable {
     var sessionCheckIns: [FocusCheckInSummary]
     var sessionNotes: [String]
     var issueHistory: [FocusIssueHistory]
+    var sessionRecords: [TaskSessionRecord]
+    var trackingBeganAt: Date?
+    var potionTransactionID: String?
 
     enum CodingKeys: String, CodingKey {
         case plannedMinutes, checkInMinutes, session, log, logDay
         case sessionGrantedXP, sessionCheckIns, sessionNotes, issueHistory
+        case sessionRecords, trackingBeganAt, potionTransactionID
     }
 
     init(
@@ -916,7 +946,10 @@ struct FocusPersistedState: Equatable, Codable {
         sessionGrantedXP: Int = 0,
         sessionCheckIns: [FocusCheckInSummary] = [],
         sessionNotes: [String] = [],
-        issueHistory: [FocusIssueHistory] = []
+        issueHistory: [FocusIssueHistory] = [],
+        sessionRecords: [TaskSessionRecord] = [],
+        trackingBeganAt: Date? = nil,
+        potionTransactionID: String? = nil
     ) {
         self.plannedMinutes = plannedMinutes
         self.checkInMinutes = checkInMinutes
@@ -927,6 +960,9 @@ struct FocusPersistedState: Equatable, Codable {
         self.sessionCheckIns = sessionCheckIns
         self.sessionNotes = sessionNotes
         self.issueHistory = issueHistory
+        self.sessionRecords = sessionRecords
+        self.trackingBeganAt = trackingBeganAt
+        self.potionTransactionID = potionTransactionID
     }
 
     init(from decoder: Decoder) throws {
@@ -940,6 +976,9 @@ struct FocusPersistedState: Equatable, Codable {
         sessionCheckIns = try c.decodeIfPresent([FocusCheckInSummary].self, forKey: .sessionCheckIns) ?? []
         sessionNotes = try c.decodeIfPresent([String].self, forKey: .sessionNotes) ?? []
         issueHistory = try c.decodeIfPresent([FocusIssueHistory].self, forKey: .issueHistory) ?? []
+        sessionRecords = try c.decodeIfPresent([TaskSessionRecord].self, forKey: .sessionRecords) ?? []
+        potionTransactionID = try c.decodeIfPresent(String.self, forKey: .potionTransactionID)
+        trackingBeganAt = try c.decodeIfPresent(Date.self, forKey: .trackingBeganAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -953,5 +992,8 @@ struct FocusPersistedState: Equatable, Codable {
         try c.encode(sessionCheckIns, forKey: .sessionCheckIns)
         try c.encode(sessionNotes, forKey: .sessionNotes)
         try c.encode(issueHistory, forKey: .issueHistory)
+        try c.encode(sessionRecords, forKey: .sessionRecords)
+        try c.encodeIfPresent(potionTransactionID, forKey: .potionTransactionID)
+        try c.encodeIfPresent(trackingBeganAt, forKey: .trackingBeganAt)
     }
 }

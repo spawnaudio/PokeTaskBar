@@ -5,6 +5,87 @@ import XCTest
 
 @MainActor
 final class FloatingTimerOverlayTests: XCTestCase {
+    func testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        fixture.companion.setLanguage(.en)
+        fixture.focus.startPomodoro()
+        let root = FloatingTimerStrip()
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+            .environment(\.colorScheme, .dark)
+        let host = NSHostingView(rootView: root)
+        let window = FloatingPetPanel(contentRect: NSRect(x: 30, y: 30, width: 384, height: 42),
+            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        defer { window.close(); window.contentView = nil }
+        func settle(_ milliseconds: Int = 300) async throws {
+            try await Task.sleep(for: .milliseconds(milliseconds))
+            host.layoutSubtreeIfNeeded()
+        }
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        func snapshot() throws -> Data {
+            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            return try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+        }
+        try await settle()
+        let hover = try XCTUnwrap(descendants(host).compactMap { $0 as? FloatingTimerHoverView }.first)
+        hover.updateTrackingAreas()
+        let unrelated = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways],
+            owner: host, userInfo: nil)
+        hover.addTrackingArea(unrelated)
+        hover.updateTrackingAreas()
+        hover.updateTrackingAreas()
+        XCTAssertTrue(hover.trackingAreas.contains { $0 === unrelated })
+        XCTAssertEqual(hover.trackingAreas.count, 2, "Refreshing must replace only the timer's tracking area")
+        XCTAssertTrue(hover.trackingAreas.contains { $0.options.contains(.activeAlways) })
+        XCTAssertNil(hover.hitTest(.zero), "Tracking must not intercept timer clicks or dragging")
+        let handle = try XCTUnwrap(descendants(host).compactMap { $0 as? FloatingTimerDragView }
+            .first { $0.mode == .move })
+        func pointer(_ inside: Bool) throws {
+            let event = try XCTUnwrap(NSEvent.enterExitEvent(with: inside ? .mouseEntered : .mouseExited,
+                location: NSPoint(x: 180, y: 21), modifierFlags: [], timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, trackingNumber: 0, userData: nil))
+            if inside { hover.mouseEntered(with: event) } else { hover.mouseExited(with: event) }
+        }
+        let title = try snapshot()
+        try pointer(true)
+        _ = handle.becomeFirstResponder() // A mouse-used handle can stay first responder after exit.
+        try await settle()
+        let controls = try snapshot()
+        XCTAssertNotEqual(controls, title)
+        try pointer(false)
+        try await settle(1_000)
+        XCTAssertEqual(try snapshot(), controls, "Keep controls visible during the two-second grace")
+        try await settle(1_500)
+        XCTAssertEqual(try snapshot(), title, "Exit must clear lingering native focus and restore the title")
+
+        try pointer(true)
+        try pointer(false)
+        try await settle(1_000)
+        try pointer(true)
+        try await settle(1_200)
+        XCTAssertEqual(try snapshot(), controls, "Returning cancels the old fade deadline")
+        try pointer(false)
+        try await settle(2_500)
+        XCTAssertEqual(try snapshot(), title)
+
+        // Keyboard movement during the grace keeps its focused controls available.
+        try pointer(true)
+        _ = handle.becomeFirstResponder()
+        try pointer(false)
+        let key = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "",
+            charactersIgnoringModifiers: "", isARepeat: false, keyCode: 123))
+        handle.keyDown(with: key)
+        try await settle(2_500)
+        XCTAssertEqual(try snapshot(), controls, "Keyboard input cancels the mouse fade")
+        _ = handle.resignFirstResponder()
+        try await settle()
+        XCTAssertEqual(try snapshot(), title, "Keyboard focus release restores the title")
+    }
+
     func testTimerScalePersistsAndBoundsSavedValues() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -145,7 +226,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                         } else {
                             _ = try XCTUnwrap(handles(host).first { $0.mode == .move }).becomeFirstResponder()
                             try await settle()
-                            try click(window, x: (384 - 139.5) * scale, y: 21 * scale)
+                            try click(window, x: 117.5 * scale, y: 21 * scale)
                             XCTAssertTrue(fixture.focus.session?.userPaused == true, "Scaled Pause must accept clicks")
                         }
                         let right = window.frame.maxX
@@ -755,7 +836,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
             let move = try XCTUnwrap(handles(in: host).first { $0.mode == .move })
             _ = move.becomeFirstResponder()
             try await settle()
-            try click(x: width - 139.5, y: 21)
+            try click(x: 117.5, y: 21)
             XCTAssertTrue(fixture.focus.session?.userPaused == true, "Pause must work inside the complete expanded overlay")
             try checkStrip("controls-\(appearance.rawValue)")
             try click(x: width + 24, y: 16)
@@ -908,9 +989,53 @@ final class FloatingTimerOverlayTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(180))
             panel.contentView?.layoutSubtreeIfNeeded()
         }
-        func clickNewIssue(compact: Bool) throws {
-            let point = compact ? NSPoint(x: 133, y: 17)
+        func clickNewIssue(mode: String) async throws {
+            func click(_ target: NSWindow, x: CGFloat, y: CGFloat) throws {
+                func event(_ type: NSEvent.EventType) throws -> NSEvent {
+                    try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: y),
+                        modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: target.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+                }
+                NSApp.postEvent(try event(.leftMouseUp), atStart: false)
+                target.sendEvent(try event(.leftMouseDown))
+                if let up = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+                    target.sendEvent(up)
+                }
+            }
+            let point = mode == "compact" ? NSPoint(x: 133, y: 17)
                 : NSPoint(x: CGFloat(fixture.usage.floatingTimerWidth) - 36.5, y: 21)
+            if mode == "expanded" {
+                func findMove(_ view: NSView) -> FloatingTimerDragView? {
+                    if let handle = view as? FloatingTimerDragView, handle.mode == .move { return handle }
+                    return view.subviews.compactMap(findMove).first
+                }
+                _ = findMove(try XCTUnwrap(panel.contentView))?.becomeFirstResponder()
+                try await settle()
+                let windows = Set(NSApp.windows.map(\.windowNumber))
+                try click(panel, x: 219, y: 21)
+                try await settle()
+                let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !windows.contains($0.windowNumber) })
+                func descendants(_ view: NSView) -> [NSView] {
+                    [view] + view.subviews.flatMap(descendants)
+                }
+                let hover = try XCTUnwrap(descendants(try XCTUnwrap(panel.contentView))
+                    .compactMap { $0 as? FloatingTimerHoverView }.first)
+                let exit = try XCTUnwrap(NSEvent.enterExitEvent(with: .mouseExited, location: .zero,
+                    modifierFlags: [], timestamp: 0, windowNumber: panel.windowNumber, context: nil,
+                    eventNumber: 1, trackingNumber: 0, userData: nil))
+                hover.mouseExited(with: exit)
+                try await Task.sleep(for: .milliseconds(2_500))
+                XCTAssertTrue(popup.isVisible, "Leaving the timer must not dismiss its open menu")
+                let host = try XCTUnwrap(descendants(try XCTUnwrap(popup.contentView)).first {
+                    NSStringFromClass(type(of: $0)).contains("HostingView")
+                })
+                let location = host.convert(NSPoint(x: host.bounds.width - 37,
+                    y: host.isFlipped ? 35 : host.bounds.height - 35), to: nil)
+                try click(popup, x: location.x, y: location.y)
+                try await settle()
+                if popup.isVisible { popup.close() }
+                return
+            }
             for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
                 panel.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
                     modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
@@ -926,14 +1051,22 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 fixture.usage.linearIntegrationEnabled = false
                 fixture.usage.linearAPIKeyConfigured = false
                 try await settle()
-                try clickNewIssue(compact: mode == "compact")
+                try await clickNewIssue(mode: mode)
                 XCTAssertNil(composerWindow(), "Disconnected Linear must not open a composer")
                 fixture.usage.linearIntegrationEnabled = true
                 fixture.usage.linearAPIKeyConfigured = true
                 try await settle()
                 let beforeSession = fixture.focus.session
                 let beforeFrame = panel.frame
-                try clickNewIssue(compact: mode == "compact")
+                if mode == "expanded" {
+                    func findMove(_ view: NSView) -> FloatingTimerDragView? {
+                        if let handle = view as? FloatingTimerDragView, handle.mode == .move { return handle }
+                        return view.subviews.compactMap(findMove).first
+                    }
+                    _ = findMove(try XCTUnwrap(panel.contentView))?.becomeFirstResponder()
+                    try await settle()
+                }
+                try await clickNewIssue(mode: mode)
                 try await settle()
                 let window = try XCTUnwrap(composerWindow(), "The plus must open the shared composer in \(mode)")
                 XCTAssertTrue(window.isKeyWindow)
@@ -1193,6 +1326,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
     }
 
     @MainActor private final class Fixture {
+        let activationPolicy: NSApplication.ActivationPolicy
         let directory: URL
         let suite = "FloatingTimerOverlayTests-\(UUID().uuidString)"
         let defaults: UserDefaults
@@ -1203,6 +1337,9 @@ final class FloatingTimerOverlayTests: XCTestCase {
             fileURL: directory.appendingPathComponent("focus.json"), ticksOnTimer: false)
 
         init() throws {
+            let app = NSApplication.shared
+            activationPolicy = app.activationPolicy()
+            app.setActivationPolicy(.accessory)
             directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -1215,6 +1352,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 linearAPIKeys: LinearAPIKeyStore(fileURL: directory.appendingPathComponent("key.json")))
         }
         func remove() {
+            NSApp.setActivationPolicy(activationPolicy)
             defaults.removePersistentDomain(forName: suite)
             try? FileManager.default.removeItem(at: directory)
         }

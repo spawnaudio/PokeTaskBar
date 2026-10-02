@@ -160,6 +160,10 @@ final class UsageStore {
         didSet { defaults.set(floatingPetEnabled, forKey: "floatingPetEnabled") }
     }
     /// 플로팅 펫 스프라이트 한 변 크기(pt).
+    enum FloatingPetStyle: String, CaseIterable { case classic, battle }
+    var floatingPetStyle: FloatingPetStyle {
+        didSet { defaults.set(floatingPetStyle.rawValue, forKey: "floatingPetStyle") }
+    }
     var floatingPetSize: Double {
         didSet { defaults.set(floatingPetSize, forKey: "floatingPetSize") }
     }
@@ -720,6 +724,7 @@ final class UsageStore {
         updateNotificationsEnabled = d.object(forKey: "updateNotificationsEnabled") as? Bool ?? true
         statusChecksEnabled = d.object(forKey: "statusChecksEnabled") as? Bool ?? true
         floatingPetEnabled = d.object(forKey: "floatingPetEnabled") as? Bool ?? false
+        floatingPetStyle = FloatingPetStyle(rawValue: d.string(forKey: "floatingPetStyle") ?? "classic") ?? .classic
         floatingPetSize = d.object(forKey: "floatingPetSize") as? Double ?? 96
         floatingPetBubbleAlerts = d.object(forKey: "floatingPetBubbleAlerts") as? Bool ?? true
         floatingPetIslandFolded = d.object(forKey: "floatingPetIslandFolded") as? Bool ?? false
@@ -1059,6 +1064,29 @@ final class UsageStore {
     private(set) var linearInProgressIssues: [LinearIssueSummary] = []
     private(set) var linearPlannedIssues: [LinearIssueSummary] = []
     private(set) var linearTodoIssues: [LinearIssueSummary] = []
+    private(set) var linearRelatedIssues: [LinearIssueSummary] = []
+    private var loadedSubIssueIDs: Set<String> = []
+
+    var allLinearIssues: [LinearIssueSummary] {
+        var seen = Set<String>()
+        return (linearInProgressIssues + linearPlannedIssues + linearTodoIssues + linearCompletedTodayIssues +
+            linearProjects.flatMap(\.issues) + linearInitiatives.flatMap(\.issues) + linearRelatedIssues)
+            .filter { seen.insert($0.id).inserted }
+    }
+
+    func loadLinearSubIssues(issueID: String) async throws {
+        guard !loadedSubIssueIDs.contains(issueID) else { return }
+        guard linearIntegrationEnabled, let key = linearAPIKeys.load()?.key else { throw LinearAPIError.unauthorized }
+        let updatedAt = linearIssuesUpdatedAt
+        let children = try await linearClient.fetchSubIssues(apiKey: key, issueID: issueID)
+        try Task.checkCancellation()
+        guard linearIntegrationEnabled, linearAPIKeys.load()?.key == key, linearIssuesUpdatedAt == updatedAt
+        else { throw CancellationError() }
+        let ids = Set(children.map(\.id))
+        linearRelatedIssues.removeAll { $0.parentID == issueID || ids.contains($0.id) }
+        linearRelatedIssues += children
+        loadedSubIssueIDs.insert(issueID)
+    }
     private(set) var linearProjects: [LinearProjectSummary] = []
     private(set) var linearProjectStatuses: [LinearWorkflowState] = []
     private(set) var linearInitiatives: [LinearInitiativeSummary] = []
@@ -1237,6 +1265,16 @@ final class UsageStore {
     /// Moves an issue to `stateID` in Linear, then refreshes the local snapshot.
     /// Returns a completion payload only when the issue *enters* a completed state.
     func updateLinearIssueState(_ issue: LinearIssueSummary, stateID: String) async -> LinearCompletedIssue? {
+        await performLinearStateChange(issue, stateID: stateID)?.completion
+    }
+
+    /// Planning needs an explicit success result; a non-completion is normally nil above.
+    func moveLinearIssueToState(_ issue: LinearIssueSummary, stateID: String) async -> Bool {
+        await performLinearStateChange(issue, stateID: stateID) != nil
+    }
+
+    private func performLinearStateChange(_ issue: LinearIssueSummary, stateID: String) async
+        -> (completion: LinearCompletedIssue?, stateID: String?)? {
         guard linearIntegrationEnabled,
               updatingLinearIssueID == nil,
               !stateID.isEmpty,
@@ -1261,7 +1299,7 @@ final class UsageStore {
             {
                 applyLinearDashboard(dashboard, now: Date())
             }
-            return LinearClient.creditedCompletion(wasCompleted: wasCompleted, update: update)
+            return (LinearClient.creditedCompletion(wasCompleted: wasCompleted, update: update), update.stateId)
         } catch {
             linearIssuesError = "fetch_failed"
             return nil
@@ -1307,6 +1345,7 @@ final class UsageStore {
         for initiative in linearInitiatives {
             if let issue = initiative.issues.first(where: { $0.id == id }) { return issue }
         }
+        if let issue = linearRelatedIssues.first(where: { $0.id == id }) { return issue }
         return nil
     }
 
@@ -1396,6 +1435,8 @@ final class UsageStore {
         linearInProgressIssues = dashboard.inProgress
         linearPlannedIssues = dashboard.planned
         linearTodoIssues = dashboard.todo
+        linearRelatedIssues = dashboard.relatedIssues
+        loadedSubIssueIDs = []
         linearProjects = dashboard.projects
         linearProjectStatuses = dashboard.projectStatuses
         linearInitiatives = dashboard.initiatives
@@ -1427,6 +1468,7 @@ final class UsageStore {
         linearInProgressIssues = linearInProgressIssues.map(rewrite)
         linearPlannedIssues = linearPlannedIssues.map(rewrite)
         linearTodoIssues = linearTodoIssues.map(rewrite)
+        linearRelatedIssues = linearRelatedIssues.map(rewrite)
         linearCompletedTodayIssues = linearCompletedTodayIssues.map(rewrite)
         linearProjects = linearProjects.map { project in
             var copy = project
@@ -1496,6 +1538,7 @@ final class UsageStore {
         linearInProgressIssues = LinearClient.sortedByPriority(linearInProgressIssues.map(rewrite))
         linearPlannedIssues = LinearClient.sortedByPriority(linearPlannedIssues.map(rewrite))
         linearTodoIssues = LinearClient.sortedByPriority(linearTodoIssues.map(rewrite))
+        linearRelatedIssues = LinearClient.sortedByPriority(linearRelatedIssues.map(rewrite))
         linearCompletedTodayIssues = LinearClient.sortedByPriority(linearCompletedTodayIssues.map(rewrite))
         linearProjects = linearProjects.map { project in
             var copy = project
@@ -1516,6 +1559,8 @@ final class UsageStore {
         linearInProgressIssues = []
         linearPlannedIssues = []
         linearTodoIssues = []
+        linearRelatedIssues = []
+        loadedSubIssueIDs = []
         linearProjects = []
         linearProjectStatuses = []
         linearInitiatives = []

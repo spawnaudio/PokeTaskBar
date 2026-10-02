@@ -69,6 +69,47 @@ final class LinearPlannedIssuesTests: XCTestCase {
         XCTAssertEqual(dashboard.planned.first?.projectID, "project")
     }
 
+    func testParentRelationshipsLoadAcrossStatusesAndPaginatedChildrenKeepTheirOwnControls() async throws {
+        var child = node("child", name: "Todo", priority: 2, projectID: nil)
+        child["parent"] = ["id": "parent"]
+        let states = [["id": "unstarted", "name": "Todo", "type": "unstarted"],
+            ["id": "started", "name": "In Progress", "type": "started"],
+            ["id": "done", "name": "Done", "type": "completed"]]
+        child["team"] = ["id": "team", "key": "ENG", "states": ["nodes": states]]
+        var parent = node("parent", name: "Backlog", type: "backlog", projectID: nil)
+        parent["children"] = ["nodes": [["id": "child"]]]
+        parent["team"] = child["team"]
+        let http = HTTP([
+            try data(["completedRecent": ["nodes": []], "inProgress": ["nodes": []], "todo": ["nodes": [child]]]),
+            try data(["projects": ["nodes": []], "initiatives": ["nodes": []]]),
+            try data(["issues": ["nodes": [parent]]]),
+        ])
+        let client = LinearClient(http: http)
+        let dashboard = try await client.fetchIssueDashboard(apiKey: "fixture", completedSince: Date())
+        let issue = try XCTUnwrap(dashboard.todo.first)
+        let root = try XCTUnwrap(dashboard.relatedIssues.first)
+        XCTAssertEqual(issue.parentID, root.id)
+        XCTAssertTrue(root.hasSubIssues)
+        XCTAssertEqual(root.completedStateId, "done")
+        let context = LinearIssueHierarchy.includingAncestors([issue], in: [issue, root])
+        XCTAssertEqual(LinearIssueHierarchy.roots([issue, root], in: context).map(\.id), [root.id])
+        XCTAssertEqual(LinearIssueHierarchy.roots([issue], in: [issue]).map(\.id), [issue.id], "Missing parents must not hide accessible children")
+        var cycleA = root, cycleB = issue
+        cycleA.parentID = issue.id; cycleB.parentID = root.id
+        XCTAssertEqual(LinearIssueHierarchy.roots([cycleA, cycleB], in: [cycleA, cycleB]).count, 1)
+        var next = child
+        next["id"] = "second"; next["identifier"] = "ENG-second"; next["title"] = "Second child"
+        http.responses = [
+            try data(["issue": ["children": ["nodes": [child], "pageInfo": ["hasNextPage": true, "endCursor": "page2"]]]]),
+            try data(["issue": ["children": ["nodes": [next, child], "pageInfo": ["hasNextPage": false]]]]),
+        ]
+        let children = try await client.fetchSubIssues(apiKey: "fixture", issueID: root.id)
+        XCTAssertEqual(Set(children.map(\.id)), ["child", "second"])
+        XCTAssertTrue(children.allSatisfy { $0.parentID == root.id && $0.completedStateId == "done" })
+        let request = try XCTUnwrap(try JSONSerialization.jsonObject(with: http.bodies.last!) as? [String: Any])
+        XCTAssertEqual((request["variables"] as? [String: Any])?["after"] as? String, "page2")
+    }
+
     func testTodoOnlyMatchesNamedOpenStatusAndProjectRoute() throws {
         let payload = try data([
             "completedRecent": ["nodes": []], "inProgress": ["nodes": [node("custom", name: "Todo", type: "started")]],
@@ -178,7 +219,8 @@ final class LinearPlannedIssuesTests: XCTestCase {
 
         for (name, type) in [("Todo", "unstarted"), ("In Progress", "started"), ("Planned", "unstarted"), ("Done", "completed"), ("Todo", "unstarted"), ("Planned", "unstarted")] {
             http.responses = [try data(["issueUpdate": ["success": true, "issue": node("planned", name: name, type: type)]])]
-            _ = await store.updateLinearIssueState(try XCTUnwrap(store.linearIssue(id: "planned")), stateID: type)
+            let moved = await store.moveLinearIssueToState(try XCTUnwrap(store.linearIssue(id: "planned")), stateID: type)
+            XCTAssertTrue(moved, "Non-completing status changes must report success")
             XCTAssertEqual(store.linearTodoIssues.contains { $0.id == "planned" }, name == "Todo")
             XCTAssertEqual(store.linearPlannedIssues.contains { $0.id == "planned" }, name == "Planned")
             XCTAssertEqual(store.linearInProgressIssues.contains { $0.id == "planned" }, type == "started")
@@ -188,6 +230,23 @@ final class LinearPlannedIssuesTests: XCTestCase {
         http.responses = [try data(["issueUpdate": ["success": true, "issue": ["id": "todo"]]])]
         await store.updateLinearIssuePriority(try XCTUnwrap(store.linearIssue(id: "todo")), priority: 2)
         XCTAssertEqual(store.linearTodoIssues.first?.priority, 2)
+        http.responses = []
+        let failed = await store.moveLinearIssueToState(try XCTUnwrap(store.linearIssue(id: "planned")), stateID: "started")
+        XCTAssertFalse(failed, "Offline mutations must not report success")
+        let plan = TaskPlanningStore(fileURL: directory.appendingPathComponent("plan.json"))
+        plan.linked = true
+        var mapped = try XCTUnwrap(store.linearIssue(id: "planned"))
+        mapped.teamStates = [.init(id: "started", name: "In Progress", type: "started", position: 0),
+            .init(id: "planned-state", name: "Planned", type: "unstarted", position: 1),
+            .init(id: "unstarted", name: "Todo", type: "unstarted", position: 2)]
+        http.responses = [try data(["issueUpdate": ["success": true, "issue": node("planned", name: "In Progress", type: "started")]])]
+        await plan.move(mapped, to: .today, usage: store)
+        XCTAssertNil(plan.syncError)
+        XCTAssertEqual(store.linearIssue(id: "planned")?.stateType, "started", "Linked planning uses the shared mutation path")
+        http.responses = [try data(["issueUpdate": ["success": true, "issue": node("planned")]])]
+        await plan.undo(usage: store)
+        XCTAssertNil(plan.entry("planned"))
+        XCTAssertEqual(store.linearIssue(id: "planned")?.stateId, mapped.stateId)
         store.clearLinearAPIKey()
         XCTAssertTrue(store.linearPlannedIssues.isEmpty)
         XCTAssertTrue(store.linearTodoIssues.isEmpty)

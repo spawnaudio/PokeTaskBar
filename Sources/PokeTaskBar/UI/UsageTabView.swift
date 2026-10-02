@@ -120,9 +120,9 @@ struct UsageTabView: View {
     private var desktopBody: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Picker("Usage view", selection: $presentation) {
-                    ForEach(["Overview", "Provider", "Limits"], id: \.self) { Text($0).tag($0) }
-                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 310)
+                TahoeTabBar(selection: $presentation,
+                    items: ["Overview", "Provider", "Limits"].map { TahoeTabItem($0, title: $0) })
+                    .frame(maxWidth: 310)
                 Spacer()
                 Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.plain).help(l.refreshNow)

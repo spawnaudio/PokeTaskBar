@@ -136,37 +136,32 @@ struct SettingsView: View {
                 header
                 Divider()
             }
-            ScrollViewReader { proxy in
-                ContentFittingScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        generalGroup(store)
-                        linearGroup(store)
-                        difficultyGroup
-                        menuBarGroup(store)
-                        floatingPetGroup(store)
-                        notificationsGroup(store)
-                        updateGroup(store)
-                        transferGroup(store)
-                        advancedGroup(store)
-                            .id("advancedSettingsSection")
-                        aboutSupportGroup
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            ContentFittingScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    if startExpanded { advancedGroup(store) }
+                    generalGroup(store)
+                    linearGroup(store)
+                    difficultyGroup
+                    menuBarGroup(store)
+                    floatingPetGroup(store)
+                    notificationsGroup(store)
+                    updateGroup(store)
+                    transferGroup(store)
+                    if !startExpanded { advancedGroup(store) }
+                    aboutSupportGroup
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onAppear {
-                    guard !didApplyStartExpanded else { return }
-                    didApplyStartExpanded = true
-                    if startExpanded {
-                        advancedExpanded = true
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 80_000_000)
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                proxy.scrollTo("advancedSettingsSection", anchor: .top)
-                            }
-                            sessionKeyFocused = true
-                        }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                guard !didApplyStartExpanded else { return }
+                didApplyStartExpanded = true
+                if startExpanded {
+                    advancedExpanded = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 80_000_000)
+                        sessionKeyFocused = true
                     }
                 }
             }
@@ -371,6 +366,15 @@ struct SettingsView: View {
                     .labelsHidden().toggleStyle(.switch).controlSize(.small)
             }
             if store.floatingPetEnabled {
+                Divider()
+                groupRow {
+                    Text("Floating pet style")
+                    Spacer()
+                    Picker("Floating pet style", selection: $store.floatingPetStyle) {
+                        Text("Classic").tag(UsageStore.FloatingPetStyle.classic)
+                        Text("Battle window").tag(UsageStore.FloatingPetStyle.battle)
+                    }.labelsHidden().frame(width: 140)
+                }
                 Divider()
                 groupRow {
                     Text(l.floatingPetSizeLabel).font(.callout)

@@ -21,7 +21,10 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/release/$PRODUCT_BIN" "$APP/Contents/MacOS/$APP_NAME"
 # 심볼 strip — 릴리스 바이너리 1.84MB → 0.80MB(-57%). codesign 전에 수행(서명 무효화 방지).
 strip -rSTx "$APP/Contents/MacOS/$APP_NAME" 2>/dev/null || strip -rSx "$APP/Contents/MacOS/$APP_NAME"
-cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp "${PTB_ICON_PATH:-assets/AppIcon.icns}" "$APP/Contents/Resources/AppIcon.icns"
+for resource_bundle in .build/release/*.bundle; do
+    [[ -d "$resource_bundle" ]] && cp -R "$resource_bundle" "$APP/Contents/Resources/"
+done
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -40,6 +43,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
     <key>PTBOpenMainWindowOnLaunch</key><string>${PTB_OPEN_MAIN_WINDOW:-0}</string>
+    <key>PTBDevelopmentBuild</key><string>${PTB_DEVELOPMENT_BUILD:-0}</string>
 </dict>
 </plist>
 PLIST

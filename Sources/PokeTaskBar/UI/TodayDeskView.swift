@@ -21,6 +21,10 @@ final class TodayDeskController: NSObject, NSWindowDelegate {
             self?.navigation.select(.focus)
             self?.open()
         }
+        session.onOpenPlanning = { [weak self] in
+            self?.navigation.select(.today)
+            self?.open()
+        }
     }
 
     func open() {
@@ -57,7 +61,7 @@ final class TodayDeskController: NSObject, NSWindowDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false)
-        window.title = "PokeTaskBar"
+        window.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "PokeTasks"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.toolbarStyle = .unified

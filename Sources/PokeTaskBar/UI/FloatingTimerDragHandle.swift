@@ -91,6 +91,7 @@ final class FloatingTimerDragView: NSView {
         case 126 where mode == .move: delta = NSPoint(x: 0, y: 8)
         default: super.keyDown(with: event); return
         }
+        onFocusChange(true)
         apply(delta: delta, frame: frame, width: timerWidth)
     }
 

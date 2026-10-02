@@ -47,6 +47,7 @@ final class UpdateChecker {
     /// 최신 릴리스 조회. 스킵한 버전은 배너(`available`)에 안 올리고 Settings(`skipped`)에만 남긴다.
     /// minInterval 보다 자주 호출되면 무시(레이트리밋 보호).
     func check(minInterval: TimeInterval = 1800) async {
+        guard Bundle.main.object(forInfoDictionaryKey: "PTBDevelopmentBuild") as? String != "1" else { return }
         if let last = lastChecked, clock().timeIntervalSince(last) < minInterval { return }
         lastChecked = clock()
         guard let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest") else { return }
@@ -102,6 +103,7 @@ final class UpdateChecker {
     /// Open the GitHub release. PokeTaskBar v1 has no Homebrew cask (and must not
     /// upgrade `poke-token-bar`, which is a different app).
     func applyUpdate() {
+        guard Bundle.main.object(forInfoDictionaryKey: "PTBDevelopmentBuild") as? String != "1" else { return }
         guard let update = updateTarget, !isUpdating else { return }
         AppLog.write("update: open GitHub release")
         if let u = URL(string: update.url) { NSWorkspace.shared.open(u) }

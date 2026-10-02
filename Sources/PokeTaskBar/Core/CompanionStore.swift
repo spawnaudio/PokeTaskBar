@@ -1041,10 +1041,27 @@ final class CompanionStore {
     @discardableResult
     func buy(_ kind: ItemKind, count: Int = 1) -> Bool {
         guard canBuy(kind, count: count), let price = price(of: kind) else { return false }
-        state.spentTokens += price * count
-        state.inventory[kind.rawValue, default: 0] += count
-        save()
+        var next = state
+        next.spentTokens += price * count
+        next.inventory[kind.rawValue, default: 0] += count
+        guard let data = try? JSONEncoder().encode(next),
+              (try? data.write(to: fileURL, options: .atomic)) != nil else { return false }
+        state = next
         return true
+    }
+
+    /// Persist before publishing; replaying a journal never consumes the item twice.
+    func consumeFocusPotion(_ kind: ItemKind, transactionID: String) throws {
+        if state.focusPotionTransactionID == transactionID { return }
+        guard kind.isFocusPotion, itemCount(kind) > 0 else {
+            throw NSError(domain: "FocusPotion", code: 1, userInfo: [NSLocalizedDescriptionKey: "This item is not in your bag."])
+        }
+        var next = state
+        next.inventory[kind.rawValue, default: 0] -= 1
+        next.focusPotionTransactionID = transactionID
+        let data = try JSONEncoder().encode(next)
+        try data.write(to: fileURL, options: .atomic)
+        state = next
     }
 
     // 사탕 전용 래퍼 — 기존 호출부/테스트 호환.

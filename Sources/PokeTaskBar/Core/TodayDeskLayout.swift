@@ -96,10 +96,10 @@ struct TodayDeskLayout: Equatable, Sendable {
 
     /// Displayed column widths. Preferred widths are not mutated — shrinking the window
     /// clamps on screen only, so restoring a wider frame restores the persisted prefs.
-    func resolved(containerWidth: CGFloat) -> Resolved {
+    func resolved(containerWidth: CGFloat, collapsedLeftWidth: CGFloat = 0) -> Resolved {
         let splitters = TodayDeskMetrics.splitterWidth * 2
         let available = max(0, containerWidth - splitters)
-        var left: CGFloat = leftCollapsed ? 0 : Self.clampSidebar(leftWidth, containerWidth: containerWidth)
+        var left: CGFloat = leftCollapsed ? collapsedLeftWidth : Self.clampSidebar(leftWidth, containerWidth: containerWidth)
         var right: CGFloat = rightCollapsed ? 0 : Self.clampSidebar(rightWidth, containerWidth: containerWidth)
         let overflow = left + right + TodayDeskMetrics.minCenterWidth - available
         if overflow > 0 {
@@ -138,12 +138,12 @@ struct TodayDeskLayout: Equatable, Sendable {
         return next
     }
 
-    func settingRightWidth(_ width: CGFloat, containerWidth: CGFloat) -> TodayDeskLayout {
+    func settingRightWidth(_ width: CGFloat, containerWidth: CGFloat, collapsedLeftWidth: CGFloat = 0) -> TodayDeskLayout {
         guard !rightCollapsed else { return self }
         var next = self
         next.rightWidth = Self.clampDragWidth(
             width,
-            otherDisplayed: leftCollapsed ? 0 : Self.clampSidebar(leftWidth, containerWidth: containerWidth),
+            otherDisplayed: leftCollapsed ? collapsedLeftWidth : Self.clampSidebar(leftWidth, containerWidth: containerWidth),
             containerWidth: containerWidth)
         return next
     }
