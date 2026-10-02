@@ -191,10 +191,11 @@ final class AdaptiveMenuBarSizingTests: XCTestCase {
         XCTAssertEqual(window.frame.height, fitted, accuracy: 1)
         fixture.usage.menuBarPanelDetached = true
         try await Task.sleep(for: .milliseconds(100))
-        window.setContentSize(NSSize(width: 700, height: 800))
+        let detachedHeight = min(800, (window.screen?.visibleFrame.height ?? 900) - 100)
+        window.setContentSize(NSSize(width: 700, height: detachedHeight))
         fixture.nav.tab = .linear
         try await settleController(window)
-        XCTAssertEqual(window.contentRect(forFrameRect: window.frame).height, 800, accuracy: 1)
+        XCTAssertEqual(window.contentRect(forFrameRect: window.frame).height, detachedHeight, accuracy: 1)
         fixture.usage.menuBarPanelDetached = false
         try await settleController(window)
         XCTAssertLessThan(window.frame.height, 400)

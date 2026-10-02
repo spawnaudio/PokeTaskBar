@@ -5,6 +5,23 @@ import XCTest
 
 @MainActor
 final class FloatingTimerOverlayTests: XCTestCase {
+    // Anchor to the app's text field; system popover margins differ between macOS versions.
+    private func clickRelative(to field: NSTextField, x: CGFloat, fromTop: CGFloat) async throws {
+        let window = try XCTUnwrap(field.window)
+        let y = field.isFlipped ? fromTop : field.bounds.height - fromTop
+        let point = field.convert(NSPoint(x: x, y: y), to: nil)
+        func event(_ type: NSEvent.EventType) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+        }
+        NSApp.postEvent(try event(.leftMouseUp), atStart: true)
+        window.sendEvent(try event(.leftMouseDown))
+        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            window.sendEvent(release)
+        }
+        try await Task.sleep(for: .milliseconds(180))
+    }
     func testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -913,23 +930,11 @@ final class FloatingTimerOverlayTests: XCTestCase {
             }
             try await Task.sleep(for: .milliseconds(180))
         }
-        func clickEditor(_ field: NSTextField, x: CGFloat, fromTop: CGFloat) async throws {
-            let window = try XCTUnwrap(field.window)
-            let content = try XCTUnwrap(window.contentView)
-            let y = content.isFlipped ? fromTop : content.bounds.height - fromTop
-            let point = content.convert(NSPoint(x: x, y: y), to: nil)
-            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
-                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
-            }
-            try await Task.sleep(for: .milliseconds(180))
-        }
         for appearance in [NSAppearance.Name.darkAqua, .aqua] {
             panel.appearance = NSAppearance(named: appearance)
             fixture.focus.openPomodoroSetup()
             var field = try await clickClock()
-            try await clickEditor(field, x: 58, fromTop: 66)
+            try await clickRelative(to: field, x: 33, fromTop: -24)
             XCTAssertEqual(fixture.focus.plannedMinutes, 25, "Clicking a preset applies it directly")
             field = try await clickClock()
             try await type("17", into: field)
@@ -943,7 +948,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
             fixture.usage.floatingPetIslandFolded = true
             field = try await clickClock()
             try await type("8", into: field, commit: false)
-            try await clickEditor(field, x: 220, fromTop: 162)
+            try await clickRelative(to: field, x: field.bounds.width + 20, fromTop: field.bounds.height + 50)
             XCTAssertEqual(fixture.focus.clockDisplay().text, "8:00")
             XCTAssertTrue(fixture.focus.session?.userPaused == true)
             XCTAssertTrue(fixture.usage.floatingPetIslandFolded)
@@ -953,7 +958,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
             XCTAssertNotNil(field.currentEditor(), "Invalid input leaves the editor open")
             try await type("15", into: field, commit: false)
             let editorWindow = try XCTUnwrap(field.window)
-            editorWindow.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+            NSApp.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: editorWindow.windowNumber, context: nil, characters: "\u{1b}",
                 charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
@@ -996,7 +1001,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                         modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                         windowNumber: target.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
                 }
-                NSApp.postEvent(try event(.leftMouseUp), atStart: false)
+                NSApp.postEvent(try event(.leftMouseUp), atStart: true)
                 target.sendEvent(try event(.leftMouseDown))
                 if let up = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
                     target.sendEvent(up)
@@ -1011,7 +1016,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 }
                 _ = findMove(try XCTUnwrap(panel.contentView))?.becomeFirstResponder()
                 try await settle()
-                let windows = Set(NSApp.windows.map(\.windowNumber))
+                let windows = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
                 try click(panel, x: 219, y: 21)
                 try await settle()
                 let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !windows.contains($0.windowNumber) })
@@ -1121,7 +1126,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
         }
         func key(_ text: String, code: UInt16 = 0) throws {
             let window = try XCTUnwrap(keyboardWindow)
-            window.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+            NSApp.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: window.windowNumber, context: nil, characters: text,
                 charactersIgnoringModifiers: text, isARepeat: false, keyCode: code)))
@@ -1172,7 +1177,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 XCTAssertNil(fixture.focus.session)
                 XCTAssertEqual(navigations, 0, "Opening the picker must not navigate or start")
                 // Presets are drafts; the explicit Start focus action commits the choice.
-                try await click(picker, x: 58, fromTop: 95)
+                try await clickRelative(to: field, x: 33, fromTop: -24)
                 XCTAssertEqual(field.stringValue, "25")
                 XCTAssertNil(fixture.focus.session)
                 XCTAssertEqual(fixture.focus.plannedMinutes, 50)
@@ -1185,7 +1190,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 XCTAssertTrue(picker.isVisible)
                 try type("17", into: field)
                 if scheme == .dark { try key("\u{1b}", code: 53) }
-                else { try await click(picker, x: 58, fromTop: 191) }
+                else { try await clickRelative(to: field, x: 33, fromTop: field.bounds.height + 50) }
                 try await settle()
                 XCTAssertFalse(picker.isVisible)
                 XCTAssertNil(fixture.focus.session)
@@ -1205,7 +1210,7 @@ final class FloatingTimerOverlayTests: XCTestCase {
                         .write(to: output.appendingPathComponent("focus-duration-\(entry)-\(scheme).png"))
                 }
                 if scheme == .dark { try key("\r", code: 36) }
-                else { try await click(picker, x: 234, fromTop: 191) }
+                else { try await clickRelative(to: field, x: field.bounds.width + 20, fromTop: field.bounds.height + 50) }
                 try await settle()
                 XCTAssertEqual(fixture.focus.session?.plannedSeconds, 17 * 60)
                 XCTAssertEqual(navigations, 1)

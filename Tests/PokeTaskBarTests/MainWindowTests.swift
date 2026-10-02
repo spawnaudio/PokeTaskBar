@@ -232,7 +232,7 @@ final class MainWindowTests: XCTestCase {
         window.isReleasedWhenClosed = false; window.contentView = host; window.orderFrontRegardless()
         defer { window.orderOut(nil); window.contentView = nil }
         try await Task.sleep(for: .milliseconds(200))
-        let existing = Set(NSApp.windows.map(\.windowNumber))
+        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
         try await click(window, in: host, x: 350, top: 167)
         let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
         defer { popup.orderOut(nil) }
@@ -334,7 +334,7 @@ final class MainWindowTests: XCTestCase {
                     XCTAssertEqual(fixture.focus.session?.userPaused, !before, "\(width): Pause accepts a native click in the title slot")
                     if fixture.focus.session?.userPaused == true { fixture.focus.togglePause() }
                     if width == 384, let path = ProcessInfo.processInfo.environment["PTB_V2_REVISION_PREVIEW_DIR"] {
-                        let existing = Set(NSApp.windows.map(\.windowNumber))
+                        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
                         try await click(window, in: host, x: 317, top: 21)
                         let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
                         let content = try XCTUnwrap(popup.contentView)
@@ -778,7 +778,7 @@ final class MainWindowTests: XCTestCase {
         window.contentView = host; window.orderFrontRegardless()
         defer { window.orderOut(nil); window.contentView = nil }
         try await Task.sleep(for: .milliseconds(150))
-        let existing = Set(NSApp.windows.map(\.windowNumber))
+        let existing = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
         try await click(window, in: host, x: 150, top: 30)
         let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !existing.contains($0.windowNumber) })
         defer { popup.orderOut(nil) }

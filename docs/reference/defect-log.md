@@ -95,6 +95,12 @@ read_when:
   controls may synchronously track until release, blocking a sequential send loop.
   Keep assertions on repeated selection, persistence and
   popover visibility; skipping the interaction would hide the regression.
+  Floating duration tests likewise anchor clicks to the actual text field and
+  dispatch shortcuts through `NSApp`. Detect a newly visible popover rather than
+  assuming AppKit allocates a new window: macOS 15 can reuse a hidden one. The
+  window-lookup sweep covers the timer and workspace tests. Detached-window sizing
+  tests request a height that fits the display, then verify navigation preserves it;
+  the CI display cannot accommodate the former fixed 800pt content height.
 
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.
