@@ -889,11 +889,25 @@ final class MainWindowTests: XCTestCase {
             if !payload.released { post(.leftMouseUp, end) }
         }
         post(.leftMouseDown, point)
-        let down = try XCTUnwrap(NSApp.nextEvent(matching: .leftMouseDown,
-            until: Date().addingTimeInterval(0.2), inMode: .default, dequeue: true))
+        var taggedDown: NSEvent?
+        let deadline = Date().addingTimeInterval(2)
+        while taggedDown == nil, Date() < deadline {
+            guard let next = NSApp.nextEvent(matching: .any, until: Date().addingTimeInterval(0.05),
+                inMode: .default, dequeue: true) else { continue }
+            if next.type == .leftMouseDown,
+               next.cgEvent?.getIntegerValueField(.eventSourceUserData) == eventTag {
+                taggedDown = next
+            } else {
+                NSApp.sendEvent(next)
+            }
+        }
+        let down = try XCTUnwrap(taggedDown, "WindowServer must deliver the tagged mouse-down after activation")
         XCTAssertEqual(down.cgEvent?.getIntegerValueField(.eventSourceUserData), eventTag)
         NSApp.sendEvent(down)
-        for timer in [movement, release, finish] { RunLoop.main.add(timer, forMode: .common) }
+        for (timer, delay) in [(movement, 0.05), (release, 0.25), (finish, 0.7)] {
+            timer.fireDate = Date().addingTimeInterval(delay)
+            RunLoop.main.add(timer, forMode: .common)
+        }
         if stationary { try await Task.sleep(for: .milliseconds(180)) }
         // Drive AppKit's real event loop, including the drag session's own release handling.
         NSApp.runModal(for: window)
@@ -912,8 +926,12 @@ final class MainWindowTests: XCTestCase {
         // AppKit controls can track synchronously inside mouseDown until mouseUp arrives.
         NSApp.postEvent(try event(.leftMouseUp), atStart: false)
         window.sendEvent(try event(.leftMouseDown))
-        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
-            window.sendEvent(release) // SwiftUI gestures do not consume the queued release synchronously.
+        while let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            if release.windowNumber == window.windowNumber {
+                window.sendEvent(release) // SwiftUI gestures do not consume the queued release synchronously.
+            } else {
+                NSApp.sendEvent(release)
+            }
         }
         try await Task.sleep(for: .milliseconds(180))
     }

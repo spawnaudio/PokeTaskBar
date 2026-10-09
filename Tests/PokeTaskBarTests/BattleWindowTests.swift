@@ -512,6 +512,7 @@ final class BattleWindowTests: XCTestCase {
                 let up: CGEventType = right ? .rightMouseUp : .leftMouseUp
                 let button: CGMouseButton = right ? .right : .left
                 let tag = Int64.random(in: 1...Int64.max)
+                XCTAssertEqual(CGWarpMouseCursorPosition(quartz), .success)
                 for type in [down, up] {
                     let posted = try XCTUnwrap(CGEvent(mouseEventSource: nil, mouseType: type,
                         mouseCursorPosition: quartz, mouseButton: button))
@@ -519,6 +520,7 @@ final class BattleWindowTests: XCTestCase {
                     posted.post(tap: .cghidEventTap)
                 }
                 var delivered = false
+                var released = false
                 let deadline = Date().addingTimeInterval(2)
                 while Date() < deadline {
                     guard let next = NSApp.nextEvent(matching: .any, until: Date().addingTimeInterval(0.05),
@@ -527,10 +529,17 @@ final class BattleWindowTests: XCTestCase {
                     if ours, next.type == (right ? .rightMouseDown : .leftMouseDown) {
                         delivered = next.windowNumber == panel.windowNumber
                     }
+                    if ours, next.type == (right ? .rightMouseUp : .leftMouseUp) {
+                        released = next.windowNumber == panel.windowNumber
+                    }
                     NSApp.sendEvent(next)
-                    if ours, delivered, right || next.type == .leftMouseUp { break }
+                    // Menu tracking can consume its release; drain any remaining release before the next click.
+                    if ours, next.type == (right ? .rightMouseUp : .leftMouseUp) { break }
                 }
                 XCTAssertTrue(delivered, "WindowServer must deliver the screen click to the Game Boy")
+                if !right {
+                    XCTAssertTrue(released, "WindowServer must deliver the screen release to the same Game Boy")
+                }
             }
             trackedMenu = false
             try await screenClick(right: true)

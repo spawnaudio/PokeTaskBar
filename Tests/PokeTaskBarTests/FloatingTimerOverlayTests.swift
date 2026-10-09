@@ -23,8 +23,12 @@ final class FloatingTimerOverlayTests: XCTestCase {
         }
         NSApp.postEvent(try event(.leftMouseUp), atStart: true)
         window.sendEvent(try event(.leftMouseDown))
-        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
-            window.sendEvent(release)
+        while let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+            if release.windowNumber == window.windowNumber {
+                window.sendEvent(release)
+            } else {
+                NSApp.sendEvent(release)
+            }
         }
         try await Task.sleep(for: .milliseconds(180))
     }
@@ -223,14 +227,22 @@ final class FloatingTimerOverlayTests: XCTestCase {
                             }
                             let field = try XCTUnwrap(fields(host).first { $0.isEditable })
                             let point = field.convert(NSPoint(x: field.bounds.midX, y: field.bounds.midY), to: nil)
+                            // Model a late WindowServer release after its window has closed.
+                            NSApp.postEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseUp, location: .zero,
+                                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                windowNumber: 0, context: nil, eventNumber: 2, clickCount: 1, pressure: 0)), atStart: false)
                             NSApp.postEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseUp, location: point,
                                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 0)), atStart: true)
                             window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: point,
                                 modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
                                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)))
-                            if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
-                                window.sendEvent(release)
+                            while let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+                                if release.windowNumber == window.windowNumber {
+                                    window.sendEvent(release)
+                                } else {
+                                    NSApp.sendEvent(release)
+                                }
                             }
                             XCTAssertNil(NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: false),
                                          "Native typing must not leak mouse releases into later tests")
@@ -1010,28 +1022,35 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 }
                 NSApp.postEvent(try event(.leftMouseUp), atStart: true)
                 target.sendEvent(try event(.leftMouseDown))
-                if let up = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
-                    target.sendEvent(up)
+                while let up = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
+                    if up.windowNumber == target.windowNumber {
+                        target.sendEvent(up)
+                    } else {
+                        NSApp.sendEvent(up)
+                    }
                 }
             }
             let point = mode == "compact" ? NSPoint(x: 133, y: 17)
                 : NSPoint(x: CGFloat(fixture.usage.floatingTimerWidth) - 36.5, y: 21)
             if mode == "expanded" {
-                func findMove(_ view: NSView) -> FloatingTimerDragView? {
-                    if let handle = view as? FloatingTimerDragView, handle.mode == .move { return handle }
-                    return view.subviews.compactMap(findMove).first
-                }
-                _ = findMove(try XCTUnwrap(panel.contentView))?.becomeFirstResponder()
-                try await settle()
-                let windows = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
-                try click(panel, x: 219, y: 21)
-                try await settle()
-                let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !windows.contains($0.windowNumber) })
                 func descendants(_ view: NSView) -> [NSView] {
                     [view] + view.subviews.flatMap(descendants)
                 }
                 let hover = try XCTUnwrap(descendants(try XCTUnwrap(panel.contentView))
                     .compactMap { $0 as? FloatingTimerHoverView }.first)
+                let enter = try XCTUnwrap(NSEvent.enterExitEvent(with: .mouseEntered,
+                    location: NSPoint(x: 219, y: 21), modifierFlags: [], timestamp: 0,
+                    windowNumber: panel.windowNumber, context: nil, eventNumber: 1,
+                    trackingNumber: 0, userData: nil))
+                hover.mouseEntered(with: enter)
+                try await settle()
+                let windows = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
+                try click(panel, x: 219, y: 21)
+                try await waitUntil {
+                    NSApp.windows.contains { $0.isVisible && !windows.contains($0.windowNumber) }
+                }
+                let popup = try XCTUnwrap(NSApp.windows.first { $0.isVisible && !windows.contains($0.windowNumber) },
+                    "More must open in \(panel.appearance?.name.rawValue ?? "unknown") with Linear \(fixture.usage.canComposeLinearIssue)")
                 let exit = try XCTUnwrap(NSEvent.enterExitEvent(with: .mouseExited, location: .zero,
                     modifierFlags: [], timestamp: 0, windowNumber: panel.windowNumber, context: nil,
                     eventNumber: 1, trackingNumber: 0, userData: nil))
@@ -1050,10 +1069,9 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 try click(popup, x: location.x, y: location.y)
                 try await settle()
                 if !fixture.usage.canComposeLinearIssue {
-                    NSApp.sendEvent(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
-                        modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                        windowNumber: popup.windowNumber, context: nil, characters: "\u{1b}",
-                        charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)))
+                    XCTAssertTrue(popup.isVisible, "The disabled plus must leave More open")
+                    // Escape routes through the active window; More owns its binding even when inactive.
+                    try click(panel, x: 219, y: 21)
                 }
                 try await waitUntil { !popup.isVisible }
                 XCTAssertFalse(popup.isVisible, "Close the More menu through its SwiftUI binding")
@@ -1081,14 +1099,6 @@ final class FloatingTimerOverlayTests: XCTestCase {
                 try await settle()
                 let beforeSession = fixture.focus.session
                 let beforeFrame = panel.frame
-                if mode == "expanded" {
-                    func findMove(_ view: NSView) -> FloatingTimerDragView? {
-                        if let handle = view as? FloatingTimerDragView, handle.mode == .move { return handle }
-                        return view.subviews.compactMap(findMove).first
-                    }
-                    _ = findMove(try XCTUnwrap(panel.contentView))?.becomeFirstResponder()
-                    try await settle()
-                }
                 try await clickNewIssue(mode: mode)
                 try await settle()
                 let window = try XCTUnwrap(composerWindow(), "The plus must open the shared composer in \(mode)")

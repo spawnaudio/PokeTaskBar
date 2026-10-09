@@ -51,7 +51,7 @@ PLIST
 
 # 크래시/OOM(exit≠0) 시 자동 재실행 LaunchAgent(KeepAlive) — SMAppService.agent 가 등록해 launchd 가
 # 워치독으로 동작. 정상 종료(exit 0: 사용자 종료·업데이트)엔 재실행 안 함(SuccessfulExit=false).
-# ProgramArguments 는 brew 설치 경로(/Applications) 고정. codesign 전에 생성해 서명 seal 에 포함.
+# BundleProgram ties SMAppService's executable to this signed bundle. Generate before signing.
 mkdir -p "$APP/Contents/Library/LaunchAgents"
 cat > "$APP/Contents/Library/LaunchAgents/${AGENT_LABEL}.plist" <<AGENT
 <?xml version="1.0" encoding="UTF-8"?>
@@ -59,10 +59,7 @@ cat > "$APP/Contents/Library/LaunchAgents/${AGENT_LABEL}.plist" <<AGENT
 <plist version="1.0">
 <dict>
     <key>Label</key><string>$AGENT_LABEL</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/Applications/$APP_NAME.app/Contents/MacOS/$APP_NAME</string>
-    </array>
+    <key>BundleProgram</key><string>Contents/MacOS/$APP_NAME</string>
     <key>RunAtLoad</key><true/>
     <key>KeepAlive</key>
     <dict>

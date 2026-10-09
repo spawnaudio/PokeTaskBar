@@ -308,7 +308,7 @@ struct SettingsView: View {
                     .disabled(!isBundledApp)
                     .onChange(of: launchAtLogin) { _, newValue in
                         do {
-                            try LoginItem.setEnabled(newValue)   // KeepAlive 에이전트(로그인 실행+크래시 재실행)
+                            try LoginItem.setEnabled(newValue)   // Register this build's login service.
                             launchAtLoginError = nil
                         } catch {
                             AppLog.write("login item update failed: \(error)")

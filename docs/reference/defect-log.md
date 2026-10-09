@@ -218,6 +218,18 @@ read_when:
   macOS 15. Assert key-window ownership when the test app is active; an inactive
   headless runner still verifies visibility, keyboard capability and timer state.
 
+- **Composer fixtures must dismiss More through its own presentation binding.**
+  Sending Escape through `NSApp` depended on whichever window was key. An inactive
+  combined test run left More open, so the next click closed the old popup and the
+  newly-visible-window lookup failed. Isolated runs missed that focus condition.
+  `testNewIssueButtonOpensSharedComposerInEveryTimerState` now closes disconnected
+  More through its timer button, asserts the disabled plus leaves it open and waits
+  for the popup to become visible. It reveals controls through native hover entry:
+  the exit grace clears the visible focus state while a move handle can remain
+  first responder, so assigning that same responder again does not reveal More.
+  The connected path still opens the shared composer and verifies timer/session
+  preservation across setup, expanded and compact states in both appearances.
+
 - **Adding issue tabs must preserve single-line labels at minimum window width.**
   The fourth issue tab compressed “Completed” into two lines in the 860pt window.
   Logic tests passed because they exercised filtering and navigation without measuring
@@ -822,6 +834,25 @@ read_when:
 
 ## 프로세스·인스턴스
 
+- **A valid local signature does not prove a managed login agent can launch.**
+  The v3 bundle passed strict signature verification, but macOS rejected its
+  self-signed managed agent with a launch-constraint violation. Local development
+  builds now use `SMAppService.mainApp` for Open at Login; distribution builds keep
+  the bundled crash watchdog with a bundle-relative `BundleProgram`. V3 requires
+  the stable local identity so the builder cannot silently fall back to ad-hoc
+  signing. Migration registers and verifies the replacement is enabled before
+  removing the previous service. `LoginItemTests` covers build selection, removal
+  order, an already enabled replacement, pending approval and registration failure.
+  Removing the enabled-status guard in an isolated copy makes the pending-approval
+  test fail both its result and previous-service-retention assertions.
+  Verify macOS registration and the installed bundle separately from compiler
+  checks; an actual logout/reboot is a separate integration check.
+  Validated 2026-10-10: installed v3 passed strict signature verification and
+  launched as one instance with the existing v2.5 profile. macOS reported Open at
+  Login enabled and allowed, with the previous agent disabled. The complete native
+  gate passed 1,549 tests, 25 skipped, zero failures and 93.57% logic-core coverage.
+  An actual logout/reboot was not performed.
+
 - **로그인 실행을 LaunchAgent 로 등록하면 "등록하는 순간" 앱이 한 번 더 뜬다.** plist 의 `RunAtLoad` 는
   로그인 때만이 아니라 **에이전트가 로드되는 시점**의 실행을 뜻하고, `SMAppService.agent.register()` 가
   곧 그 로드다. 앱이 떠 있는 채로 등록되는 경로가 둘이라 둘 다 아이콘이 두 개가 된다 — 설정 토글
@@ -1213,6 +1244,6 @@ read_when:
 - **Local WebKit content must be tested after packaging.** ES-module scripts fail across file-URL origins, and SwiftPM's generated resource accessor looks beside the app bundle rather than inside its Resources directory. Battle UI builds as an offline IIFE, resolves the packaged resource bundle first, and tests the actual bridge, equal bar widths and native Start/Pause buttons (`BattleWindowTests`). The existing app had no other file-backed WebKit surface.
 - **A timer extension spends two persisted records.** Inventory and timer files can fail independently. Write a recovery journal first, persist inventory before publishing, and retain the transaction receipt in both stores. Recovery pauses the timer and skips consumption when the inventory receipt already exists; a journal whose timer receipt is committed never resurrects a finished session. Failed inventory/timer writes and repeated replay are exercised in `BattleWindowTests`; imports retain the device's receipt. Standard item purchases now persist before publishing Coins/inventory changes.
 - **Growth tests must obey ownership rules.** Repeated normal hatches are rejected once a species is owned. Older growth, branching, candy and performance fixtures still relied on unrestricted duplicates. Repeat fixtures now use a deterministic unowned shiny, and repeated-graduation performance uses distinct evolutionary lines. Buying a stored egg preserves a pending Ditto reveal because the active partner is unchanged.
-- **Native UI fixtures need the app's real activation policy and viewport.** Floating editor tests temporarily use accessory activation. The settings rendering fixture specifies the actual viewport height. The session-key shortcut opens its requested Advanced section first, avoiding competing scroll/focus adjustments on an oversized settings group. Native sidebar drag checks resizing and persistence without assuming every synthetic mouse translation survives event coalescing.
+- **Native UI fixtures need the app's real activation policy and viewport.** Floating editor tests temporarily use accessory activation. The settings rendering fixture specifies the actual viewport height. The session-key shortcut opens its requested Advanced section first, avoiding competing scroll/focus adjustments on an oversized settings group. Native sidebar drag checks resizing and persistence without assuming every synthetic mouse translation survives event coalescing. WindowServer issue pickups pump pending activation events until their tagged mouse-down arrives, then arm movement/release timers with their original delays; a fixed 0.2-second filtered dequeue missed delivery under load. Folded Battle clicks position the live pointer, drain menu releases before the next click and verify both left down and up reach the same panel. The former helper checked only down and returned before the right release, allowing an unfold failure despite a passing delivery assertion. Click/typing helpers drain all queued releases through their owning windows: clearing one newly posted release left an older WindowServer event behind and repeatedly failed the no-leak checks. The scale typing fixture deliberately includes a late release from a closed window while retaining editor, draft and control assertions.
 
-- **Keep the coverage gate on the app build backend.** SwiftPM 6.4 defaults to the Xcode backend, which emits differently named test bundles and raw profiles instead of the native `default.profdata` layout. The previous gate assumed the native layout without selecting it. `test-gate.sh` now selects the same native backend as `build-app.sh`; a complete gate run checks both test execution and profile discovery.
+- **Keep the coverage gate on the app build backend and its output directory.** SwiftPM 6.4 defaults to the Xcode backend, which emits differently named test bundles and raw profiles instead of the native `default.profdata` layout. Selecting the native backend alone still let a whole-`.build` search pair a stale Xcode profile with the current native test binary: 1,549 passing tests reported a false 3.91% coverage. `test-gate.sh` selects the same native backend as `build-app.sh` and resolves the profile and test binary within SwiftPM's reported binary directory. A complete gate run checks test execution and profile discovery; a mixed-output-directory fixture must reject the stale profile.

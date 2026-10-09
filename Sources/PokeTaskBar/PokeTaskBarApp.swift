@@ -106,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in self?.closeSwiftUISettingsPlaceholders() }
         }
         Self.migrateLegacyStorageIfNeeded()
-        LoginItem.migrateFromLegacyLoginItemIfNeeded()   // 로그인아이템 → KeepAlive 에이전트(크래시 자동 재실행)
+        LoginItem.migrateFromLegacyLoginItemIfNeeded()   // Preserve the enabled login preference across build types.
         store = UsageStore()
         companion = CompanionStore()
         companion.onPetBubble = { [weak self] title, body in
