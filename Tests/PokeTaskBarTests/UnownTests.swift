@@ -199,7 +199,7 @@ final class UnownTests: XCTestCase {
         XCTAssertEqual(s.state.pendingUnownForm, .question)
     }
 
-    func testFormOwnershipDoesNotChangeSpeciesSelectionOrShinyRolls() async throws {
+    func testFormOwnershipPreservesFirstRollAndRetriesOwnedForms() async throws {
         var selectedSpecies = Set<Int>()
         for seed: UInt64 in [1, 7, 17, 42, 128, 999] {
             for forms in [[], [UnownForm.b], UnownForm.allCases] {
@@ -218,7 +218,9 @@ final class UnownTests: XCTestCase {
                 let expectedProfileSeed = rng.next()
                 await s.hatchIfNeeded()
                 if let form, forms.contains(form), !expectedShiny {
-                    XCTAssertNil(s.state.active, "The fork keeps duplicate normal forms as an egg for a re-roll")
+                    let active = try XCTUnwrap(s.state.active, "Owned normal forms must re-roll immediately")
+                    XCTAssertFalse(original.ownsSpecies(active.baseID, unownForm: active.unownForm,
+                                                        shinyOnly: active.isShiny))
                     XCTAssertNil(s.state.pendingUnownForm)
                     continue
                 }
