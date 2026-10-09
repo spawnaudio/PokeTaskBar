@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-02",
+  "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+  "documents": [
+    {
+      "id": "7f88d04a-f472-42b7-9817-7fb996ad6692",
+      "title": "PokeTasks v2 - Time Blocking",
+      "url": "https://linear.app/spawn-audio/document/poketasks-v2-time-blocking-861f5be0e815",
+      "oldAssets": 7,
+      "newAssets": 7,
+      "preserved": true,
+      "verified": true
+    },
+    {
+      "id": "c036a0cf-711b-4e6a-a477-e2c020b3f79b",
+      "title": "PokeTasks v2 - Today, Soon & Later",
+      "url": "https://linear.app/spawn-audio/document/poketasks-v2-today-soon-and-later-286ed82cf2e7",
+      "oldAssets": 6,
+      "newAssets": 8,
+      "preserved": true,
+      "verified": true
+    },
+    {
+      "id": "4ebb24c0-a7a3-4644-9e2e-7079cb2584fc",
+      "currentLength": 20316,
+      "verified": true,
+      "preservedAssets": 2
+    }
+  ]
+}

@@ -38,6 +38,64 @@ private final class TimelineDragInfo: NSObject, NSDraggingInfo {
 
 @MainActor
 final class MainWindowTests: XCTestCase {
+    func testIssueSubtabsKeepParentsAndExpandedChildrenWithinTheirStatus() async throws {
+        try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
+        let fixture = try Fixture(statusHierarchy: true); defer { fixture.remove() }
+        await fixture.prepare()
+        XCTAssertFalse(fixture.usage.allLinearIssues.contains { $0.id == "same-status" })
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        func cards(_ host: NSView) -> [LinearIssueDragView] {
+            // Lazy stacks retain offscreen rows; check only the rendered cards.
+            descendants(host).compactMap { $0 as? LinearIssueDragView }
+                .filter { !$0.isHiddenOrHasHiddenAncestor && !$0.visibleRect.isEmpty }
+        }
+        let window = NSWindow(contentRect: NSRect(x: 300, y: 300, width: 640, height: 900),
+            styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.orderOut(nil); window.contentView = nil }
+        let cases: [(LinearIssuesTab, String, Set<String>)] = [
+            (.inProgress, "issue", ["issue", "same-status"]), (.todo, "todo", ["todo"]),
+            (.planned, "planned", ["planned"]), (.completedToday, "completed", ["completed"]),
+        ]
+        for projectID in [String?.none, "project"] {
+            fixture.nav.projectFilter = projectID
+            if let projectID { try await fixture.usage.loadLinearProjectIssues(projectID: projectID) }
+            let host = NSHostingView(rootView: MainWindowWorkspacesView(page: .issues)
+                .padding(16).frame(width: 640, height: 900)
+                .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+                .environment(fixture.nav).defaultAppStorage(fixture.defaults))
+            window.contentView = host; window.orderFrontRegardless()
+            for (tab, rootID, expected) in cases {
+                fixture.nav.issueExpansion = [:]
+                fixture.nav.issuesTab = tab
+                try await Task.sleep(for: .milliseconds(180))
+                host.layoutSubtreeIfNeeded()
+                XCTAssertEqual(cards(host).map(\.issueID), [rootID], "\(tab), project: \(projectID ?? "all")")
+                XCTAssertTrue(try XCTUnwrap(cards(host).first).accessibilityPerformPress())
+                try await Task.sleep(for: .milliseconds(180))
+                host.layoutSubtreeIfNeeded()
+                XCTAssertEqual(Set(cards(host).map(\.issueID)), expected, "Expanded \(tab) must exclude other statuses")
+            }
+        }
+        let compact = NSHostingView(rootView: LinearIntegrationView(store: fixture.usage)
+            .padding(16).frame(width: 640, height: 900)
+            .environment(fixture.usage).environment(fixture.companion).environment(fixture.focus)
+            .environment(fixture.nav.content).defaultAppStorage(fixture.defaults))
+        window.contentView = compact
+        try await Task.sleep(for: .milliseconds(180))
+        for (index, item) in cases.enumerated() {
+            let (tab, rootID, expected) = item
+            try await click(window, in: compact, x: [70, 158, 236, 335][index], top: 105)
+            try await Task.sleep(for: .milliseconds(180))
+            compact.layoutSubtreeIfNeeded()
+            XCTAssertEqual(cards(compact).map(\.issueID), [rootID], "Compact \(tab)")
+            XCTAssertTrue(try XCTUnwrap(cards(compact).first).accessibilityPerformPress())
+            try await Task.sleep(for: .milliseconds(180))
+            compact.layoutSubtreeIfNeeded()
+            XCTAssertEqual(Set(cards(compact).map(\.issueID)), expected, "Expanded compact \(tab)")
+        }
+    }
+
     func testV2NativeIssueWhitespaceStartsDrag() async throws {
         try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
         let fixture = try Fixture(); defer { fixture.remove() }
@@ -917,7 +975,7 @@ final class MainWindowTests: XCTestCase {
         lazy var focus = FocusSessionStore(usage: usage, companion: companion,
             clock: { self.now },
             fileURL: directory.appendingPathComponent("focus.json"), ticksOnTimer: false)
-        init(hierarchy: Bool = false) throws {
+        init(hierarchy: Bool = false, statusHierarchy: Bool = false) throws {
             directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -939,7 +997,7 @@ final class MainWindowTests: XCTestCase {
             let keys = LinearAPIKeyStore(fileURL: directory.appendingPathComponent("key.json"))
             try keys.save(.init(key: "lin_api_preview_fixture_not_a_real_key"))
             usage = UsageStore(providers: [], autoRefresh: false, defaults: defaults,
-                               linearClient: LinearClient(http: PreviewHTTP(hierarchy: hierarchy)), linearAPIKeys: keys)
+                               linearClient: LinearClient(http: PreviewHTTP(hierarchy: hierarchy, statusHierarchy: statusHierarchy)), linearAPIKeys: keys)
         }
         func prepare() async {
             companion.update(todayTokensByProvider: [:], todayDate: "2026-09-18", monthTotal: 0,
@@ -955,6 +1013,7 @@ final class MainWindowTests: XCTestCase {
 
     private struct PreviewHTTP: LinearHTTPClient {
         var hierarchy = false
+        var statusHierarchy = false
         func postGraphQL(apiKey: String, body: Data) async throws -> (status: Int, data: Data) {
             let projectStatuses: [[String: Any]] = [
                 ["id": "backlog", "name": "Backlog", "type": "backlog", "position": 0],
@@ -979,21 +1038,43 @@ final class MainWindowTests: XCTestCase {
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
             let project: [String: Any] = ["id": "project", "name": "PokeTasks", "status": ["id": "started", "type": "started", "name": "In Progress"],
                 "description": "A calmer place to focus on your work.", "issues": ["nodes": [issue]]]
-            let planned: [String: Any] = ["id": "planned", "identifier": "PKT-143", "title": "Plan the next focus session",
+            var planned: [String: Any] = ["id": "planned", "identifier": "PKT-143", "title": "Plan the next focus session",
                 "state": ["id": "planned-state", "name": "Planned", "type": "unstarted"],
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 3, "team": team]
             var todo: [String: Any] = ["id": "todo", "identifier": "PKT-144", "title": "Choose the next small task",
                 "state": ["id": "todo-state", "name": "Todo", "type": "unstarted"],
                 "project": ["id": "project", "name": "PokeTasks"], "priority": 2, "team": team]
-            if hierarchy {
+            var sameStatus = issue
+            sameStatus["id"] = "same-status"; sameStatus["identifier"] = "PKT-145"
+            sameStatus["parent"] = ["id": "issue"]
+            var waiting = sameStatus
+            waiting["id"] = "waiting"; waiting["identifier"] = "PKT-147"
+            waiting["state"] = ["id": "waiting-state", "name": "Waiting", "type": "started"]
+            var completed = planned
+            completed["id"] = "completed"; completed["identifier"] = "PKT-146"
+            completed["state"] = ["id": "done", "name": "Done", "type": "completed"]
+            completed["completedAt"] = ISO8601DateFormatter().string(from: Date())
+            if hierarchy || statusHierarchy {
                 issue["children"] = ["nodes": [["id": "todo"]]]
                 todo["parent"] = ["id": "issue"]
             }
+            if statusHierarchy {
+                todo["children"] = ["nodes": [["id": "planned"]]]
+                planned["parent"] = ["id": "todo"]
+                planned["children"] = ["nodes": [["id": "completed"]]]
+                completed["parent"] = ["id": "planned"]
+            }
+            let request = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let parentID = (request?["variables"] as? [String: Any])?["id"] as? String
+            let children = statusHierarchy ? [sameStatus, waiting, todo, planned, completed].filter {
+                ($0["parent"] as? [String: String])?["id"] == parentID
+            } : (hierarchy ? [todo] : [])
             return (200, try JSONSerialization.data(withJSONObject: ["data": [
                 "projectStatuses": ["nodes": projectStatuses, "pageInfo": ["hasNextPage": false]],
-                "inProgress": ["nodes": [issue]], "completedRecent": ["nodes": []], "planned": ["nodes": [planned]], "todo": ["nodes": [todo]],
-                "issue": ["children": ["nodes": hierarchy ? [todo] : [], "pageInfo": ["hasNextPage": false]]],
-                "project": ["issues": ["nodes": [issue, planned, todo], "pageInfo": ["hasNextPage": false]]],
+                "inProgress": ["nodes": [issue] + (statusHierarchy ? [waiting] : [])],
+                "completedRecent": ["nodes": statusHierarchy ? [completed] : []], "planned": ["nodes": [planned]], "todo": ["nodes": [todo]],
+                "issue": ["children": ["nodes": children, "pageInfo": ["hasNextPage": false]]],
+                "project": ["issues": ["nodes": [issue, planned, todo] + (statusHierarchy ? [sameStatus, waiting, completed] : []), "pageInfo": ["hasNextPage": false]]],
                 "projects": ["nodes": [project, ["id": "other-project", "name": "Weekly Planning",
                     "status": ["id": "planned", "type": "planned", "name": "Planned"], "issues": ["nodes": []]]]],
                 "initiatives": ["nodes": [["id": "initiative", "name": "Fun Side Projects",

@@ -1,0 +1,26 @@
+Building for debugging...
+[2 / 4] PokeTaskBarTests-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[4 / 6] PokeTaskBarTests-product
+[9 / 10] PokeTaskBarTests-product
+Build complete! (3.02 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 03:48:28.834.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 03:48:28.835.
+Test Suite 'FloatingTimerOverlayTests' started at 2026-10-02 03:48:28.835.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' passed (11.072 seconds).
+Test Suite 'FloatingTimerOverlayTests' passed at 2026-10-02 03:48:39.908.
+	 Executed 1 test, with 0 failures (0 unexpected) in 11.072 (11.073) seconds
+Test Suite 'PokeTaskBarTests.xctest' passed at 2026-10-02 03:48:39.908.
+	 Executed 1 test, with 0 failures (0 unexpected) in 11.072 (11.073) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 03:48:39.908.
+	 Executed 1 test, with 0 failures (0 unexpected) in 11.072 (11.073) seconds

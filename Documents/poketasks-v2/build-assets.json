@@ -1,0 +1,176 @@
+{
+  "date": "2026-10-02",
+  "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+  "issue": "PER-245",
+  "assets": [
+    {
+      "filename": "v2-icon-rail.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-icon-rail.png",
+      "size": 80513,
+      "sha256": "a7aad62b258983e128d1e2b7bd920093911d0182e8ada5e6e19d1d81e4595721",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/86a3d9d5-02e3-4a2e-93d0-0dd8e56814b3/e0df1301-1d4f-4238-921e-c3b13e5831f6",
+      "attachment": {
+        "id": "e70bbabe-166b-4ccc-902a-47534e6be4c4",
+        "title": "PokeTasks v2.0 — v2-icon-rail.png",
+        "subtitle": "Native app rendering with illustrative fixture data; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/86a3d9d5-02e3-4a2e-93d0-0dd8e56814b3/e0df1301-1d4f-4238-921e-c3b13e5831f6?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-insights-dark.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-insights-dark.png",
+      "size": 125047,
+      "sha256": "1f2b9ae55c0294220112ece41a0f54890d887b49732c20f4f8722d4f7a0298d6",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/de0157cd-137c-40ca-9af8-a44f113be9b6/de492686-af9a-4fd2-8ddc-5a60085fe2f6",
+      "attachment": {
+        "id": "8f046676-373e-475d-b4d4-402bc6870e24",
+        "title": "PokeTasks v2.0 — v2-insights-dark.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/de0157cd-137c-40ca-9af8-a44f113be9b6/de492686-af9a-4fd2-8ddc-5a60085fe2f6?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-insights-light.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-insights-light.png",
+      "size": 120460,
+      "sha256": "2bc7df4240cf7b9d16de45131d5765441951ef390331fec9e8057712126f23e3",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/9fd2420d-525f-4d79-b566-6ccbb2ede0e9/81f243ae-e036-4a52-9ed8-8208801b4982",
+      "attachment": {
+        "id": "f73b73ee-307c-45f8-ba96-f07782532266",
+        "title": "PokeTasks v2.0 — v2-insights-light.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/9fd2420d-525f-4d79-b566-6ccbb2ede0e9/81f243ae-e036-4a52-9ed8-8208801b4982?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-panels-folded.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-panels-folded.png",
+      "size": 59511,
+      "sha256": "e039b27877c7f1500df03183decbe5e415297095f54c48b5ef30e7536b7fb020",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/c3da7935-bb28-45a5-960d-a25be9978d6a/6c9a416b-ad69-4ff0-bd56-c6901916f285",
+      "attachment": {
+        "id": "808fb8e0-dd6d-4983-8316-db60dd2ec75a",
+        "title": "PokeTasks v2.0 — v2-panels-folded.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/c3da7935-bb28-45a5-960d-a25be9978d6a/6c9a416b-ad69-4ff0-bd56-c6901916f285?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-projects-dark.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-projects-dark.png",
+      "size": 123210,
+      "sha256": "346174562433f14395c1c6dab54cff07d9ab60e3328766c61fe589abe5f3c195",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e5def658-8d4b-4778-90cc-9e2c17c2cef3/560fe274-4a59-4f1d-ad1f-89863b75003c",
+      "attachment": {
+        "id": "93e520b8-1507-435f-a2fd-3d76c886a18b",
+        "title": "PokeTasks v2.0 — v2-projects-dark.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e5def658-8d4b-4778-90cc-9e2c17c2cef3/560fe274-4a59-4f1d-ad1f-89863b75003c?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-projects-light.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-projects-light.png",
+      "size": 119558,
+      "sha256": "f52de6238f6fb2a5f2e735199a724c6749eda699e639b1913e8d534ee0536872",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/86edd779-bdc7-4b92-a545-c0dbe440e51a/8b59afe2-94b5-4a68-91b5-3bc79bdb1ba1",
+      "attachment": {
+        "id": "443492cb-5341-4918-b2d8-6594a7034f5e",
+        "title": "PokeTasks v2.0 — v2-projects-light.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/86edd779-bdc7-4b92-a545-c0dbe440e51a/8b59afe2-94b5-4a68-91b5-3bc79bdb1ba1?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-timer-288-hover.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-timer-288-hover.png",
+      "size": 7044,
+      "sha256": "337fbf2b7117e9d8724b75f610bb589a843cd205fdd3306ccb25405c0bd72aa3",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/627e4f82-f3fa-4c2b-943b-f8194b58ccac/3ab46c54-bf86-4aba-93d5-52e19172cf6e",
+      "attachment": {
+        "id": "5f5c96f4-d771-4559-88ef-12fbf096c18f",
+        "title": "PokeTasks v2.0 — v2-timer-288-hover.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/627e4f82-f3fa-4c2b-943b-f8194b58ccac/3ab46c54-bf86-4aba-93d5-52e19172cf6e?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-timer-288-rest.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-timer-288-rest.png",
+      "size": 6522,
+      "sha256": "904074028da7720621bea7d3a238e98002697dba2d92c664db521480f7e029e9",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/1b84ba87-b5af-4da3-aded-98c3adec3f92/e6a5f45c-2a47-4b9e-a8d3-51e159608752",
+      "attachment": {
+        "id": "1bd45a7a-badd-4451-9a15-3232a3894de2",
+        "title": "PokeTasks v2.0 — v2-timer-288-rest.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/1b84ba87-b5af-4da3-aded-98c3adec3f92/e6a5f45c-2a47-4b9e-a8d3-51e159608752?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-timer-384-hover.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-timer-384-hover.png",
+      "size": 7170,
+      "sha256": "12876800d83ad4b60a103088ab9457047b469fe9fa8c52a1776c99a9cc1f3d5c",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/537e6f71-a7eb-48cf-9237-760e7cdca8ba/2ad43108-dcdf-4333-9283-da3ed422e9cd",
+      "attachment": {
+        "id": "3463e293-a178-4f15-b5a2-3b09b80ac217",
+        "title": "PokeTasks v2.0 — v2-timer-384-hover.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/537e6f71-a7eb-48cf-9237-760e7cdca8ba/2ad43108-dcdf-4333-9283-da3ed422e9cd?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-timer-384-rest.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-timer-384-rest.png",
+      "size": 6630,
+      "sha256": "e2cd741e7993ac371f4eea3cfd82d1c6c5a2eff5cd0619e3c0c7e6ca30104a67",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/80476d18-2245-4491-bab4-b77d49c02438/a56309de-6ce2-4c00-bc7b-75d57e7072e8",
+      "attachment": {
+        "id": "63c889b3-a114-4982-9f63-32c6384a549e",
+        "title": "PokeTasks v2.0 — v2-timer-384-rest.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/80476d18-2245-4491-bab4-b77d49c02438/a56309de-6ce2-4c00-bc7b-75d57e7072e8?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-today-dark.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-today-dark.png",
+      "size": 129379,
+      "sha256": "daffe1f438d65ff777997905c2dfaa64bb6db44f485a684af117ad84629219ad",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/b61d17c0-03ff-45ce-a05c-e1d8443fb685/1369ebcd-92cf-4aa1-b8b3-45b969e80b13",
+      "attachment": {
+        "id": "0711f966-927d-4bde-b8f8-a6cbf1d9d456",
+        "title": "PokeTasks v2.0 — v2-today-dark.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/b61d17c0-03ff-45ce-a05c-e1d8443fb685/1369ebcd-92cf-4aa1-b8b3-45b969e80b13?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-today-light.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-today-light.png",
+      "size": 125161,
+      "sha256": "16702d30f97d36984fd7c454b59d7436f5f3327c10cd6b2d945aae629fad6da4",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/c0a94d2b-553e-40e1-8382-1cce4684b569/458d7dc2-def7-4740-bd88-a3a59a049cc8",
+      "attachment": {
+        "id": "a976edce-0fbf-46f6-b0d0-66c57e4fa0e8",
+        "title": "PokeTasks v2.0 — v2-today-light.png",
+        "subtitle": "Native fixture rendering; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/c0a94d2b-553e-40e1-8382-1cce4684b569/458d7dc2-def7-4740-bd88-a3a59a049cc8?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "filename": "v2-installed-today.png",
+      "path": "/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Documents/poketasks-v2/build-preview/v2-installed-today.png",
+      "size": 587374,
+      "sha256": "fbcb54602cce92341eaafecafd9f3fe8f39f50b64c63d0e21bf19b571ab6434b",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/ea54f8ac-27d4-4873-b754-ae386c3ef460/a01bb72b-a1b4-4904-9699-906cfb718371",
+      "attachment": {
+        "id": "04a00519-a011-43c1-83ae-01d852fccdfb",
+        "title": "PokeTasks v2.0 — v2-installed-today.png",
+        "subtitle": "Installed app with separate copied profile; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/ea54f8ac-27d4-4873-b754-ae386c3ef460/a01bb72b-a1b4-4904-9699-906cfb718371?signature=[expired-signature-removed]"
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+[0/1] Planning build
+Building for debugging...
+[0/4] Write swift-version-39B54973F684ADAB.txt
+Build complete! (0.17s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+Test Suite 'Selected tests' started at 2026-10-02 04:59:46.448.
+Test Suite 'PokeTaskBarPackageTests.xctest' started at 2026-10-02 04:59:46.449.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:59:46.449.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' passed (4.034 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' passed (2.455 seconds).
+Test Suite 'MainWindowTests' passed at 2026-10-02 04:59:52.939.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 6.490 (6.490) seconds
+Test Suite 'PokeTasksV2Tests' started at 2026-10-02 04:59:52.939.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' passed (0.010 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' passed (0.014 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' passed (0.007 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' passed (0.006 seconds).
+Test Suite 'PokeTasksV2Tests' passed at 2026-10-02 04:59:52.986.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.046 (0.047) seconds
+Test Suite 'PokeTaskBarPackageTests.xctest' passed at 2026-10-02 04:59:52.986.
+	 Executed 11 tests, with 0 failures (0 unexpected) in 6.536 (6.537) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 04:59:52.986.
+	 Executed 11 tests, with 0 failures (0 unexpected) in 6.536 (6.538) seconds

@@ -1,0 +1,13 @@
+Building for debugging...
+Build complete! (0.19 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:49:31.177.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:49:31.178.
+Test Suite 'FloatingTimerOverlayTests' started at 2026-10-02 04:49:31.178.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNewIssueButtonOpensSharedComposerInEveryTimerState]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNewIssueButtonOpensSharedComposerInEveryTimerState]' passed (17.692 seconds).
+Test Suite 'FloatingTimerOverlayTests' passed at 2026-10-02 04:49:48.870.
+	 Executed 1 test, with 0 failures (0 unexpected) in 17.692 (17.692) seconds
+Test Suite 'PokeTaskBarTests.xctest' passed at 2026-10-02 04:49:48.870.
+	 Executed 1 test, with 0 failures (0 unexpected) in 17.692 (17.692) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 04:49:48.870.
+	 Executed 1 test, with 0 failures (0 unexpected) in 17.692 (17.693) seconds

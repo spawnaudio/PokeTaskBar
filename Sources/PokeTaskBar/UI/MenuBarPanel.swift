@@ -13,7 +13,7 @@ final class MenuBarPanelWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
-    /// Sticky menu-bar window. Default is 400pt; attached stretch stops at 500pt.
+    /// Menu-bar window. Default is 400pt; attached stretch stops at 500pt.
     /// Detached uses normal window min/max (no 500pt cap). Compact layout tests
     /// still use `PopoverMetrics.width` (360).
 enum MenuBarPanelMetrics {
@@ -117,8 +117,9 @@ enum MenuBarPanelMetrics {
     static func shouldPlaceBelowStatusItem(detached: Bool) -> Bool { !detached }
 
     @MainActor
-    static func configure(_ window: NSWindow, detached: Bool) {
+    static func configure(_ window: NSWindow, detached: Bool, floatsOnTop: Bool = true) {
         window.styleMask = detached ? detachedStyleMask : attachedStyleMask
+        window.level = floatsOnTop ? .floating : .normal
         window.isMovable = detached
         window.isMovableByWindowBackground = detached
         window.hasShadow = true
@@ -233,6 +234,8 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
     private weak var statusButton: NSStatusBarButton?
     private var preferredContentHeight: CGFloat?
     private var contentFitTask: Task<Void, Never>?
+    private var localClickMonitor: Any?
+    private var globalClickMonitor: Any?
     var onVisibilityChange: (() -> Void)?
 
     init(
@@ -248,6 +251,8 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         self.updater = updater
         self.navigation = navigation
         super.init()
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidDeactivate),
+            name: NSApplication.didResignActiveNotification, object: nil)
         observeDetach()
     }
 
@@ -283,10 +288,12 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
             place(below: button)
         }
         window?.makeKeyAndOrderFront(nil)
+        monitorOutsideClicks()
         onVisibilityChange?()
     }
 
     func close() {
+        stopMonitoringOutsideClicks()
         contentFitTask?.cancel()
         preferredContentHeight = nil
         window?.orderOut(nil)
@@ -295,10 +302,43 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        stopMonitoringOutsideClicks()
         contentFitTask?.cancel()
         preferredContentHeight = nil
         window?.contentView = nil
         onVisibilityChange?()
+    }
+
+    @objc private func applicationDidDeactivate() {
+        dismissIfAttached()
+    }
+
+    private func dismissIfAttached() {
+        if isShown, !usage.menuBarPanelDetached { close() }
+    }
+
+    private func monitorOutsideClicks() {
+        stopMonitoringOutsideClicks()
+        let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: clicks) { [weak self] event in
+            guard let self, let target = event.window else { return event }
+            if target !== self.window, target !== self.statusButton?.window,
+               target.parent !== self.window, target.sheetParent !== self.window,
+               target.level.rawValue < NSWindow.Level.popUpMenu.rawValue {
+                self.dismissIfAttached()
+            }
+            return event
+        }
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: clicks) { [weak self] _ in
+            self?.dismissIfAttached()
+        }
+    }
+
+    private func stopMonitoringOutsideClicks() {
+        if let localClickMonitor { NSEvent.removeMonitor(localClickMonitor) }
+        if let globalClickMonitor { NSEvent.removeMonitor(globalClickMonitor) }
+        localClickMonitor = nil
+        globalClickMonitor = nil
     }
 
     func windowDidResize(_ notification: Notification) {
@@ -320,6 +360,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
             place(below: statusButton)
         }
         window?.makeKeyAndOrderFront(nil)
+        monitorOutsideClicks()
         onVisibilityChange?()
     }
 
@@ -348,7 +389,8 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
         window.identifier = NSUserInterfaceItemIdentifier(LaunchWindowPolicy.menuBarPanelIdentifier)
         window.delegate = self
         window.contentView = hostedView()
-        MenuBarPanelMetrics.configure(window, detached: usage.menuBarPanelDetached)
+        MenuBarPanelMetrics.configure(window, detached: usage.menuBarPanelDetached,
+                                      floatsOnTop: usage.menuBarPanelFloatsOnTop)
         return window
     }
 
@@ -360,13 +402,15 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
 
     private func applyChrome() {
         guard let window else { return }
-        MenuBarPanelMetrics.configure(window, detached: usage.menuBarPanelDetached)
+        MenuBarPanelMetrics.configure(window, detached: usage.menuBarPanelDetached,
+                                      floatsOnTop: usage.menuBarPanelFloatsOnTop)
         applyTitle()
     }
 
     private func observeDetach() {
         withObservationTracking {
             _ = usage.menuBarPanelDetached
+            _ = usage.menuBarPanelFloatsOnTop
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

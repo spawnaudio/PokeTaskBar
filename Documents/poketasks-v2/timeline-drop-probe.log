@@ -1,0 +1,77 @@
+Building for debugging...
+[Planning deferred tasks]
+[2 / 4]
+[3 / 5] PokeTaskBar-product
+[4 / 6] PokeTaskBar-product
+[6 / 9] PokeTaskBar
+[7 / 10] PokeTaskBar
+[23 / 27] PokeTaskBar-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[25 / 28] PokeTaskBar-product
+[27 / 31] PokeTaskBar
+[41 / 44] PokeTaskBar
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[43 / 45] PokeTaskBar
+[44 / 46] PokeTaskBarTests-product
+[59 / 61] PokeTaskBarTests-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[65 / 66] PokeTaskBarTests-product
+Build complete! (24.24 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:21:22.643.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:21:22.644.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:21:22.644.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' passed (0.748 seconds).
+Test Suite 'MainWindowTests' passed at 2026-10-02 04:21:23.392.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.748 (0.748) seconds
+Test Suite 'PokeTaskBarTests.xctest' passed at 2026-10-02 04:21:23.392.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.748 (0.748) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 04:21:23.392.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.748 (0.749) seconds
+DROP VIEW _PlatformDraggingDestinationView (0.0, 0.0, 648.0, 61.0) [__C.NSPasteboardType(_rawValue: public.data), __C.NSPasteboardType(_rawValue: public.item)]
+DROP VIEW _PlatformDraggingDestinationView (0.0, 0.0, 648.0, 61.0) [__C.NSPasteboardType(_rawValue: public.data), __C.NSPasteboardType(_rawValue: public.item)]
+DROP VIEW _PlatformDraggingDestinationView (0.0, 0.0, 648.0, 61.0) [__C.NSPasteboardType(_rawValue: public.data), __C.NSPasteboardType(_rawValue: public.item)]
+DROP VIEW _PlatformDraggingDestinationView (0.0, 0.0, 268.0, 1440.0) [__C.NSPasteboardType(_rawValue: public.data), __C.NSPasteboardType(_rawValue: public.item)]

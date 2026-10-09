@@ -760,7 +760,7 @@ struct LinearClient: Sendable {
           ) {
             nodes { \(issueFields) }
           }
-          inProgress: issues(first: 100, filter: { state: { type: { eq: "started" } } }) {
+          inProgress: issues(first: 100, filter: { state: { type: { eq: "started" }, name: { eqIgnoreCase: "In Progress" } } }) {
             nodes { \(issueFields) }
           }
           todo: issues(first: 100, filter: { state: { name: { eqIgnoreCase: "Todo" } } }) {
@@ -1319,8 +1319,9 @@ struct LinearClient: Sendable {
             && statusTokens(name: issue.stateName, type: nil).contains("todo")
     }
 
+    /// Other started states, such as Waiting or In Review, belong outside this named tab.
     static func isInProgressIssue(_ issue: LinearIssueSummary) -> Bool {
-        issue.stateType?.lowercased() == "started" && !isPlannedIssue(issue) && !isTodoIssue(issue)
+        issue.stateType?.lowercased() == "started" && statusTokens(name: issue.stateName, type: nil).contains("in progress")
     }
 
     /// Linear workspaces often use a custom project status named Production.

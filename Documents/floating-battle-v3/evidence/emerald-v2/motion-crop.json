@@ -1,0 +1,8 @@
+{
+  "x": 140,
+  "y": 259.5,
+  "width": 720,
+  "height": 360,
+  "scrollY": 23,
+  "note": "Viewport-relative rectangle measured after the recording, before changing preview state; screenshot begins at that scroll position."
+}

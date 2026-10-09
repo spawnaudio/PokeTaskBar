@@ -3,7 +3,8 @@ import Observation
 import UserNotifications
 
 /// 게임 상태의 출처. 설치 이후 토큰 사용량으로 포켓몬을 진화시키고, 최종체 + 추가 임계 도달 시
-/// 도감(라인 전체)에 보존 + 새 알. 진화 트리/희귀도/이름은 PokeProviding 으로 런타임 주입.
+/// Preserve graduates in the Dex, then resume a stored partner or start a free egg.
+/// Evolution trees, rarity and names are injected through PokeProviding.
 @MainActor
 @Observable
 final class CompanionStore {
@@ -803,8 +804,7 @@ final class CompanionStore {
         onPetBubble?(l.notifGraduateTitle, l.notifGraduateBody(name))
         eventUntil = clock().addingTimeInterval(6)
         state.active = nil
-        // Empty training dropped later token XP (`hatchIfNeeded` requires an egg in the slot).
-        // A free un-guaranteed egg rolls rarity at hatch the same way as a shop fresh egg.
+        // Keep a free un-guaranteed egg as the fallback when no stored partner remains.
         state.trainingEmpty = false
         state.eggUsage = 0
         state.eggTier = nil
@@ -815,8 +815,12 @@ final class CompanionStore {
         currentLine = nil
         isHatchRetryDelayed = false
         state.pendingUnownForm = nil
+        if let index = state.pokemonStorage.firstIndex(where: { !$0.isEgg }) {
+            unpackIntoTraining(state.pokemonStorage.remove(at: index))
+        } else {
+            Task { await self.ensureEggPrefetch() }
+        }
         save()
-        Task { await self.ensureEggPrefetch() }
     }
 
     // MARK: 인벤토리 / 이상한 사탕
@@ -905,12 +909,13 @@ final class CompanionStore {
         let xp = consumed * RareCandy.xp
         state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - consumed
         let beforeStage = state.active?.stageIndex ?? 0
+        let beforeDexCount = state.dex.count
         // 진화 안 될 때(부분 진행)도 즉시 "+XP" 피드백 — CompanionHeader 가 연출과 별개로 표시.
         candyFeedbackAmount = xp
         candyFeedbackSeq += 1
         applyUsage(xp)
         onXPEarned?(XPReward(amount: xp, source: .candy))
-        if state.active == nil { return .graduated }
+        if state.dex.count > beforeDexCount { return .graduated }
         if state.active!.stageIndex > beforeStage { return .evolved }
         return .progressed
     }

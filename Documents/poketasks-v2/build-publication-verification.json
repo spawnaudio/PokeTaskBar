@@ -1,0 +1,95 @@
+{
+  "projectID": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+  "checkedDocuments": [
+    {
+      "id": "c036a0cf-711b-4e6a-a477-e2c020b3f79b",
+      "title": "PokeTasks v2 - Today, Soon & Later",
+      "url": "https://linear.app/spawn-audio/document/poketasks-v2-today-soon-and-later-286ed82cf2e7",
+      "characters": 12261,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "05f0f51d-114f-4d8d-971e-6efa4a847955",
+      "title": "UI Overhaul v2 - Workspaces: Issues, Projects & Initiatives",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-workspaces-issues-projects-and-initiatives-f0f3fb690b50",
+      "characters": 15855,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "12dcf8c4-d9a0-4631-92a3-dbb692fd91d6",
+      "title": "UI Overhaul v2 - Focus & Floating Timer",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-focus-and-floating-timer-fcd3495bbc65",
+      "characters": 20663,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "83d8441a-8a96-4f11-b81f-150d4bced07f",
+      "title": "UI Overhaul v2 - Foundations & Shared Interaction Language",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-foundations-and-shared-interaction-language-e25429d73e2c",
+      "characters": 12759,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "30c28b71-2d42-420f-8104-c7fc1fb6f074",
+      "title": "PokeTasks v2 - Time Tracking, Scores & Heatmap",
+      "url": "https://linear.app/spawn-audio/document/poketasks-v2-time-tracking-scores-and-heatmap-380b5b2dabb3",
+      "characters": 10229,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "2a850889-2316-45c1-ba25-74df3164731f",
+      "title": "UI Overhaul v2 - Collection: Pok\u00e9dex & Bag",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-collection-pokedex-and-bag-20fb94c02bdb",
+      "characters": 12744,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "4102e80d-5b02-48e7-8e47-14e71116182e",
+      "title": "UI Overhaul v2 - Today, Navigation & Menu Bar",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-today-navigation-and-menu-bar-3090ca806631",
+      "characters": 7464,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "4ebb24c0-a7a3-4644-9e2e-7079cb2584fc",
+      "title": "UI Overhaul v2 - Implementation, Validation & Change Log",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-implementation-validation-and-change-log-5bdfd7d37c11",
+      "characters": 16301,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "f378f485-fad2-4ffa-b292-daf716103206",
+      "title": "PokeTasks v2 - Document Index",
+      "url": "https://linear.app/spawn-audio/document/poketasks-v2-document-index-d2ff2b22fc39",
+      "characters": 24626,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    },
+    {
+      "id": "325bd321-5807-49c3-91c1-d45c0f370423",
+      "title": "UI Overhaul v2",
+      "url": "https://linear.app/spawn-audio/document/ui-overhaul-v2-34ba3019297c",
+      "characters": 4453,
+      "projectVerified": true,
+      "historicalAssetsPreserved": true
+    }
+  ],
+  "revisedAssetsReferenced": 14,
+  "existingDocumentsOnly": true,
+  "projectUpdate": {
+    "id": "010d3d3e-2ee2-40b3-a437-c2d1d8b87900",
+    "url": "https://linear.app/spawn-audio/project/poketasks-cedf1ccdaeb7/activity#project-update-010d3d3e",
+    "title": "PokeTasks v2",
+    "currentInstalledBuildVerified": true
+  },
+  "resourceCount": 21,
+  "allCheckedDocumentsAttachedToProjectResources": true
+}

@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-01",
+  "documents": [
+    {
+      "id": "f378f485-fad2-4ffa-b292-daf716103206",
+      "title": "PokeTasks v2 - Document Index",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 18359,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 11,
+      "totalAssets": 16,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "c036a0cf-711b-4e6a-a477-e2c020b3f79b",
+      "title": "PokeTasks v2 - Today, Soon & Later",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 7031,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 2,
+      "totalAssets": 2,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "7f88d04a-f472-42b7-9817-7fb996ad6692",
+      "title": "PokeTasks v2 - Time Blocking",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 7540,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 3,
+      "totalAssets": 4,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "e2540e5c-8c8f-4575-9e6f-f1b5dd726378",
+      "title": "PokeTasks v2 - Backlog & Open Decisions",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 3419,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 0,
+      "totalAssets": 0,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "12dcf8c4-d9a0-4631-92a3-dbb692fd91d6",
+      "title": "UI Overhaul v2 - Focus & Floating Timer",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 11079,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 4,
+      "totalAssets": 5,
+      "unchangedPrefix": true
+    },
+    {
+      "id": "05f0f51d-114f-4d8d-971e-6efa4a847955",
+      "title": "UI Overhaul v2 - Workspaces: Issues, Projects & Initiatives",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 11283,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 6,
+      "totalAssets": 7,
+      "unchangedPrefix": true
+    },
+    {
+      "id": "83d8441a-8a96-4f11-b81f-150d4bced07f",
+      "title": "UI Overhaul v2 - Foundations & Shared Interaction Language",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 9490,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 2,
+      "totalAssets": 4,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "4102e80d-5b02-48e7-8e47-14e71116182e",
+      "title": "UI Overhaul v2 - Today, Navigation & Menu Bar",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 5908,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 2,
+      "totalAssets": 2,
+      "unchangedPrefix": null
+    },
+    {
+      "id": "7497084f-aabc-4c44-866c-dea06d9f3ed6",
+      "title": "UI Motion & Animation Outline",
+      "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+      "chars": 26566,
+      "existingAssetsPreserved": true,
+      "existingAssetCount": 2,
+      "totalAssets": 2,
+      "unchangedPrefix": true
+    }
+  ],
+  "newImages": {
+    "error": false,
+    "imageCount": 5,
+    "notes": [
+      "Successfully fetched 5 images.",
+      "Image: current-scroll-cutoff.png",
+      "Image: current-projects-window.png",
+      "Image: timer-actions-over-title.png",
+      "Image: foldable-today-planner.png",
+      "Image: preserved-projects-window.png"
+    ]
+  },
+  "resourceCount": 21,
+  "confirmedChoice": "Personal planning by default with optional linked mode; Today → In Progress, Soon → Planned, Later → Todo.",
+  "appSourceChanged": false,
+  "nativeBuildOrTestsRun": false
+}

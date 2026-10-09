@@ -69,6 +69,23 @@ final class LinearPlannedIssuesTests: XCTestCase {
         XCTAssertEqual(dashboard.planned.first?.projectID, "project")
     }
 
+    func testInProgressOnlyMatchesNamedStatusInsteadOfEveryStartedState() throws {
+        let payload = try data([
+            "completedRecent": ["nodes": []],
+            "inProgress": ["nodes": [node("active", name: "In Progress", type: "started"),
+                node("uppercase", name: " IN PROGRESS ", type: "started"),
+                node("waiting", name: "Waiting", type: "started"),
+                node("review", name: "In Review", type: "started"),
+                node("blocked", name: "Blocked", type: "started"),
+                node("done", name: "In Progress", type: "completed")]],
+        ])
+        let dashboard = try LinearClient.parseIssueDashboard(payload)
+        XCTAssertEqual(dashboard.inProgress.map(\.id), ["active", "uppercase"])
+        let waiting = try LinearClient.parseIssueSummary(node("waiting", name: "Waiting", type: "started"))
+        XCTAssertFalse(LinearIssuesTab.inProgress.matches(waiting))
+        XCTAssertFalse(PlanningGroup.today.matchesStatus(waiting))
+    }
+
     func testParentRelationshipsLoadAcrossStatusesAndPaginatedChildrenKeepTheirOwnControls() async throws {
         var child = node("child", name: "Todo", priority: 2, projectID: nil)
         child["parent"] = ["id": "parent"]
@@ -141,6 +158,7 @@ final class LinearPlannedIssuesTests: XCTestCase {
         XCTAssertTrue(query.contains("planned: issues(first: 100, filter: { state: { name: { eqIgnoreCase: \"Planned\" } } })"))
         XCTAssertTrue(query.contains("project { id name color }"))
         XCTAssertTrue(query.contains("todo: issues(first: 100, filter: { state: { name: { eqIgnoreCase: \"Todo\" } } })"))
+        XCTAssertTrue(query.contains("inProgress: issues(first: 100, filter: { state: { type: { eq: \"started\" }, name: { eqIgnoreCase: \"In Progress\" } } })"))
     }
 
     func testContainerMergeDeduplicatesAndIncludesIssuesFromProjectsOutsideVisibleProjectTabs() throws {
@@ -217,13 +235,13 @@ final class LinearPlannedIssuesTests: XCTestCase {
         XCTAssertEqual(store.linearPlannedIssues.first?.priority, 1)
         XCTAssertEqual(store.linearInitiatives.first?.issues.first?.priority, 1)
 
-        for (name, type) in [("Todo", "unstarted"), ("In Progress", "started"), ("Planned", "unstarted"), ("Done", "completed"), ("Todo", "unstarted"), ("Planned", "unstarted")] {
+        for (name, type) in [("Todo", "unstarted"), ("In Progress", "started"), ("Waiting", "started"), ("Planned", "unstarted"), ("Done", "completed"), ("Todo", "unstarted"), ("Planned", "unstarted")] {
             http.responses = [try data(["issueUpdate": ["success": true, "issue": node("planned", name: name, type: type)]])]
             let moved = await store.moveLinearIssueToState(try XCTUnwrap(store.linearIssue(id: "planned")), stateID: type)
             XCTAssertTrue(moved, "Non-completing status changes must report success")
             XCTAssertEqual(store.linearTodoIssues.contains { $0.id == "planned" }, name == "Todo")
             XCTAssertEqual(store.linearPlannedIssues.contains { $0.id == "planned" }, name == "Planned")
-            XCTAssertEqual(store.linearInProgressIssues.contains { $0.id == "planned" }, type == "started")
+            XCTAssertEqual(store.linearInProgressIssues.contains { $0.id == "planned" }, name == "In Progress")
             XCTAssertEqual(store.linearProjects.first { $0.id == "project" }?.issues.contains { $0.id == "planned" }, type != "completed")
             XCTAssertEqual(store.linearInitiatives.first?.issues.contains { $0.id == "planned" }, type != "completed")
         }

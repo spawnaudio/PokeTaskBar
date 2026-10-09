@@ -1,0 +1,42 @@
+{
+  "installedAt": "2026-10-01T19:47:12.416477+00:00",
+  "bundleID": "io.github.spawnaudio.poketasks.v2",
+  "version": "2.0.0",
+  "installedPath": "/Applications/PokeTasks v2.0.app",
+  "binarySHA256": "dd0caa53cd585a3bc0be2354a72c7a2b34d70864a8f3c101603a687a420aef50",
+  "iconSHA256": "cd4de25cef6d2af348561ac04ffed17e501516cb4a49f73507e75d1a31c1d216",
+  "strictSignature": true,
+  "launch": {
+    "bundleID": "io.github.spawnaudio.poketasks.v2",
+    "executablePath": "/Applications/PokeTasks v2.0.app/Contents/MacOS/PokeTasks v2.0",
+    "installedPath": "/Applications/PokeTasks v2.0.app",
+    "pid": 20448,
+    "runningInstances": 1
+  },
+  "profilePreserved": {
+    "collection": true,
+    "history": true,
+    "planning": true,
+    "connection": true,
+    "sessionIdentity": true
+  },
+  "resetPerformed": false,
+  "sessionWasRunningBeforeRestart": true,
+  "restartBehavior": "Existing session restores paused",
+  "validation": {
+    "total": 115,
+    "passed": 112,
+    "skippedOptionalPreviews": 3,
+    "failed": 0,
+    "log": "hover-final-validation.log",
+    "regressionInjectionFailedAssertions": 2,
+    "injectionLog": "hover-injected-failure.log",
+    "coverage": "hover-region-coverage.txt",
+    "trackingRefreshRegression": {
+      "passed": 1,
+      "failed": 0,
+      "log": "hover-tracking-validation.log"
+    },
+    "coverageScope": "Latest native hover regression, matching test binary and profile"
+  }
+}

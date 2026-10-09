@@ -1,0 +1,27 @@
+Building for debugging...
+[2 / 4] PokeTaskBar-product
+[3 / 5] PokeTaskBar-product
+[5 / 8] PokeTaskBar
+[6 / 9] PokeTaskBar
+[10 / 14] PokeTaskBar-product
+[12 / 15] PokeTaskBar-product
+[14 / 18] PokeTaskBar
+[15 / 18] PokeTaskBar
+[17 / 18] PokeTaskBarTests-product
+[18 / 19] PokeTaskBarTests-product
+Build complete! (10.40 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 03:41:06.880.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 03:41:06.881.
+Test Suite 'FloatingTimerOverlayTests' started at 2026-10-02 03:41:06.881.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/FloatingTimerOverlayTests.swift:55: error: -[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn] : XCTAssertEqual failed: ("10119 bytes") is not equal to ("7071 bytes") - Exit must clear lingering native focus and restore the title
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/FloatingTimerOverlayTests.swift:65: error: -[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn] : XCTAssertEqual failed: ("10119 bytes") is not equal to ("7071 bytes")
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' failed (11.465 seconds).
+Test Suite 'FloatingTimerOverlayTests' failed at 2026-10-02 03:41:18.346.
+	 Executed 1 test, with 2 failures (0 unexpected) in 11.465 (11.465) seconds
+Test Suite 'PokeTaskBarTests.xctest' failed at 2026-10-02 03:41:18.346.
+	 Executed 1 test, with 2 failures (0 unexpected) in 11.465 (11.465) seconds
+Test Suite 'Selected tests' failed at 2026-10-02 03:41:18.346.
+	 Executed 1 test, with 2 failures (0 unexpected) in 11.465 (11.466) seconds
+Note: Some test targets reported failures:
+  - PokeTaskBarTests (XCTest)

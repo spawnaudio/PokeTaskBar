@@ -1,0 +1,17 @@
+;FFMETADATA1
+title=PokeTasks v2 - Animation mockups
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=22000
+title=Workspace controls and folding
+[CHAPTER]
+TIMEBASE=1/1000
+START=22000
+END=48000
+title=Today sections and timeline
+[CHAPTER]
+TIMEBASE=1/1000
+START=48000
+END=66000
+title=Floating timer actions over title

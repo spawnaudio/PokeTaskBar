@@ -1,0 +1,7 @@
+# Preserve archived outputs, including their original diagnostic spacing.
+*.pdf binary
+*.profraw binary
+Documents/floating-battle-v3/assets/FONT-OFL.txt -diff
+Documents/poketasks-v2/*.log whitespace=-trailing-space
+Documents/poketasks-v2/*coverage*.txt whitespace=-blank-at-eof
+Documents/poketasks-v2/*.json whitespace=-blank-at-eof

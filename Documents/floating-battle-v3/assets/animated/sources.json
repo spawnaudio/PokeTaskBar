@@ -1,0 +1,38 @@
+{
+  "pret_commit": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+  "assets": {
+    "gengar": {
+      "size": [
+        64,
+        128
+      ],
+      "sources": [
+        "graphics/pokemon/gengar/anim_front.png",
+        "graphics/pokemon/gengar/normal.pal"
+      ],
+      "sha256": "046c7a421d4dbc316cf23700151c7aa992461d33518f14170d04b3645ecca558"
+    },
+    "pikachu": {
+      "size": [
+        64,
+        128
+      ],
+      "sources": [
+        "graphics/pokemon/pikachu/anim_front.png",
+        "graphics/pokemon/pikachu/normal.pal"
+      ],
+      "sha256": "ca88ac5f7bf0d998c586b22dd96ee2e39b857eac675e54c172dc6a6e2e309286"
+    },
+    "oddish": {
+      "size": [
+        64,
+        128
+      ],
+      "sources": [
+        "graphics/pokemon/oddish/anim_front.png",
+        "graphics/pokemon/oddish/normal.pal"
+      ],
+      "sha256": "7573566ff1d6cea6ffcba09057a6501f619acb97f617174ea1f99802156f57ac"
+    }
+  }
+}

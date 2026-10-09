@@ -1,0 +1,36 @@
+Building for debugging...
+[2 / 4] PokeTaskBarTests-product
+[17 / 19] PokeTaskBarTests-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[23 / 24] PokeTaskBarTests-product
+Build complete! (5.33 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:24:18.407.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:24:18.408.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:24:18.408.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' passed (1.136 seconds).
+Test Suite 'MainWindowTests' passed at 2026-10-02 04:24:19.544.
+	 Executed 1 test, with 0 failures (0 unexpected) in 1.136 (1.136) seconds
+Test Suite 'PokeTaskBarTests.xctest' passed at 2026-10-02 04:24:19.544.
+	 Executed 1 test, with 0 failures (0 unexpected) in 1.136 (1.136) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 04:24:19.544.
+	 Executed 1 test, with 0 failures (0 unexpected) in 1.136 (1.136) seconds

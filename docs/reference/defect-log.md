@@ -16,6 +16,102 @@ read_when:
 
 ## Attached panel sizing
 
+- **Issue status tabs must scope hierarchy roots and expanded descendants.** The
+  board feeds were filtered correctly, but resolving roots against all known issues
+  replaced matching children with parents from other statuses. Expanded rows then
+  displayed every child. Earlier tests validated feed membership and deliberately
+  unfiltered parent expansion, so neither exercised the filtered rendered list.
+  Both issue surfaces now resolve roots within the selected list and pass the tab's
+  shared status matcher through nested rows, including lazily loaded children.
+  `MainWindowTests.testIssueSubtabsKeepParentsAndExpandedChildrenWithinTheirStatus`
+  covers all four tabs in the main window, project-scoped Issues and compact menu,
+  before and after expansion, while retaining same-status nesting and child loading.
+  Live verification also caught the active-category query admitting Waiting into
+  In progress. Its query and shared classifier now require the actual named status;
+  `LinearPlannedIssuesTests` checks other started statuses, case/whitespace, optimistic
+  changes and the planner's matching rule. Earlier feed tests only distinguished
+  Todo and Planned from started work. Project groups and the planner retain their
+  existing hierarchy behavior.
+
+- **Hover feedback must not move its own hit target.** Battle buttons translated
+  up on hover and down on press, so a stationary pointer near an edge repeatedly
+  entered and left the moving control. Selected bag rows also changed border
+  dimensions, shifting their contents. Previous native tests checked Start/Pause
+  and window size without exercising hover or potion double-clicks. Controls now
+  keep fixed geometry and use the existing color/frame feedback; every bag row
+  reserves the selected border. The sweep covered all Battle command, menu,
+  fold and item buttons. `BattleWindowTests` checks the packaged hover rules,
+  clicked-item consumption, single-click selection, empty items, Full Restore
+  and shop isolation. The task chooser mounts the shared native issue cards in
+  the same panel and covers 50–200% scale, task selection, cancel and confirmed
+  switching without opening the task workspace.
+
+- **Attached menu-bar panels need click-away dismissal; detached windows do not.**
+  The controller only closed on its own toggle, so clicking another app left the
+  attached panel open. Chrome and sizing checks never exercised outside clicks.
+  Local/global mouse monitors and app deactivation now use the attached-state
+  guard and the existing hosting teardown; status-item clicks, child windows and
+  native popup menus remain interactive. `FloatingDisplayMenuTests` exercises the
+  native context menu, another-window click, deactivation and reattachment, plus
+  persisted Float on Top changes across the menu, Battle, Game Boy, pet and timer.
+  WindowServer ordering checks cover both levels. A normal-level pet must not call
+  `orderFrontRegardless` on layout refresh, which would undo the user's choice.
+
+- **Test click delivery before testing the click handler.** The folded Game Boy's
+  root `.allowsHitTesting(false)` excluded its painted LCD from WindowServer's
+  mouse region. Both left and right clicks went to the underlying window even
+  though `hitTest`, `menu(for:)` and direct `panel.sendEvent` checks passed. Removing
+  that modifier lets the native hosting view receive clicks. The regression now
+  places an isolated icon away from the installed app and checks that the frontmost
+  window hit at its LCD is the Game Boy panel itself; it fails with the modifier
+  restored. When screen-event posting is permitted, it also posts left/right
+  clicks through WindowServer and verifies menu opening and unfolding. The test
+  uses the app's accessory activation policy and waits for event delivery.
+  Disabled hit testing on decorative children and intentionally passive
+  feedback windows stays unchanged.
+
+- **Folding changes presentation, not the session or window contents.** The first
+  Game Boy implementation drew a static LCD and tore down Battle's web view. Its
+  tests checked native accrual and invoked menu actions directly, so they missed
+  the absent visible countdown, reset menu state and native input/menu lookup.
+  The LCD now observes the same `FocusSessionStore` clock as Classic. Folding
+  suspends web updates and retains the Battle view; unfolding resumes updates.
+  Focus transfers to the icon and back to WebKit, and the folded host supplies
+  AppKit's `menu(for:)` lookup and the same existing menu callbacks. The regression
+  renders a changing LCD, checks idle/pause/zero and the accessible clock, opens a
+  real popup via right-mouse events, clicks the LCD to unfold, and preserves the
+  current More screen through both edge peeks. The static implementation failed
+  four LCD assertions; folding with web focus failed the first-responder check.
+  Restoring web teardown and the inherited nil menu lookup produced three further
+  failures: no discoverable popup and a reset screen on each unfold.
+  The versioned builder also now selects the existing v2 Poké Ball asset explicitly;
+  a default-icon fallback must not silently change the identity of a named app.
+
+- **Tuck protection follows the visible editor, not hidden session state.** A
+  due Classic check-in kept the folded Game Boy upright and prevented retucking,
+  although Battle displayed no check-in editor. Both initial tuck and hover
+  retuck now share the current style's actual input guard. A saved Battle fold
+  reached directly from Classic also reused Classic's animation marker; returning
+  to Classic could leave the Game Boy artwork installed. Every Battle show now
+  invalidates that marker. The native fold regression crosses a real 30-minute
+  check-in, verifies both rendered peeks and retucking, and switches styles with a
+  saved fold. The prior guards and marker produced ten failing assertions;
+  existing Classic editor protection remains covered by its native edge test.
+  Classic token refreshes must also leave the Game Boy's open/tuck tooltip intact;
+  the fold regression changes the observed limit preference and checks the tooltip
+  and native button role.
+
+- **Scaled web content needs a viewport-sized clipping root.** Battle transformed
+  the 360×180 game but left the hidden-overflow body at 180pt, cutting off the
+  buttons above 100%. The existing check rendered only at 100%; measuring the
+  transformed game alone also missed the paint clip. The native HTML/body now
+  fill the WebKit viewport. The real controller regression checks 50–200%, the
+  clipping bounds, a rendered bottom-border pixel and expanded menus. It failed
+  at 150% and 200% with the old root. Battle also has its own persisted scale and
+  right/bottom position anchor: changing Classic pet size formerly shifted a
+  saved Battle window. The regression checks both Classic sizes and restoration.
+  Classic's SwiftUI scaling already reserves its transformed dimensions.
+
 - **Sidebar fold icons belong in the window toolbar.** The v2 Day plan header
   duplicated the toolbar's right-sidebar control. Existing native checks switched
   to Projects before folding, so they missed Today's duplicate. The navigation
@@ -603,6 +699,7 @@ read_when:
   동기 클로저를 nonisolated 로 검사해, `@MainActor` `@Observable` store 접근이 수십 개의 오류로 연쇄된다.
   개별 프로퍼티에 `MainActor.assumeIsolated` 를 흩뿌리지 말고 UI 타입 선언 한 곳에 격리를 둔다.
   `SwiftUIIsolationTests.testEverySwiftUIViewAndAppIsMainActorIsolated` 가 새 View/App 선언 누락을 소스 스캔으로 막는다.
+  The consolidation gate caught the new Game Boy view missing this boundary; its earlier focused Battle tests did not run the source-wide isolation check.
 - **coverage profile producer와 consumer는 같은 LLVM toolchain이어야 한다.** Homebrew Swift 6.3 이 만든
   `default.profdata` 를 구형 Xcode의 `xcrun llvm-cov` 로 읽으면 `unsupported instrumentation profile format
   version` 으로 테스트 성공 뒤 게이트만 실패한다. `test-gate.sh` 는 현재 `swift` 실경로 옆의 `llvm-cov` 를
@@ -957,7 +1054,7 @@ read_when:
 - **`.nonactivatingPanel` 은 키 윈도우가 될 수 없다.** 플로팅 펫은 클릭이 다른 앱을 안 뺏게 `.nonactivatingPanel` 이고, 앱은 LSUIElement(`.accessory`)다. 그 조합에서 SwiftUI `TextField`(세션 메모·체크인)를 올려도 패널이 `canBecomeKey == false` 라 키 입력이 앞 앱으로 새어 나간다. 높이만 커지는 레이아웃 테스트는 통과한다. 가드: 펫 패널 서브클래스가 `canBecomeKey` 이고 스톡 nonactivating 은 거짓(`testFloatingPetPanelCanBecomeKeyUnlikeStockNonactivatingPanel`) + 텍스트 필드가 있을 때만 키 윈도우를 연다(`overlayNeedsKeyWindow` — 메모 작성·체크인; 0:00 프롬프트는 버튼만). 텍스트가 열릴 때 `activate(ignoringOtherApps:)` + `makeKeyAndOrderFront`(팝오버와 동일 함정, SettingsView 주석). 토큰/버블 `sync` 마다 재활성화하면 타이핑 중 포커스가 튕기므로 rising-edge 만.
 - **Borderless attached menu-bar windows have the same `canBecomeKey == false` trap.** Stock `NSWindow` with `[.borderless, .resizable]` never becomes key, so Settings `SecureField` (Linear API key) drops typing and paste. Subclass (`MenuBarPanelWindow`) must override `canBecomeKey` / `canBecomeMain`. Linear keys must also strip paste noise (`Bearer ` / quotes / `Authorization:`) and live in visible General settings, not collapsed Advanced; a successful save turns integration on. Guards: `testAttachedMenuBarWindowCanBecomeKeyForSecureFields`, `testNormalizeStripsPasteNoise`, `testSavingLinearAPIKeyEnablesIntegration`, `testLinearAPIKeyLivesInVisibleGeneralSettings`, `testLightAndDarkShellMatchLinearSurfaces`.
 - **Light chrome is Linear surfaces, not system greys.** `controlBackgroundColor` / `underPageBackgroundColor` wash out Linear light (`#F3F4F6` sidebar, white page). Use the scoped `MenuBarTheme` for the menu-bar window and `MenuBarPanelMetrics` dynamic fills for existing native surfaces. Do not restyle Collection content as Linear except shared pills. A cyan that passes on dark canvas can fail on a light selected surface: `MenuBarOverhaulTests.testTextAndAccentContrastInBothAppearances` checks text, secondary text, and accent against every main surface at 4.5:1. Inspect native renders too: macOS linear progress indicators can ignore tint, so the menu-bar indicators draw their own track through `MenuBarProgressStyle`. The opt-in native screenshot test covers both appearances, timer states, minimum attached height, other tabs, Settings, and detached layout. Header sizing is checked in all seven languages.
-- **Graduation must leave a free un-guaranteed egg in training.** `graduate()` used to set `trainingEmpty = true`, so later token XP never incremented `eggUsage` (`applyGrowth` and `hatchIfNeeded` both no-op on an empty slot). Tests asserted `eggUsage == 0` and `eggTier == nil` after graduation — both true with *no egg* — so buying a shop egg and swapping it in looked like the only way to hatch again. Place a `eggTier == nil` egg in the slot (rarity rolls at hatch like a shop fresh egg). Guards: `testNewEggAfterGraduationReincubates`, `testGuaranteeDoesNotSurviveIntoTheNextEgg`, `testUseGraduatesFinalStage`.
+- **Graduation resumes the first stored Pokémon before falling back to a free un-guaranteed egg.** `graduate()` previously always created an egg, leaving banked partners unused. Select the first `.partner` in storage order, skipping stored eggs, and reuse `unpackIntoTraining` to preserve its identity, progress and evolution line without banking an extra egg. All XP sources and Rare Candy reach this shared graduation path; candy must detect the new Dex record rather than an empty active slot. `testGraduationSendsFirstStoredPartnerBeforeEggAndPreservesProgress` banks two partners through real swaps, keeps an egg ahead of them, graduates through XP and candy, and checks the chosen individual, remaining storage, continued growth and reload. It fails against the old behavior. If no partner remains, keep a `eggTier == nil` egg in training: `trainingEmpty = true` used to drop later XP because both `applyGrowth` and `hatchIfNeeded` no-op on an empty slot. Fallback guards: `testNewEggAfterGraduationReincubates`, `testGuaranteeDoesNotSurviveIntoTheNextEgg`, `testUseGraduatesFinalStage`.
 - **Open-panel snappiness is a different hitch than idle GIF wakeup.** Closed hosting teardown (`contentView=nil`) already stops relative-`Text` layout when hidden. With the panel **open**, three cheaper bugs still janked the main thread: ① focus `tick()` atomically encoded+wrote the session JSON every second; persist on phase/XP/check-in or a 10s cadence instead (`FocusSessionStore.tickPersistInterval`, `testAccrualTicksDoNotRewriteSessionFileEverySecond`). ② usage `refresh` assigned a new `snapshots` array (`fetchedAt: Date()`) even when daily/week/month payloads were identical, so every `@Observable` consumer rebuilt; skip with `ProviderSnapshot.payloadEquals` (`testIdenticalRefreshKeepsSnapshotPayloadIdentity`). ③ the floating pet observed `todayTotalTokens` and called `setFrame(display: true)` + `orderFrontRegardless` on every poll — split tooltip observation and skip the frame commit when the rect is unchanged (`shouldApplyPanelFrame`, `testVisiblePetSkipsRedundantFrameCommits`). Open Usage/Linear `Text(_, style: .relative)` still self-invalidates ~1Hz; those labels are `RelativeTimestampText` (15s `TimelineView`). Linear issue/project `ScrollView` lists are `LazyVStack` so off-screen foldable rows are not built on tab entry. Do **not** drop always-on GIF `frameFloor > 0`. Guards: `RefreshPublishPerformanceTests`, `RelativeTimestampPerformanceTests`, `FloatingPetEnergyTests.testVisiblePetSkipsRedundantFrameCommits`, Focus persist cadence tests.
 
 ## Smooth planner and Insights rendering
@@ -998,6 +1095,16 @@ read_when:
   xctest 에서 조기 return 되어 커버 불가였던 게 무테스트의 원인.
 
 ## 상태 파일 이전·병합
+
+- **Legacy durations must survive consolidated totals without becoming measured segments.**
+  Earlier versions retained only per-issue summaries, and `TaskTimeReport.seconds` deliberately
+  excludes partial records. Importing those records alone therefore left the overall metric
+  unchanged. `recordedSeconds` includes saved legacy durations by completion date while charts
+  and plan coverage retain measured-only semantics. Completed tasks union focus completions
+  with the per-issue Done XP ledger, counting each issue once. `ConsolidatedStatsTests` covers
+  both boundaries and can decode a prepared merge without silently dropping records using
+  `POKETASKS_MERGE_DIR`. One-off consolidation must preserve source snapshots, union copied
+  session intervals, retain distinct shiny individuals, and prove a repeated merge is unchanged.
 
 - **상태 파일을 옮기거나 합칠 땐 "진행"과 "이 기기 장부"를 먼저 분류하라.** 같은 파일에 살아도 성격이
   다르다 — `usedSinceInstall`·`dex`·`inventory`·`candyGrantTier` 는 어느 기기에서든 참인 **진행**이고,
@@ -1095,3 +1202,5 @@ read_when:
 - **A timer extension spends two persisted records.** Inventory and timer files can fail independently. Write a recovery journal first, persist inventory before publishing, and retain the transaction receipt in both stores. Recovery pauses the timer and skips consumption when the inventory receipt already exists; a journal whose timer receipt is committed never resurrects a finished session. Failed inventory/timer writes and repeated replay are exercised in `BattleWindowTests`; imports retain the device's receipt. Standard item purchases now persist before publishing Coins/inventory changes.
 - **Growth tests must obey ownership rules.** Repeated normal hatches are rejected once a species is owned. Older growth, branching, candy and performance fixtures still relied on unrestricted duplicates. Repeat fixtures now use a deterministic unowned shiny, and repeated-graduation performance uses distinct evolutionary lines. Buying a stored egg preserves a pending Ditto reveal because the active partner is unchanged.
 - **Native UI fixtures need the app's real activation policy and viewport.** Floating editor tests temporarily use accessory activation. The settings rendering fixture specifies the actual viewport height. The session-key shortcut opens its requested Advanced section first, avoiding competing scroll/focus adjustments on an oversized settings group. Native sidebar drag checks resizing and persistence without assuming every synthetic mouse translation survives event coalescing.
+
+- **Keep the coverage gate on the app build backend.** SwiftPM 6.4 defaults to the Xcode backend, which emits differently named test bundles and raw profiles instead of the native `default.profdata` layout. The previous gate assumed the native layout without selecting it. `test-gate.sh` now selects the same native backend as `build-app.sh`; a complete gate run checks both test execution and profile discovery.

@@ -1,0 +1,319 @@
+Building for debugging...
+[2 / 4] PokeTaskBar-product
+[3 / 5] PokeTaskBar-product
+[5 / 8] PokeTaskBar
+[6 / 9] PokeTaskBar
+[10 / 14] PokeTaskBar-product
+[12 / 15] PokeTaskBar-product
+[14 / 18] PokeTaskBar
+[15 / 18] PokeTaskBar
+[18 / 19] PokeTaskBarTests-product
+Build complete! (10.92 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:46:47.919.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:46:47.920.
+Test Suite 'FloatingTimerOverlayTests' started at 2026-10-02 04:46:47.920.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testClockOpensNativeMinutesEditorAndAppliesCustomValues]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testClockOpensNativeMinutesEditorAndAppliesCustomValues]' passed (8.135 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testComposerChoosesDurationBeforeCreatingAnIssue]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testComposerChoosesDurationBeforeCreatingAnIssue]' passed (1.953 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testEdgePeekContainsSpritePixelsAtAllPetSizes]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testEdgePeekContainsSpritePixelsAtAllPetSizes]' passed (0.014 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testEdgePeekGeometryStaysOnItsDisplay]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testEdgePeekGeometryStaysOnItsDisplay]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testExpandedSetupAndRunningFlowDrawsAndRetainsControls]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testExpandedSetupAndRunningFlowDrawsAndRetainsControls]' passed (2.091 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testFloatingEggRendersAtHalfThePokemonSize]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testFloatingEggRendersAtHalfThePokemonSize]' passed (0.167 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testIssueFocusEntryPointsAskForTimeBeforeStartingInBothAppearances]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testIssueFocusEntryPointsAskForTimeBeforeStartingInBothAppearances]' passed (6.927 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeCompactAndPetOnlyControlsInBothAppearances]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeCompactAndPetOnlyControlsInBothAppearances]' passed (4.795 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeEdgeMenuHoverTimerAndRestore]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeEdgeMenuHoverTimerAndRestore]' passed (6.813 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeResizeAndKeyboardMovePersistAndSurviveFold]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeResizeAndKeyboardMovePersistAndSurviveFold]' passed (0.272 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeStripFitsBothAppearancesAndAllLanguages]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeStripFitsBothAppearancesAndAllLanguages]' passed (0.400 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerHoverGraceClearsMouseFocusAndCancelsOnReturn]' passed (10.807 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerScaleUpdatesAllModesAndKeepsControlsUsable]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNativeTimerScaleUpdatesAllModesAndKeepsControlsUsable]' passed (26.731 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNewIssueButtonOpensSharedComposerInEveryTimerState]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/FloatingTimerOverlayTests.swift:1072: error: -[PokeTaskBarTests.FloatingTimerOverlayTests testNewIssueButtonOpensSharedComposerInEveryTimerState] : XCTAssertTrue failed
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testNewIssueButtonOpensSharedComposerInEveryTimerState]' failed (17.313 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testPetHostingPreservesOtherTrackingAreasForSwiftUIHover]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testPetHostingPreservesOtherTrackingAreasForSwiftUIHover]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testResizingKeepsHeightAndFoldedPromptsAndPetAnchor]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testResizingKeepsHeightAndFoldedPromptsAndPetAnchor]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testTimerScalePersistsAndBoundsSavedValues]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testTimerScalePersistsAndBoundsSavedValues]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testWidthRestoresAndRejectsInvalidSavedSizes]' started.
+Test Case '-[PokeTaskBarTests.FloatingTimerOverlayTests testWidthRestoresAndRejectsInvalidSavedSizes]' passed (0.003 seconds).
+Test Suite 'FloatingTimerOverlayTests' failed at 2026-10-02 04:48:14.346.
+	 Executed 18 tests, with 1 failure (0 unexpected) in 86.424 (86.426) seconds
+Test Suite 'FocusSessionTests' started at 2026-10-02 04:48:14.346.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAccrualTicksDoNotRewriteSessionFileEverySecond]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAccrualTicksDoNotRewriteSessionFileEverySecond]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingClampsPlannedTo180AndNoOpsAtCap]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingClampsPlannedTo180AndNoOpsAtCap]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromAwaitingChoiceRestoresNMinuteCountdown]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromAwaitingChoiceRestoresNMinuteCountdown]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromOvertimeExtendsUpToCapEvenIfPlannedWasShorter]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromOvertimeExtendsUpToCapEvenIfPlannedWasShorter]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromOvertimeRestoresCountdownAndKeepsFiveXClosed]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromOvertimeRestoresCountdownAndKeepsFiveXClosed]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromRunningAddsNOntoRemaining]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingFromRunningAddsNOntoRemaining]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingUsesExactSecondsNotFlooredMinutes]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testAddRemainingUsesExactSecondsNotFlooredMinutes]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInCommentBodyAndSkipIsNotDrift]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInCommentBodyAndSkipIsNotDrift]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInNoteLandsOnCompletedHistory]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInNoteLandsOnCompletedHistory]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInWaitsWhenZeroTimePopupIsShowing]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCheckInWaitsWhenZeroTimePopupIsShowing]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCompletedIssueAfterFocusSessionStoresTimerSummary]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCompletedIssueAfterFocusSessionStoresTimerSummary]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCompletedIssueWithoutSessionShowsLinearXPOnly]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCompletedIssueWithoutSessionShowsLinearXPOnly]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusCommitsDurationOnlyAfterSuccessfulCreation]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusCommitsDurationOnlyAfterSuccessfulCreation]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusWithLiveSessionCancelDoesNotCreate]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusWithLiveSessionCancelDoesNotCreate]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusWithLiveSessionConfirmForfeitsThenPins]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateAndFocusWithLiveSessionConfirmForfeitsThenPins]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateDoesNotPinCreateAndFocusPinsWhenIdle]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCreateDoesNotPinCreateAndFocusPinsWhenIdle]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCustomTimerMinutesPersistForSetupAndPausedSession]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testCustomTimerMinutesPersistForSetupAndPausedSession]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testEarlyFinishRecordsTimeSinceLastTick]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testEarlyFinishRecordsTimeSinceLastTick]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFailedSessionNoteSurfacesErrorAndDoesNotPersist]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFailedSessionNoteSurfacesErrorAndDoesNotPersist]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFinishLeaveInProgressNeverOvertimePaysOneTimes]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFinishLeaveInProgressNeverOvertimePaysOneTimes]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFirstCompletePersistsXPAndRecompleteKeepsStoredAmount]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFirstCompletePersistsXPAndRecompleteKeepsStoredAmount]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFloatingPetPanelCanBecomeKeyUnlikeStockNonactivatingPanel]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFloatingPetPanelCanBecomeKeyUnlikeStockNonactivatingPanel]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFocusedIssueTitleIsOptionalSingleLineAndBounded]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFocusedIssueTitleIsOptionalSingleLineAndBounded]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFoldedIslandShrinksPanelAndPromptsStillAddHeight]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testFoldedIslandShrinksPanelAndPromptsStillAddHeight]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitDoesNotFlashMenuWhenPetOn]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitDoesNotFlashMenuWhenPetOn]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitFlashesCriticalMenuWhenPetOff]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitFlashesCriticalMenuWhenPetOff]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitHistoryThenMarkDoneStillAwardsLinearXP]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testForfeitHistoryThenMarkDoneStillAwardsLinearXP]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIslandPanelGrowsWhenComposingNote]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIslandPanelGrowsWhenComposingNote]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIssueFocusUsesSelectedDurationAndDoesNotRestartCurrentIssue]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIssueFocusUsesSelectedDurationAndDoesNotRestartCurrentIssue]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIssueHistorySurvivesReloadAndOldJSONDoesNotCrash]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testIssueHistorySurvivesReloadAndOldJSONDoesNotCrash]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLeaveInProgressHistoryThenCompleteWithoutSessionKeepsTimer]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLeaveInProgressHistoryThenCompleteWithoutSessionKeepsTimer]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLegacyPinnedIssueWithoutTaskDescriptionStillDecodes]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLegacyPinnedIssueWithoutTaskDescriptionStillDecodes]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLinearPinSwitchesToFocusWithoutOpeningToday]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLinearPinSwitchesToFocusWithoutOpeningToday]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLocalTaskAllowsUntitledTimerAndRejectsInvalidDurationOrReplacingSession]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLocalTaskAllowsUntitledTimerAndRejectsInvalidDurationOrReplacingSession]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLocalTaskPersistsDetailsAndNeverPostsToLinear]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testLocalTaskPersistsDetailsAndNeverPostsToLinear]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarComposeNeverExceedsTwoLines]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarComposeNeverExceedsTwoLines]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarHidesClockWhenFloatingPetEnabled]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarHidesClockWhenFloatingPetEnabled]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarHidesClockWithoutSession]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarHidesClockWithoutSession]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarKeepsFrozenClockWhilePaused]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarKeepsFrozenClockWhilePaused]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarLinearCountsUseYellowAndBlueSymbols]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarLinearCountsUseYellowAndBlueSymbols]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarLinearIssuesLineFollowsVisibilityAndLinearSetup]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarLinearIssuesLineFollowsVisibilityAndLinearSetup]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarOvertimeMatchesClockDisplayAndAddsCue]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarOvertimeMatchesClockDisplayAndAddsCue]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarPillOmitsDanglingPipeAndPrefersTimer]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarPillOmitsDanglingPipeAndPrefersTimer]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarShowsCountdownWhenSessionRunningAndPetOff]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testMenuBarShowsCountdownWhenSessionRunningAndPetOff]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testNativeAlarmAppearsOnceClosingSilencesAndNewExpiryReopens]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testNativeAlarmAppearsOnceClosingSilencesAndNewExpiryReopens]' passed (1.076 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testNativeTaskSetupStartsWithEnteredTitleAndDuration]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testNativeTaskSetupStartsWithEnteredTitleAndDuration]' passed (0.441 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOnTimeDonePaysFiveTimesPlannedIntervals]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOnTimeDonePaysFiveTimesPlannedIntervals]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOpenPomodoroSetupDoesNotStartUntilConfirmed]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOpenPomodoroSetupDoesNotStartUntilConfirmed]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOpenPomodoroSetupIsNoOpDuringASession]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOpenPomodoroSetupIsNoOpDuringASession]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOverlayNeedsKeyWindowOnlyForTextFields]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOverlayNeedsKeyWindowOnlyForTextFields]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeDoneHistoryRecordsContinuePath]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeDoneHistoryRecordsContinuePath]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeWithNotePaysTwoXAndTopsUpEarlierTicks]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeWithNotePaysTwoXAndTopsUpEarlierTicks]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeWithoutNotePaysOneXPerInterval]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testOvertimeWithoutNotePaysOneXPerInterval]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPauseAndSleepDoNotAccrue]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPauseAndSleepDoNotAccrue]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPhaseChangePersistsImmediately]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPhaseChangePersistsImmediately]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPinningAnotherIssueWithLiveSessionUsesForfeitNotLeaveInProgress]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPinningAnotherIssueWithLiveSessionUsesForfeitNotLeaveInProgress]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPinningClearsPomodoroSetup]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPinningClearsPomodoroSetup]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPomodoroPersistsAndPinningLinearUsesForfeit]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPomodoroPersistsAndPinningLinearUsesForfeit]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPromptRoutesToPopoverWhenPetOffAndOverlayWhenPetOn]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testPromptRoutesToPopoverWhenPetOffAndOverlayWhenPetOn]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testRenderLocalTaskTimerAndAlarm]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/FocusSessionTests.swift:1527: -[PokeTaskBarTests.FocusSessionTests testRenderLocalTaskTimerAndAlarm] : Test skipped - Set PTB_LOCAL_TIMER_PREVIEW_DIR for timer previews
+Test Case '-[PokeTaskBarTests.FocusSessionTests testRenderLocalTaskTimerAndAlarm]' skipped (0.001 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetAndEditStopAlarmForLinearFocusToo]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetAndEditStopAlarmForLinearFocusToo]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetClockWithElapsedRestoresFullPlannedCountdown]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetClockWithElapsedRestoresFullPlannedCountdown]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetClockWithElapsedZeroIsNoOp]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetClockWithElapsedZeroIsNoOp]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetConfirmAndAddTimeGoThroughTheStore]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testResetConfirmAndAddTimeGoThroughTheStore]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionCommentBodyDoesNotLookLikeACheckIn]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionCommentBodyDoesNotLookLikeACheckIn]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNoteCanBePostedBeforeFirstCheckIn]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNoteCanBePostedBeforeFirstCheckIn]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNoteInOvertimeSetsOTFlag]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNoteInOvertimeSetsOTFlag]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNotePersistsForTodayDeskAndCompletedHistory]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNotePersistsForTodayDeskAndCompletedHistory]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNotePostsLinearCommentAndEmptyIsNoOp]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionNotePostsLinearCommentAndEmptyIsNoOp]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionXPFollowsTimeOpenToggle]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSessionXPFollowsTimeOpenToggle]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetRemainingHandlesSleepZeroOvertimeAndInvalidRequests]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetRemainingHandlesSleepZeroOvertimeAndInvalidRequests]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetRemainingReplacesCountdownAndPreservesPauseAndEarnedTime]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetRemainingReplacesCountdownAndPreservesPauseAndEarnedTime]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetupIslandGrowsIdleOverlay]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSetupIslandGrowsIdleOverlay]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStartPomodoroIsNoOpWhenASessionExists]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStartPomodoroIsNoOpWhenASessionExists]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStartPomodoroWithoutLinearIssue]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStartPomodoroWithoutLinearIssue]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStoreCanAddRemainingTimeIsFalseAtPlannedCapWhileCounting]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testStoreCanAddRemainingTimeIsFalseAtPlannedCapWhileCounting]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSubTenMinuteOnTimeDoneHasZeroSessionIntervals]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSubTenMinuteOnTimeDoneHasZeroSessionIntervals]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSwitchKeepsCurrentDurationUntilConfirmedAndCapturesChosenMinutes]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testSwitchKeepsCurrentDurationUntilConfirmedAndCapturesChosenMinutes]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTickPersistCadencePure]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTickPersistCadencePure]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimeOpenIsPausedDuringSessionAndResumesFromNow]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimeOpenIsPausedDuringSessionAndResumesFromNow]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerAlarmWaitsCanBeSilencedAndRearmsAfterExtending]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerAlarmWaitsCanBeSilencedAndRearmsAfterExtending]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerToggleReservesAButtonWithoutASession]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerToggleReservesAButtonWithoutASession]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerWaitsForExplicitChoiceWithoutAccruingOrSettlingXP]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTimerWaitsForExplicitChoiceWithoutAccruingOrSettlingXP]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTodayDeskPinStillOpensToday]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTodayDeskPinStillOpensToday]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTruncatedCheckInNoteCapsLength]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testTruncatedCheckInNoteCapsLength]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testUnfocusForfeitDonePackageUsesOnTimeEvenInOvertime]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testUnfocusForfeitDonePackageUsesOnTimeEvenInOvertime]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testUnfocusForfeitPaysZeroAndWarningMatchesLeaveAndDonePackage]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testUnfocusForfeitPaysZeroAndWarningMatchesLeaveAndDonePackage]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeHoldDoesNotAccrueOvertime]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeHoldDoesNotAccrueOvertime]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeTickDoesNotFlashMenuWhenPetOn]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeTickDoesNotFlashMenuWhenPetOn]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeTickFlashesMenuAndKeepsPromptWhenPetOff]' started.
+Test Case '-[PokeTaskBarTests.FocusSessionTests testZeroTimeTickFlashesMenuAndKeepsPromptWhenPetOff]' passed (0.003 seconds).
+Test Suite 'FocusSessionTests' passed at 2026-10-02 04:48:16.029.
+	 Executed 90 tests, with 1 test skipped and 0 failures (0 unexpected) in 1.678 (1.683) seconds
+Test Suite 'LinearPlannedIssuesTests' started at 2026-10-02 04:48:16.029.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testContainerMergeDeduplicatesAndIncludesIssuesFromProjectsOutsideVisibleProjectTabs]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testContainerMergeDeduplicatesAndIncludesIssuesFromProjectsOutsideVisibleProjectTabs]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testFetchIncludesPlannedIssuesBeyondContainerPreviewByStableProjectID]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testFetchIncludesPlannedIssuesBeyondContainerPreviewByStableProjectID]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testParentRelationshipsLoadAcrossStatusesAndPaginatedChildrenKeepTheirOwnControls]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testParentRelationshipsLoadAcrossStatusesAndPaginatedChildrenKeepTheirOwnControls]' passed (0.002 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testPlannedMatchesNamedStatusSortsAndExcludesOtherUnstartedWork]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testPlannedMatchesNamedStatusSortsAndExcludesOtherUnstartedWork]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testPlannedStoreControlsAndNavigationStayConsistentWhenRefreshFails]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testPlannedStoreControlsAndNavigationStayConsistentWhenRefreshFails]' passed (0.007 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testQueuedOnlyTeamsReceiveWorkflowControls]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testQueuedOnlyTeamsReceiveWorkflowControls]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testTodoOnlyMatchesNamedOpenStatusAndProjectRoute]' started.
+Test Case '-[PokeTaskBarTests.LinearPlannedIssuesTests testTodoOnlyMatchesNamedOpenStatusAndProjectRoute]' passed (0.000 seconds).
+Test Suite 'LinearPlannedIssuesTests' passed at 2026-10-02 04:48:16.042.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.013 (0.013) seconds
+Test Suite 'MainWindowTests' started at 2026-10-02 04:48:16.042.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeIssueFilterCheckboxesAllowRepeatedSelectionWithoutClosing]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeIssueFilterCheckboxesAllowRepeatedSelectionWithoutClosing]' passed (1.131 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' passed (3.745 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeStatusHeadersFoldAndNestedInitiativeIssuesStartMinimized]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeStatusHeadersFoldAndNestedInitiativeIssuesStartMinimized]' passed (1.497 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testNavigationHistoryPreservesCollectionSelection]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNavigationHistoryPreservesCollectionSelection]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testProjectRouteAndNavigationDoNotStartOrResetTimer]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testProjectRouteAndNavigationDoNotStartOrResetTimer]' passed (0.008 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderMainWindow]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:483: -[PokeTaskBarTests.MainWindowTests testRenderMainWindow] : Test skipped - Set PTB_MAIN_WINDOW_PREVIEW_DIR for native visual verification
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderMainWindow]' skipped (0.001 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderPlannedWorkspaces]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:673: -[PokeTaskBarTests.MainWindowTests testRenderPlannedWorkspaces] : Test skipped - Set PTB_PLANNED_PREVIEW_DIR for planned issue visual verification
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderPlannedWorkspaces]' skipped (0.001 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderProjectControlsAtNarrowAndWideWindowSizes]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:519: -[PokeTaskBarTests.MainWindowTests testRenderProjectControlsAtNarrowAndWideWindowSizes] : Test skipped - Set PTB_PROJECT_CONTROLS_PREVIEW_DIR for project toolbar verification
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderProjectControlsAtNarrowAndWideWindowSizes]' skipped (0.000 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderV2PlannerAndInsights]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderV2PlannerAndInsights]' passed (2.473 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderV2RevisedTodayAndSubIssues]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testRenderV2RevisedTodayAndSubIssues]' passed (0.978 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testShopPurchaseBanksEggAndPreservesTrainingPartner]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testShopPurchaseBanksEggAndPreservesTrainingPartner]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2FloatingTimerFixedClockAndNativePause]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2FloatingTimerFixedClockAndNativePause]' passed (1.383 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeCalendarChoosesDayWithoutChangingSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeCalendarChoosesDayWithoutChangingSession]' passed (0.787 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' passed (4.093 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' passed (2.411 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2ParentUnfoldShowsChildAndChildUsesSharedFocusSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2ParentUnfoldShowsChildAndChildUsesSharedFocusSession]' passed (1.028 seconds).
+Test Suite 'MainWindowTests' passed at 2026-10-02 04:48:35.584.
+	 Executed 16 tests, with 3 tests skipped and 0 failures (0 unexpected) in 19.541 (19.542) seconds
+Test Suite 'PokeTasksV2Tests' started at 2026-10-02 04:48:35.584.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' passed (0.010 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' passed (0.007 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' passed (0.004 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' passed (0.006 seconds).
+Test Suite 'PokeTasksV2Tests' passed at 2026-10-02 04:48:35.622.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.037 (0.038) seconds
+Test Suite 'PokeTaskBarTests.xctest' failed at 2026-10-02 04:48:35.622.
+	 Executed 140 tests, with 4 tests skipped and 1 failure (0 unexpected) in 107.693 (107.702) seconds
+Test Suite 'Selected tests' failed at 2026-10-02 04:48:35.622.
+	 Executed 140 tests, with 4 tests skipped and 1 failure (0 unexpected) in 107.693 (107.703) seconds
+Note: Some test targets reported failures:
+  - PokeTaskBarTests (XCTest)

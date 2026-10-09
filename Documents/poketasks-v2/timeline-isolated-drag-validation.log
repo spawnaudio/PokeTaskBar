@@ -1,0 +1,20 @@
+Building for debugging...
+Build complete! (0.18 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:38:02.389.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:38:02.390.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:38:02.390.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' passed (3.297 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:288: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("Optional(570)") is not equal to ("Optional(600)") - Native block drag moves by 30 minutes
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:297: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("Optional(50)") is not equal to ("Optional(70)") - Native lower-edge drag resizes by 20 minutes
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:308: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("nil") is not equal to ("Optional(50)")
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' failed (4.159 seconds).
+Test Suite 'MainWindowTests' failed at 2026-10-02 04:38:09.845.
+	 Executed 2 tests, with 3 failures (0 unexpected) in 7.455 (7.456) seconds
+Test Suite 'PokeTaskBarTests.xctest' failed at 2026-10-02 04:38:09.846.
+	 Executed 2 tests, with 3 failures (0 unexpected) in 7.455 (7.456) seconds
+Test Suite 'Selected tests' failed at 2026-10-02 04:38:09.846.
+	 Executed 2 tests, with 3 failures (0 unexpected) in 7.455 (7.457) seconds
+Note: Some test targets reported failures:
+  - PokeTaskBarTests (XCTest)

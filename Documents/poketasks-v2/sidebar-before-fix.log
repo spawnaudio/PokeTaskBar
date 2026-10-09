@@ -1,0 +1,29 @@
+Building for debugging...
+[2 / 4] PokeTaskBarTests-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[4 / 6] PokeTaskBarTests-product
+[9 / 10] PokeTaskBarTests-product
+Build complete! (2.14 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:25:28.360.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:25:28.360.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:25:28.360.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:434: error: -[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession] : XCTAssertEqualWithAccuracy failed: ("228.0") is not equal to ("260.0") +/- ("1.0")
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' failed (2.843 seconds).
+Test Suite 'MainWindowTests' failed at 2026-10-02 04:25:31.204.
+	 Executed 1 test, with 1 failure (0 unexpected) in 2.843 (2.844) seconds
+Test Suite 'PokeTaskBarTests.xctest' failed at 2026-10-02 04:25:31.204.
+	 Executed 1 test, with 1 failure (0 unexpected) in 2.843 (2.844) seconds
+Test Suite 'Selected tests' failed at 2026-10-02 04:25:31.204.
+	 Executed 1 test, with 1 failure (0 unexpected) in 2.843 (2.844) seconds
+Note: Some test targets reported failures:
+  - PokeTaskBarTests (XCTest)

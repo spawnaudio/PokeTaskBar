@@ -1,0 +1,1118 @@
+{
+  "title": "PokeTasks v2 \u00b7 Theme mockups",
+  "date": "2026-10-02",
+  "baseline": "Current v2 native screens with isolated sample data",
+  "implementation": "Visual exploration only; production source and installed app unchanged",
+  "completed": 336,
+  "expected": 336,
+  "variants": {
+    "retro-light": "Retro Light",
+    "retro-dark": "Retro Dark",
+    "pokedex-light": "Pok\u00e9dex Light",
+    "pokedex-dark": "Pok\u00e9dex Dark"
+  },
+  "screens": [
+    {
+      "id": "today",
+      "label": "Today",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/today.png",
+      "variants": {
+        "retro-light": "retro-light/today.png",
+        "retro-dark": "retro-dark/today.png",
+        "pokedex-light": "pokedex-light/today.png",
+        "pokedex-dark": "pokedex-dark/today.png"
+      }
+    },
+    {
+      "id": "today-folded-panels",
+      "label": "Today \u00b7 Folded \u00b7 Panels",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/today-folded-panels.png",
+      "variants": {
+        "retro-light": "retro-light/today-folded-panels.png",
+        "retro-dark": "retro-dark/today-folded-panels.png",
+        "pokedex-light": "pokedex-light/today-folded-panels.png",
+        "pokedex-dark": "pokedex-dark/today-folded-panels.png"
+      }
+    },
+    {
+      "id": "today-icon-rail",
+      "label": "Today \u00b7 Icon \u00b7 Rail",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/today-icon-rail.png",
+      "variants": {
+        "retro-light": "retro-light/today-icon-rail.png",
+        "retro-dark": "retro-dark/today-icon-rail.png",
+        "pokedex-light": "pokedex-light/today-icon-rail.png",
+        "pokedex-dark": "pokedex-dark/today-icon-rail.png"
+      }
+    },
+    {
+      "id": "focus-idle",
+      "label": "Focus \u00b7 Idle",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/focus-idle.png",
+      "variants": {
+        "retro-light": "retro-light/focus-idle.png",
+        "retro-dark": "retro-dark/focus-idle.png",
+        "pokedex-light": "pokedex-light/focus-idle.png",
+        "pokedex-dark": "pokedex-dark/focus-idle.png"
+      }
+    },
+    {
+      "id": "focus-paused",
+      "label": "Focus \u00b7 Paused",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/focus-paused.png",
+      "variants": {
+        "retro-light": "retro-light/focus-paused.png",
+        "retro-dark": "retro-dark/focus-paused.png",
+        "pokedex-light": "pokedex-light/focus-paused.png",
+        "pokedex-dark": "pokedex-dark/focus-paused.png"
+      }
+    },
+    {
+      "id": "focus-running",
+      "label": "Focus \u00b7 Running",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/focus-running.png",
+      "variants": {
+        "retro-light": "retro-light/focus-running.png",
+        "retro-dark": "retro-dark/focus-running.png",
+        "pokedex-light": "pokedex-light/focus-running.png",
+        "pokedex-dark": "pokedex-dark/focus-running.png"
+      }
+    },
+    {
+      "id": "issues-completedToday",
+      "label": "Issues \u00b7 Completed Today",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/issues-completedToday.png",
+      "variants": {
+        "retro-light": "retro-light/issues-completedToday.png",
+        "retro-dark": "retro-dark/issues-completedToday.png",
+        "pokedex-light": "pokedex-light/issues-completedToday.png",
+        "pokedex-dark": "pokedex-dark/issues-completedToday.png"
+      }
+    },
+    {
+      "id": "issues-inProgress",
+      "label": "Issues \u00b7 In Progress",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/issues-inProgress.png",
+      "variants": {
+        "retro-light": "retro-light/issues-inProgress.png",
+        "retro-dark": "retro-dark/issues-inProgress.png",
+        "pokedex-light": "pokedex-light/issues-inProgress.png",
+        "pokedex-dark": "pokedex-dark/issues-inProgress.png"
+      }
+    },
+    {
+      "id": "issues-planned",
+      "label": "Issues \u00b7 Planned",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/issues-planned.png",
+      "variants": {
+        "retro-light": "retro-light/issues-planned.png",
+        "retro-dark": "retro-dark/issues-planned.png",
+        "pokedex-light": "pokedex-light/issues-planned.png",
+        "pokedex-dark": "pokedex-dark/issues-planned.png"
+      }
+    },
+    {
+      "id": "issues-subissues",
+      "label": "Issues \u00b7 Subissues",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/issues-subissues.png",
+      "variants": {
+        "retro-light": "retro-light/issues-subissues.png",
+        "retro-dark": "retro-dark/issues-subissues.png",
+        "pokedex-light": "pokedex-light/issues-subissues.png",
+        "pokedex-dark": "pokedex-dark/issues-subissues.png"
+      }
+    },
+    {
+      "id": "issues-todo",
+      "label": "Issues \u00b7 Todo",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/issues-todo.png",
+      "variants": {
+        "retro-light": "retro-light/issues-todo.png",
+        "retro-dark": "retro-dark/issues-todo.png",
+        "pokedex-light": "pokedex-light/issues-todo.png",
+        "pokedex-dark": "pokedex-dark/issues-todo.png"
+      }
+    },
+    {
+      "id": "projects-grid",
+      "label": "Projects \u00b7 Grid",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/projects-grid.png",
+      "variants": {
+        "retro-light": "retro-light/projects-grid.png",
+        "retro-dark": "retro-dark/projects-grid.png",
+        "pokedex-light": "pokedex-light/projects-grid.png",
+        "pokedex-dark": "pokedex-dark/projects-grid.png"
+      }
+    },
+    {
+      "id": "projects-list",
+      "label": "Projects \u00b7 List",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/projects-list.png",
+      "variants": {
+        "retro-light": "retro-light/projects-list.png",
+        "retro-dark": "retro-dark/projects-list.png",
+        "pokedex-light": "pokedex-light/projects-list.png",
+        "pokedex-dark": "pokedex-dark/projects-list.png"
+      }
+    },
+    {
+      "id": "insights-1",
+      "label": "Insights \u00b7 Day",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/insights-1.png",
+      "variants": {
+        "retro-light": "retro-light/insights-1.png",
+        "retro-dark": "retro-dark/insights-1.png",
+        "pokedex-light": "pokedex-light/insights-1.png",
+        "pokedex-dark": "pokedex-dark/insights-1.png"
+      }
+    },
+    {
+      "id": "insights-30",
+      "label": "Insights \u00b7 Month",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/insights-30.png",
+      "variants": {
+        "retro-light": "retro-light/insights-30.png",
+        "retro-dark": "retro-dark/insights-30.png",
+        "pokedex-light": "pokedex-light/insights-30.png",
+        "pokedex-dark": "pokedex-dark/insights-30.png"
+      }
+    },
+    {
+      "id": "insights-7",
+      "label": "Insights \u00b7 Week",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/insights-7.png",
+      "variants": {
+        "retro-light": "retro-light/insights-7.png",
+        "retro-dark": "retro-dark/insights-7.png",
+        "pokedex-light": "pokedex-light/insights-7.png",
+        "pokedex-dark": "pokedex-dark/insights-7.png"
+      }
+    },
+    {
+      "id": "collection-bag",
+      "label": "Collection \u00b7 Bag",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-bag.png",
+      "variants": {
+        "retro-light": "retro-light/collection-bag.png",
+        "retro-dark": "retro-dark/collection-bag.png",
+        "pokedex-light": "pokedex-light/collection-bag.png",
+        "pokedex-dark": "pokedex-dark/collection-bag.png"
+      }
+    },
+    {
+      "id": "collection-detail",
+      "label": "Collection \u00b7 Pok\u00e9mon details",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-detail.png",
+      "variants": {
+        "retro-light": "retro-light/collection-detail.png",
+        "retro-dark": "retro-dark/collection-detail.png",
+        "pokedex-light": "pokedex-light/collection-detail.png",
+        "pokedex-dark": "pokedex-dark/collection-detail.png"
+      }
+    },
+    {
+      "id": "collection-dex",
+      "label": "Collection \u00b7 Pok\u00e9dex",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-dex.png",
+      "variants": {
+        "retro-light": "retro-light/collection-dex.png",
+        "retro-dark": "retro-dark/collection-dex.png",
+        "pokedex-light": "pokedex-light/collection-dex.png",
+        "pokedex-dark": "pokedex-dark/collection-dex.png"
+      }
+    },
+    {
+      "id": "collection-log",
+      "label": "Collection \u00b7 Catch log",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-log.png",
+      "variants": {
+        "retro-light": "retro-light/collection-log.png",
+        "retro-dark": "retro-dark/collection-log.png",
+        "pokedex-light": "pokedex-light/collection-log.png",
+        "pokedex-dark": "pokedex-dark/collection-log.png"
+      }
+    },
+    {
+      "id": "collection-shop",
+      "label": "Collection \u00b7 Shop",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-shop.png",
+      "variants": {
+        "retro-light": "retro-light/collection-shop.png",
+        "retro-dark": "retro-dark/collection-shop.png",
+        "pokedex-light": "pokedex-light/collection-shop.png",
+        "pokedex-dark": "pokedex-dark/collection-shop.png"
+      }
+    },
+    {
+      "id": "collection-storage",
+      "label": "Collection \u00b7 Storage",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/collection-storage.png",
+      "variants": {
+        "retro-light": "retro-light/collection-storage.png",
+        "retro-dark": "retro-dark/collection-storage.png",
+        "pokedex-light": "pokedex-light/collection-storage.png",
+        "pokedex-dark": "pokedex-dark/collection-storage.png"
+      }
+    },
+    {
+      "id": "usage-limits",
+      "label": "Usage \u00b7 Limits",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/usage-limits.png",
+      "variants": {
+        "retro-light": "retro-light/usage-limits.png",
+        "retro-dark": "retro-dark/usage-limits.png",
+        "pokedex-light": "pokedex-light/usage-limits.png",
+        "pokedex-dark": "pokedex-dark/usage-limits.png"
+      }
+    },
+    {
+      "id": "usage-overview",
+      "label": "Usage \u00b7 Overview",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/usage-overview.png",
+      "variants": {
+        "retro-light": "retro-light/usage-overview.png",
+        "retro-dark": "retro-dark/usage-overview.png",
+        "pokedex-light": "pokedex-light/usage-overview.png",
+        "pokedex-dark": "pokedex-dark/usage-overview.png"
+      }
+    },
+    {
+      "id": "usage-provider",
+      "label": "Usage \u00b7 Provider",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/usage-provider.png",
+      "variants": {
+        "retro-light": "retro-light/usage-provider.png",
+        "retro-dark": "retro-dark/usage-provider.png",
+        "pokedex-light": "pokedex-light/usage-provider.png",
+        "pokedex-dark": "pokedex-dark/usage-provider.png"
+      }
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings.png",
+      "variants": {
+        "retro-light": "retro-light/settings.png",
+        "retro-dark": "retro-dark/settings.png",
+        "pokedex-light": "pokedex-light/settings.png",
+        "pokedex-dark": "pokedex-dark/settings.png"
+      }
+    },
+    {
+      "id": "settings-about-support",
+      "label": "Settings \u00b7 About \u00b7 Support",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-about-support.png",
+      "variants": {
+        "retro-light": "retro-light/settings-about-support.png",
+        "retro-dark": "retro-dark/settings-about-support.png",
+        "pokedex-light": "pokedex-light/settings-about-support.png",
+        "pokedex-dark": "pokedex-dark/settings-about-support.png"
+      }
+    },
+    {
+      "id": "settings-advanced",
+      "label": "Settings \u00b7 Advanced",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-advanced.png",
+      "variants": {
+        "retro-light": "retro-light/settings-advanced.png",
+        "retro-dark": "retro-dark/settings-advanced.png",
+        "pokedex-light": "pokedex-light/settings-advanced.png",
+        "pokedex-dark": "pokedex-dark/settings-advanced.png"
+      }
+    },
+    {
+      "id": "settings-connections",
+      "label": "Settings \u00b7 Connections",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-connections.png",
+      "variants": {
+        "retro-light": "retro-light/settings-connections.png",
+        "retro-dark": "retro-dark/settings-connections.png",
+        "pokedex-light": "pokedex-light/settings-connections.png",
+        "pokedex-dark": "pokedex-dark/settings-connections.png"
+      }
+    },
+    {
+      "id": "settings-data-backup",
+      "label": "Settings \u00b7 Data \u00b7 Backup",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-data-backup.png",
+      "variants": {
+        "retro-light": "retro-light/settings-data-backup.png",
+        "retro-dark": "retro-dark/settings-data-backup.png",
+        "pokedex-light": "pokedex-light/settings-data-backup.png",
+        "pokedex-dark": "pokedex-dark/settings-data-backup.png"
+      }
+    },
+    {
+      "id": "settings-desktop",
+      "label": "Settings \u00b7 Desktop",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-desktop.png",
+      "variants": {
+        "retro-light": "retro-light/settings-desktop.png",
+        "retro-dark": "retro-dark/settings-desktop.png",
+        "pokedex-light": "pokedex-light/settings-desktop.png",
+        "pokedex-dark": "pokedex-dark/settings-desktop.png"
+      }
+    },
+    {
+      "id": "settings-difficulty",
+      "label": "Settings \u00b7 Difficulty",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-difficulty.png",
+      "variants": {
+        "retro-light": "retro-light/settings-difficulty.png",
+        "retro-dark": "retro-dark/settings-difficulty.png",
+        "pokedex-light": "pokedex-light/settings-difficulty.png",
+        "pokedex-dark": "pokedex-dark/settings-difficulty.png"
+      }
+    },
+    {
+      "id": "settings-notifications",
+      "label": "Settings \u00b7 Notifications",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-notifications.png",
+      "variants": {
+        "retro-light": "retro-light/settings-notifications.png",
+        "retro-dark": "retro-dark/settings-notifications.png",
+        "pokedex-light": "pokedex-light/settings-notifications.png",
+        "pokedex-dark": "pokedex-dark/settings-notifications.png"
+      }
+    },
+    {
+      "id": "settings-updates",
+      "label": "Settings \u00b7 Updates",
+      "width": 1280,
+      "height": 860,
+      "source": "sources/settings-updates.png",
+      "variants": {
+        "retro-light": "retro-light/settings-updates.png",
+        "retro-dark": "retro-dark/settings-updates.png",
+        "pokedex-light": "pokedex-light/settings-updates.png",
+        "pokedex-dark": "pokedex-dark/settings-updates.png"
+      }
+    },
+    {
+      "id": "menu-collection-bag",
+      "label": "Menu \u00b7 Collection \u00b7 Bag",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-bag.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-bag.png",
+        "retro-dark": "retro-dark/menu-collection-bag.png",
+        "pokedex-light": "pokedex-light/menu-collection-bag.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-bag.png"
+      }
+    },
+    {
+      "id": "menu-collection-detail",
+      "label": "Menu \u00b7 Collection \u00b7 Detail",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-detail.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-detail.png",
+        "retro-dark": "retro-dark/menu-collection-detail.png",
+        "pokedex-light": "pokedex-light/menu-collection-detail.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-detail.png"
+      }
+    },
+    {
+      "id": "menu-collection-dex",
+      "label": "Menu \u00b7 Collection \u00b7 Dex",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-dex.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-dex.png",
+        "retro-dark": "retro-dark/menu-collection-dex.png",
+        "pokedex-light": "pokedex-light/menu-collection-dex.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-dex.png"
+      }
+    },
+    {
+      "id": "menu-collection-log",
+      "label": "Menu \u00b7 Collection \u00b7 Log",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-log.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-log.png",
+        "retro-dark": "retro-dark/menu-collection-log.png",
+        "pokedex-light": "pokedex-light/menu-collection-log.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-log.png"
+      }
+    },
+    {
+      "id": "menu-collection-shop",
+      "label": "Menu \u00b7 Collection \u00b7 Shop",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-shop.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-shop.png",
+        "retro-dark": "retro-dark/menu-collection-shop.png",
+        "pokedex-light": "pokedex-light/menu-collection-shop.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-shop.png"
+      }
+    },
+    {
+      "id": "menu-collection-storage",
+      "label": "Menu \u00b7 Collection \u00b7 Storage",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-collection-storage.png",
+      "variants": {
+        "retro-light": "retro-light/menu-collection-storage.png",
+        "retro-dark": "retro-dark/menu-collection-storage.png",
+        "pokedex-light": "pokedex-light/menu-collection-storage.png",
+        "pokedex-dark": "pokedex-dark/menu-collection-storage.png"
+      }
+    },
+    {
+      "id": "menu-detached",
+      "label": "Detached menu window",
+      "width": 640,
+      "height": 720,
+      "source": "sources/menu-detached.png",
+      "variants": {
+        "retro-light": "retro-light/menu-detached.png",
+        "retro-dark": "retro-dark/menu-detached.png",
+        "pokedex-light": "pokedex-light/menu-detached.png",
+        "pokedex-dark": "pokedex-dark/menu-detached.png"
+      }
+    },
+    {
+      "id": "menu-focus-paused",
+      "label": "Menu \u00b7 Focus \u00b7 Paused",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-focus-paused.png",
+      "variants": {
+        "retro-light": "retro-light/menu-focus-paused.png",
+        "retro-dark": "retro-dark/menu-focus-paused.png",
+        "pokedex-light": "pokedex-light/menu-focus-paused.png",
+        "pokedex-dark": "pokedex-dark/menu-focus-paused.png"
+      }
+    },
+    {
+      "id": "menu-focus-running",
+      "label": "Menu \u00b7 Focus \u00b7 Running",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-focus-running.png",
+      "variants": {
+        "retro-light": "retro-light/menu-focus-running.png",
+        "retro-dark": "retro-dark/menu-focus-running.png",
+        "pokedex-light": "pokedex-light/menu-focus-running.png",
+        "pokedex-dark": "pokedex-dark/menu-focus-running.png"
+      }
+    },
+    {
+      "id": "menu-issues-completedToday",
+      "label": "Menu \u00b7 Issues \u00b7 Completed Today",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-issues-completedToday.png",
+      "variants": {
+        "retro-light": "retro-light/menu-issues-completedToday.png",
+        "retro-dark": "retro-dark/menu-issues-completedToday.png",
+        "pokedex-light": "pokedex-light/menu-issues-completedToday.png",
+        "pokedex-dark": "pokedex-dark/menu-issues-completedToday.png"
+      }
+    },
+    {
+      "id": "menu-issues-inProgress",
+      "label": "Menu \u00b7 Issues \u00b7 In Progress",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-issues-inProgress.png",
+      "variants": {
+        "retro-light": "retro-light/menu-issues-inProgress.png",
+        "retro-dark": "retro-dark/menu-issues-inProgress.png",
+        "pokedex-light": "pokedex-light/menu-issues-inProgress.png",
+        "pokedex-dark": "pokedex-dark/menu-issues-inProgress.png"
+      }
+    },
+    {
+      "id": "menu-issues-planned",
+      "label": "Menu \u00b7 Issues \u00b7 Planned",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-issues-planned.png",
+      "variants": {
+        "retro-light": "retro-light/menu-issues-planned.png",
+        "retro-dark": "retro-dark/menu-issues-planned.png",
+        "pokedex-light": "pokedex-light/menu-issues-planned.png",
+        "pokedex-dark": "pokedex-dark/menu-issues-planned.png"
+      }
+    },
+    {
+      "id": "menu-issues-todo",
+      "label": "Menu \u00b7 Issues \u00b7 Todo",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-issues-todo.png",
+      "variants": {
+        "retro-light": "retro-light/menu-issues-todo.png",
+        "retro-dark": "retro-dark/menu-issues-todo.png",
+        "pokedex-light": "pokedex-light/menu-issues-todo.png",
+        "pokedex-dark": "pokedex-dark/menu-issues-todo.png"
+      }
+    },
+    {
+      "id": "menu-projects",
+      "label": "Menu \u00b7 Projects",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-projects.png",
+      "variants": {
+        "retro-light": "retro-light/menu-projects.png",
+        "retro-dark": "retro-dark/menu-projects.png",
+        "pokedex-light": "pokedex-light/menu-projects.png",
+        "pokedex-dark": "pokedex-dark/menu-projects.png"
+      }
+    },
+    {
+      "id": "menu-settings",
+      "label": "Menu \u00b7 Settings",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings.png",
+        "retro-dark": "retro-dark/menu-settings.png",
+        "pokedex-light": "pokedex-light/menu-settings.png",
+        "pokedex-dark": "pokedex-dark/menu-settings.png"
+      }
+    },
+    {
+      "id": "menu-settings-about-support",
+      "label": "Menu \u00b7 Settings \u00b7 About \u00b7 Support",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-about-support.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-about-support.png",
+        "retro-dark": "retro-dark/menu-settings-about-support.png",
+        "pokedex-light": "pokedex-light/menu-settings-about-support.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-about-support.png"
+      }
+    },
+    {
+      "id": "menu-settings-advanced",
+      "label": "Menu \u00b7 Settings \u00b7 Advanced",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-advanced.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-advanced.png",
+        "retro-dark": "retro-dark/menu-settings-advanced.png",
+        "pokedex-light": "pokedex-light/menu-settings-advanced.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-advanced.png"
+      }
+    },
+    {
+      "id": "menu-settings-connections",
+      "label": "Menu \u00b7 Settings \u00b7 Connections",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-connections.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-connections.png",
+        "retro-dark": "retro-dark/menu-settings-connections.png",
+        "pokedex-light": "pokedex-light/menu-settings-connections.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-connections.png"
+      }
+    },
+    {
+      "id": "menu-settings-data-backup",
+      "label": "Menu \u00b7 Settings \u00b7 Data \u00b7 Backup",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-data-backup.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-data-backup.png",
+        "retro-dark": "retro-dark/menu-settings-data-backup.png",
+        "pokedex-light": "pokedex-light/menu-settings-data-backup.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-data-backup.png"
+      }
+    },
+    {
+      "id": "menu-settings-desktop",
+      "label": "Menu \u00b7 Settings \u00b7 Desktop",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-desktop.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-desktop.png",
+        "retro-dark": "retro-dark/menu-settings-desktop.png",
+        "pokedex-light": "pokedex-light/menu-settings-desktop.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-desktop.png"
+      }
+    },
+    {
+      "id": "menu-settings-difficulty",
+      "label": "Menu \u00b7 Settings \u00b7 Difficulty",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-difficulty.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-difficulty.png",
+        "retro-dark": "retro-dark/menu-settings-difficulty.png",
+        "pokedex-light": "pokedex-light/menu-settings-difficulty.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-difficulty.png"
+      }
+    },
+    {
+      "id": "menu-settings-notifications",
+      "label": "Menu \u00b7 Settings \u00b7 Notifications",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-notifications.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-notifications.png",
+        "retro-dark": "retro-dark/menu-settings-notifications.png",
+        "pokedex-light": "pokedex-light/menu-settings-notifications.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-notifications.png"
+      }
+    },
+    {
+      "id": "menu-settings-updates",
+      "label": "Menu \u00b7 Settings \u00b7 Updates",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-settings-updates.png",
+      "variants": {
+        "retro-light": "retro-light/menu-settings-updates.png",
+        "retro-dark": "retro-dark/menu-settings-updates.png",
+        "pokedex-light": "pokedex-light/menu-settings-updates.png",
+        "pokedex-dark": "pokedex-dark/menu-settings-updates.png"
+      }
+    },
+    {
+      "id": "menu-usage",
+      "label": "Menu \u00b7 Usage",
+      "width": 400,
+      "height": 720,
+      "source": "sources/menu-usage.png",
+      "variants": {
+        "retro-light": "retro-light/menu-usage.png",
+        "retro-dark": "retro-dark/menu-usage.png",
+        "pokedex-light": "pokedex-light/menu-usage.png",
+        "pokedex-dark": "pokedex-dark/menu-usage.png"
+      }
+    },
+    {
+      "id": "floating-folded",
+      "label": "Floating \u00b7 Folded",
+      "width": 220,
+      "height": 76,
+      "source": "sources/floating-folded.png",
+      "variants": {
+        "retro-light": "retro-light/floating-folded.png",
+        "retro-dark": "retro-dark/floating-folded.png",
+        "pokedex-light": "pokedex-light/floating-folded.png",
+        "pokedex-dark": "pokedex-dark/floating-folded.png"
+      }
+    },
+    {
+      "id": "floating-hover",
+      "label": "Floating \u00b7 Hover",
+      "width": 384,
+      "height": 42,
+      "source": "sources/floating-hover.png",
+      "variants": {
+        "retro-light": "retro-light/floating-hover.png",
+        "retro-dark": "retro-dark/floating-hover.png",
+        "pokedex-light": "pokedex-light/floating-hover.png",
+        "pokedex-dark": "pokedex-dark/floating-hover.png"
+      }
+    },
+    {
+      "id": "floating-overtime",
+      "label": "Floating \u00b7 Overtime",
+      "width": 528,
+      "height": 96,
+      "source": "sources/floating-overtime.png",
+      "variants": {
+        "retro-light": "retro-light/floating-overtime.png",
+        "retro-dark": "retro-dark/floating-overtime.png",
+        "pokedex-light": "pokedex-light/floating-overtime.png",
+        "pokedex-dark": "pokedex-dark/floating-overtime.png"
+      }
+    },
+    {
+      "id": "floating-paused",
+      "label": "Floating \u00b7 Paused",
+      "width": 528,
+      "height": 96,
+      "source": "sources/floating-paused.png",
+      "variants": {
+        "retro-light": "retro-light/floating-paused.png",
+        "retro-dark": "retro-dark/floating-paused.png",
+        "pokedex-light": "pokedex-light/floating-paused.png",
+        "pokedex-dark": "pokedex-dark/floating-paused.png"
+      }
+    },
+    {
+      "id": "floating-running",
+      "label": "Floating \u00b7 Running",
+      "width": 528,
+      "height": 96,
+      "source": "sources/floating-running.png",
+      "variants": {
+        "retro-light": "retro-light/floating-running.png",
+        "retro-dark": "retro-dark/floating-running.png",
+        "pokedex-light": "pokedex-light/floating-running.png",
+        "pokedex-dark": "pokedex-dark/floating-running.png"
+      }
+    },
+    {
+      "id": "floating-setup",
+      "label": "Floating \u00b7 Setup",
+      "width": 528,
+      "height": 96,
+      "source": "sources/floating-setup.png",
+      "variants": {
+        "retro-light": "retro-light/floating-setup.png",
+        "retro-dark": "retro-dark/floating-setup.png",
+        "pokedex-light": "pokedex-light/floating-setup.png",
+        "pokedex-dark": "pokedex-dark/floating-setup.png"
+      }
+    },
+    {
+      "id": "timer-alert",
+      "label": "Timer alert window",
+      "width": 380,
+      "height": 330,
+      "source": "sources/timer-alert.png",
+      "variants": {
+        "retro-light": "retro-light/timer-alert.png",
+        "retro-dark": "retro-dark/timer-alert.png",
+        "pokedex-light": "pokedex-light/timer-alert.png",
+        "pokedex-dark": "pokedex-dark/timer-alert.png"
+      }
+    },
+    {
+      "id": "timer-detached",
+      "label": "Detached timer",
+      "width": 384,
+      "height": 42,
+      "source": "sources/timer-detached.png",
+      "variants": {
+        "retro-light": "retro-light/timer-detached.png",
+        "retro-dark": "retro-dark/timer-detached.png",
+        "pokedex-light": "pokedex-light/timer-detached.png",
+        "pokedex-dark": "pokedex-dark/timer-detached.png"
+      }
+    },
+    {
+      "id": "timer-editor",
+      "label": "Adjust timer",
+      "width": 280,
+      "height": 220,
+      "source": "sources/timer-editor.png",
+      "variants": {
+        "retro-light": "retro-light/timer-editor.png",
+        "retro-dark": "retro-dark/timer-editor.png",
+        "pokedex-light": "pokedex-light/timer-editor.png",
+        "pokedex-dark": "pokedex-dark/timer-editor.png"
+      }
+    },
+    {
+      "id": "timer-more-menu",
+      "label": "Timer actions menu",
+      "width": 298,
+      "height": 171,
+      "source": "sources/timer-more-menu.png",
+      "variants": {
+        "retro-light": "retro-light/timer-more-menu.png",
+        "retro-dark": "retro-dark/timer-more-menu.png",
+        "pokedex-light": "pokedex-light/timer-more-menu.png",
+        "pokedex-dark": "pokedex-dark/timer-more-menu.png"
+      }
+    },
+    {
+      "id": "planning-add-issue",
+      "label": "Add an issue to Today",
+      "width": 540,
+      "height": 460,
+      "source": "sources/planning-add-issue.png",
+      "variants": {
+        "retro-light": "retro-light/planning-add-issue.png",
+        "retro-dark": "retro-dark/planning-add-issue.png",
+        "pokedex-light": "pokedex-light/planning-add-issue.png",
+        "pokedex-dark": "pokedex-dark/planning-add-issue.png"
+      }
+    },
+    {
+      "id": "planning-calendar",
+      "label": "Planning date popup",
+      "width": 1280,
+      "height": 986,
+      "source": "sources/planning-calendar.png",
+      "variants": {
+        "retro-light": "retro-light/planning-calendar.png",
+        "retro-dark": "retro-dark/planning-calendar.png",
+        "pokedex-light": "pokedex-light/planning-calendar.png",
+        "pokedex-dark": "pokedex-dark/planning-calendar.png"
+      }
+    },
+    {
+      "id": "time-block-editor",
+      "label": "Edit time block",
+      "width": 380,
+      "height": 300,
+      "source": "sources/time-block-editor.png",
+      "variants": {
+        "retro-light": "retro-light/time-block-editor.png",
+        "retro-dark": "retro-dark/time-block-editor.png",
+        "pokedex-light": "pokedex-light/time-block-editor.png",
+        "pokedex-dark": "pokedex-dark/time-block-editor.png"
+      }
+    },
+    {
+      "id": "new-issue",
+      "label": "New issue window",
+      "width": 480,
+      "height": 620,
+      "source": "sources/new-issue.png",
+      "variants": {
+        "retro-light": "retro-light/new-issue.png",
+        "retro-dark": "retro-dark/new-issue.png",
+        "pokedex-light": "pokedex-light/new-issue.png",
+        "pokedex-dark": "pokedex-dark/new-issue.png"
+      }
+    },
+    {
+      "id": "issue-focus-duration",
+      "label": "Choose issue focus duration",
+      "width": 308,
+      "height": 235,
+      "source": "sources/issue-focus-duration.png",
+      "variants": {
+        "retro-light": "retro-light/issue-focus-duration.png",
+        "retro-dark": "retro-dark/issue-focus-duration.png",
+        "pokedex-light": "pokedex-light/issue-focus-duration.png",
+        "pokedex-dark": "pokedex-dark/issue-focus-duration.png"
+      }
+    },
+    {
+      "id": "task-setup",
+      "label": "Task timer setup",
+      "width": 308,
+      "height": 340,
+      "source": "sources/task-setup.png",
+      "variants": {
+        "retro-light": "retro-light/task-setup.png",
+        "retro-dark": "retro-dark/task-setup.png",
+        "pokedex-light": "pokedex-light/task-setup.png",
+        "pokedex-dark": "pokedex-dark/task-setup.png"
+      }
+    },
+    {
+      "id": "partner-details-popup",
+      "label": "Partner details popup",
+      "width": 312,
+      "height": 180,
+      "source": "sources/partner-details-popup.png",
+      "variants": {
+        "retro-light": "retro-light/partner-details-popup.png",
+        "retro-dark": "retro-dark/partner-details-popup.png",
+        "pokedex-light": "pokedex-light/partner-details-popup.png",
+        "pokedex-dark": "pokedex-dark/partner-details-popup.png"
+      }
+    },
+    {
+      "id": "pet-hover",
+      "label": "Pet \u00b7 Token and limit readout",
+      "width": 238,
+      "height": 30,
+      "source": "sources/pet-hover.png",
+      "variants": {
+        "retro-light": "retro-light/pet-hover.png",
+        "retro-dark": "retro-dark/pet-hover.png",
+        "pokedex-light": "pokedex-light/pet-hover.png",
+        "pokedex-dark": "pokedex-dark/pet-hover.png"
+      }
+    },
+    {
+      "id": "pet-speech",
+      "label": "Pet \u00b7 Speech bubble",
+      "width": 280,
+      "height": 140,
+      "source": "sources/pet-speech.png",
+      "variants": {
+        "retro-light": "retro-light/pet-speech.png",
+        "retro-dark": "retro-dark/pet-speech.png",
+        "pokedex-light": "pokedex-light/pet-speech.png",
+        "pokedex-dark": "pokedex-dark/pet-speech.png"
+      }
+    },
+    {
+      "id": "session-note",
+      "label": "Session \u00b7 Note",
+      "width": 384,
+      "height": 242,
+      "source": "sources/session-note.png",
+      "variants": {
+        "retro-light": "retro-light/session-note.png",
+        "retro-dark": "retro-dark/session-note.png",
+        "pokedex-light": "pokedex-light/session-note.png",
+        "pokedex-dark": "pokedex-dark/session-note.png"
+      }
+    },
+    {
+      "id": "check-in",
+      "label": "Check \u00b7 In",
+      "width": 384,
+      "height": 236,
+      "source": "sources/check-in.png",
+      "variants": {
+        "retro-light": "retro-light/check-in.png",
+        "retro-dark": "retro-dark/check-in.png",
+        "pokedex-light": "pokedex-light/check-in.png",
+        "pokedex-dark": "pokedex-dark/check-in.png"
+      }
+    },
+    {
+      "id": "time-up",
+      "label": "Time \u00b7 Up",
+      "width": 384,
+      "height": 224,
+      "source": "sources/time-up.png",
+      "variants": {
+        "retro-light": "retro-light/time-up.png",
+        "retro-dark": "retro-dark/time-up.png",
+        "pokedex-light": "pokedex-light/time-up.png",
+        "pokedex-dark": "pokedex-dark/time-up.png"
+      }
+    },
+    {
+      "id": "reset-confirm",
+      "label": "Reset \u00b7 Confirm",
+      "width": 384,
+      "height": 180,
+      "source": "sources/reset-confirm.png",
+      "variants": {
+        "retro-light": "retro-light/reset-confirm.png",
+        "retro-dark": "retro-dark/reset-confirm.png",
+        "pokedex-light": "pokedex-light/reset-confirm.png",
+        "pokedex-dark": "pokedex-dark/reset-confirm.png"
+      }
+    },
+    {
+      "id": "forfeit-confirm",
+      "label": "Forfeit \u00b7 Confirm",
+      "width": 384,
+      "height": 218,
+      "source": "sources/forfeit-confirm.png",
+      "variants": {
+        "retro-light": "retro-light/forfeit-confirm.png",
+        "retro-dark": "retro-dark/forfeit-confirm.png",
+        "pokedex-light": "pokedex-light/forfeit-confirm.png",
+        "pokedex-dark": "pokedex-dark/forfeit-confirm.png"
+      }
+    },
+    {
+      "id": "storage-needs-egg",
+      "label": "Storage \u00b7 Egg needed",
+      "width": 236,
+      "height": 90,
+      "source": "sources/storage-needs-egg.png",
+      "variants": {
+        "retro-light": "retro-light/storage-needs-egg.png",
+        "retro-dark": "retro-dark/storage-needs-egg.png",
+        "pokedex-light": "pokedex-light/storage-needs-egg.png",
+        "pokedex-dark": "pokedex-dark/storage-needs-egg.png"
+      }
+    },
+    {
+      "id": "project-issue-filter",
+      "label": "Project issue status filter",
+      "width": 302,
+      "height": 240,
+      "source": "sources/project-issue-filter.png",
+      "variants": {
+        "retro-light": "retro-light/project-issue-filter.png",
+        "retro-dark": "retro-dark/project-issue-filter.png",
+        "pokedex-light": "pokedex-light/project-issue-filter.png",
+        "pokedex-dark": "pokedex-dark/project-issue-filter.png"
+      }
+    }
+  ],
+  "font": {
+    "retro": "Galmuri11 and Galmuri11 Bold",
+    "source": "https://github.com/quiple/galmuri",
+    "license": "SIL Open Font License 1.1"
+  },
+  "notes": [
+    "Current v2 layouts rendered from a disposable source snapshot with sample data.",
+    "Planning calendar is a static visual study of the existing popup with themed typography.",
+    "Original image concepts are preserved in concepts/."
+  ]
+}

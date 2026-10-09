@@ -1,0 +1,1127 @@
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/UI/TaskTimelineView.swift:
+    1|import SwiftUI
+    2|import UniformTypeIdentifiers
+    3|
+    4|@MainActor
+    5|struct TaskTimelineView: View {
+    6|    @Environment(FocusSessionStore.self) private var focus
+    7|    @Environment(UsageStore.self) private var usage
+    8|    @Environment(\.colorScheme) private var scheme
+    9|    @State private var editing: TaskTimeBlock?
+   10|    @State private var dropIssueID: String?
+   11|    @State private var dropMinute: CGFloat = 0
+   12|    @State private var dropActive = false
+   13|    @State private var visibleHour: Int?
+   14|    @State private var restoringScroll = true
+   15|    private var plan: TaskPlanningStore { focus.plan }
+   16|    private var blocks: [TaskTimeBlock] {
+   17|        plan.blocks.filter { $0.day == plan.dayKey && (plan.projectFilter.isEmpty || $0.projectID == plan.projectFilter) }
+                                 ^18                        ^18                            ^0
+   18|            .sorted { $0.startMinute < $1.startMinute }
+                          ^0
+   19|    }
+   20|    var body: some View {
+   21|        VStack(alignment: .leading, spacing: 12) {
+   22|            HStack {
+   23|                Text("Day plan").font(.system(size: 17, weight: .semibold))
+   24|                Spacer()
+   25|                Button { usage.todayDeskLayout.rightCollapsed = true } label: { Image(systemName: "sidebar.right") }
+                             ^0
+   26|                    .buttonStyle(.plain).help("Fold timeline").accessibilityLabel("Fold timeline")
+   27|            }
+   28|            Text(plan.selectedDay, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
+   29|                .font(.caption).foregroundStyle(.secondary)
+   30|            Text("\(blocks.reduce(0) { $0 + $1.durationMinutes }) min planned")
+                                           ^9
+   31|                .font(.caption).foregroundStyle(.secondary)
+   32|            if let error = plan.blockError ?? plan.storageError {
+                                                    ^14
+   33|                Text(error).font(.caption).foregroundStyle(.orange)
+   34|            }
+   35|            if plan.canUndoBlock { Button("Undo last block change") { plan.undoBlock() }.buttonStyle(.link).font(.caption) }
+                     ^2                ^9                                 ^0
+   36|            ScrollViewReader { proxy in
+   37|                ScrollView {
+   38|                    VStack(spacing: 0) {
+   39|                        ForEach(0..<24, id: \.self) { hour in
+   40|                            HStack(alignment: .top, spacing: 8) {
+   41|                                Text(hourLabel(hour)).font(.system(size: 10)).foregroundStyle(.secondary)
+   42|                                    .frame(width: 40, alignment: .trailing)
+   43|                                Rectangle().fill(.primary.opacity(0.09)).frame(height: 1)
+   44|                            }.frame(height: 60, alignment: .top).id(hour)
+   45|                        }
+   46|                    }.scrollTargetLayout()
+   47|                    .overlay(alignment: .topLeading) {
+   48|                        GeometryReader { geometry in
+   49|                        ZStack(alignment: .topLeading) {
+   50|                            TimelineView(.periodic(from: .now, by: 60)) { context in
+   51|                                if TaskPlanningStore.dayKey(context.date) == plan.dayKey {
+   52|                                    let c = Calendar.current.dateComponents([.hour, .minute], from: context.date)
+   53|                                    Rectangle().fill(.blue.opacity(0.6)).frame(height: 1)
+   54|                                        .padding(.leading, 48).offset(y: CGFloat((c.hour ?? 0) * 60 + (c.minute ?? 0)))
+                                                                                                  ^0                     ^0
+   55|                                        .allowsHitTesting(false)
+   56|                                }
+   57|                            }
+   58|                            ForEach(blocks) { block in
+   59|                                TaskTimelineBlockView(block: block, availableWidth: max(70, geometry.size.width - 50),
+   60|                                    onEdit: { editing = block })
+                                                  ^0
+   61|                                    .offset(x: 50)
+   62|                            }
+   63|                            if let id = dropIssueID, let issue = usage.linearIssue(id: id) {
+   64|                                let duration = SessionXP.clampMinutes(focus.plannedMinutes)
+   65|                                var candidate = TaskTimeBlock(issueID: id, identifier: issue.identifier, title: issue.title,
+   66|                                    day: plan.dayKey, startMinute: 0, durationMinutes: duration)
+   67|                                let _ = candidate.set(start: TaskTimeBlock.snapped(Double(dropMinute)), duration: duration)
+   68|                                let conflict = plan.hasConflict(candidate)
+   69|                                VStack(alignment: .leading, spacing: 4) {
+   70|                                    Text(issue.title).lineLimit(1)
+   71|                                    Text("\(duration) min · \(candidate.timeRange)")
+   72|                                    if conflict { Text("Time conflict").foregroundStyle(.orange) }
+                                                      ^1
+   73|                                }.font(.system(size: 10)).padding(8)
+   74|                                    .frame(width: max(70, geometry.size.width - 50), height: CGFloat(duration), alignment: .topLeading)
+   75|                                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 7))
+   76|                                    .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(conflict ? .orange : .secondary,
+                                                                                                               ^1        ^1
+   77|                                        style: StrokeStyle(lineWidth: 1, dash: [4])) }
+   78|                                    .offset(x: 50, y: min(CGFloat(1440 - duration), max(0, dropMinute))).allowsHitTesting(false)
+   79|                            }
+   80|                        }
+   81|                        .frame(width: geometry.size.width, height: 1440, alignment: .topLeading)
+   82|                        }
+   83|                    }
+   84|                    .coordinateSpace(name: "task-timeline")
+   85|                    .contentShape(Rectangle())
+   86|                    .onDrop(of: [UTType.text], delegate: TimelineIssueDrop(
+   87|                            issueID: dropIssueID,
+   88|                            onEnter: { y in dropActive = true; dropMinute = y },
+                                           ^2
+   89|                            onLoad: { id in if dropActive { dropIssueID = id } },
+                                          ^2         ^2         ^2
+   90|                            onMove: { y in dropMinute = y },
+                                          ^5
+   91|                            onExit: { dropActive = false; dropIssueID = nil },
+                                          ^0
+   92|                            onCommit: { id, y in
+   93|                                defer { dropActive = false; dropIssueID = nil }
+   94|                                guard let issue = usage.linearIssue(id: id) else { return false }
+                                                                                       ^0
+   95|                                return plan.schedule(issue, start: TaskTimeBlock.snapped(Double(y)),
+   96|                                    duration: focus.plannedMinutes) != nil
+   97|                            }))
+   98|                    .padding(.top, 8).padding(.bottom, 16)
+   99|                }.scrollIndicators(.hidden).roundedScrollViewport()
+  100|                    .scrollPosition(id: $visibleHour, anchor: .top)
+  101|                    .onAppear {
+  102|                        proxy.scrollTo(plan.timelineHour, anchor: .top)
+  103|                        restoringScroll = false
+  104|                    }
+  105|                    .onChange(of: visibleHour) { _, hour in
+  106|                        if !restoringScroll, let hour { plan.timelineHour = hour }
+  107|                    }
+  108|                    .onExitCommand { dropActive = false; dropIssueID = nil }
+                                         ^0
+  109|            }
+  110|            Text("Drag an issue here, or use its Schedule menu.")
+  111|                .font(.system(size: 11)).foregroundStyle(.secondary)
+  112|        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  113|            .background(MainWindowTheme(scheme: scheme).canvas, in: RoundedRectangle(cornerRadius: 14))
+  114|            .mainWindowBorder(cornerRadius: 14)
+  115|            .clipShape(RoundedRectangle(cornerRadius: 14))
+  116|            .sheet(item: $editing) { block in TaskBlockEditor(block: block).frame(width: 380, height: 300) }
+                                         ^0
+  117|    }
+  118|    private func hourLabel(_ hour: Int) -> String { "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")" }
+                                                                              ^30  ^330                     ^180   ^180
+  119|    private func clock(_ minute: Int) -> String { String(format: "%02d:%02d", minute / 60, minute % 60) }
+  120|}
+  121|
+  122|@MainActor
+  123|private struct TimelineIssueDrop: DropDelegate {
+  124|    let issueID: String?
+  125|    let onEnter: @MainActor @Sendable (CGFloat) -> Void
+  126|    let onLoad: @MainActor @Sendable (String) -> Void
+  127|    let onMove: @MainActor @Sendable (CGFloat) -> Void
+  128|    let onExit: @MainActor @Sendable () -> Void
+  129|    let onCommit: @MainActor @Sendable (String, CGFloat) -> Bool
+  130|    private func read(_ info: DropInfo, completion: @escaping @MainActor @Sendable (String) -> Void) {
+  131|        guard let provider = info.itemProviders(for: [UTType.text]).first else { return }
+                                                                                     ^0
+  132|        _ = provider.loadObject(ofClass: String.self) { value, _ in
+  133|            guard let value else { return }
+                                       ^0
+  134|            Task { @MainActor in completion(value) }
+  135|        }
+  136|    }
+  137|    func dropEntered(info: DropInfo) { onEnter(info.location.y); read(info, completion: onLoad) }
+  138|    func dropUpdated(info: DropInfo) -> DropProposal? {
+  139|        onMove(info.location.y)
+  140|        return DropProposal(operation: .copy)
+  141|    }
+  142|    func dropExited(info: DropInfo) { onExit() }
+  143|    func performDrop(info: DropInfo) -> Bool {
+  144|        let y = info.location.y
+  145|        if let issueID { _ = onCommit(issueID, y) }
+  146|        else { read(info) { _ = onCommit($0, y) } }
+                   ^0           ^0
+  147|        return true
+  148|    }
+  149|}
+  150|
+  151|@MainActor
+  152|private struct TaskTimelineBlockView: View {
+  153|    let block: TaskTimeBlock
+  154|    let availableWidth: CGFloat
+  155|    let onEdit: () -> Void
+  156|    @Environment(FocusSessionStore.self) private var focus
+  157|    @Environment(UsageStore.self) private var usage
+  158|    @State private var dragStart: CGFloat?
+  159|    @State private var dragDuration: CGFloat?
+  160|    @State private var hovering = false
+  161|    @State private var dragCancelled = false
+  162|    @FocusState private var focused: Bool
+  163|    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  164|    private var start: Int { TaskTimeBlock.snapped(Double(dragStart ?? CGFloat(block.startMinute))) }
+                                                                             ^90
+  165|    private var duration: Int { TaskTimeBlock.snapped(Double(dragDuration ?? CGFloat(block.durationMinutes))) }
+                                                                                   ^163
+  166|    private var moving: Bool { dragStart != nil || dragDuration != nil }
+                                                         ^40
+  167|    private var candidate: TaskTimeBlock {
+  168|        var value = block; value.set(start: start, duration: duration); return value
+  169|    }
+  170|    private var conflicting: Bool { candidate.startAt == nil || focus.plan.hasConflict(candidate, excluding: block.id) }
+  171|    var body: some View {
+  172|        VStack(alignment: .leading, spacing: 2) {
+  173|            Text(block.title).font(.system(size: 11, weight: .medium)).lineLimit(1)
+  174|            if duration >= 30 { Text(candidate.timeRange).font(.system(size: 10)).foregroundStyle(.secondary) }
+                     ^19            ^19
+  175|            Spacer(minLength: 0)
+  176|        }
+  177|        .padding(.horizontal, 8).padding(.top, 5)
+  178|        .frame(width: availableWidth, height: dragDuration ?? CGFloat(duration), alignment: .topLeading)
+                                                                    ^15
+  179|        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 7))
+  180|        .overlay(alignment: .leading) { Rectangle().fill(.blue).frame(width: 2) }
+  181|        .mainWindowBorder(cornerRadius: 7)
+  182|        .overlay { if moving && conflicting { RoundedRectangle(cornerRadius: 7).strokeBorder(.orange, lineWidth: 1) } }
+                                      ^10         ^0                                                                       ^0
+  183|        .clipShape(RoundedRectangle(cornerRadius: 7))
+  184|        .contentShape(Rectangle())
+  185|        .focusable().focused($focused)
+  186|        .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .named("task-timeline")).onChanged { value in
+  187|            guard !dragCancelled else { return }
+                                            ^0
+  188|            focused = true
+  189|            dragStart = min(CGFloat(1440 - duration), max(0, CGFloat(block.startMinute) + value.translation.height))
+  190|        }.onEnded { _ in finishDrag() })
+                        ^2
+  191|        .overlay(alignment: .bottom) {
+  192|            Capsule().fill(.secondary.opacity(hovering || moving ? 0.55 : 0))
+                                                                         ^10    ^9
+  193|                .frame(width: 26, height: 3).padding(.vertical, 3)
+  194|                .frame(maxWidth: .infinity).contentShape(Rectangle())
+  195|                .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("task-timeline")).onChanged { value in
+  196|                    guard !dragCancelled else { return }
+                                                    ^0
+  197|                    focused = true
+  198|                    dragDuration = min(CGFloat(1440 - start), max(5, min(180,
+  199|                        CGFloat(block.durationMinutes) + value.translation.height)))
+  200|                }.onEnded { _ in finishDrag() })
+                                ^1
+  201|                .accessibilityLabel("Resize time block; use Edit for keyboard scheduling")
+  202|        }
+  203|        .overlay(alignment: .topTrailing) {
+  204|            if moving {
+  205|                Text("\(duration) min · \(candidate.timeRange)\(conflicting ? " · Time conflict" : "")")
+                                                                                     ^0
+  206|                    .font(.system(size: 10)).padding(6)
+  207|                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+  208|                    .offset(y: -30).allowsHitTesting(false)
+  209|            }
+  210|        }
+  211|        .offset(y: dragStart ?? CGFloat(start))
+                                      ^13
+  212|        .onKeyPress(.escape) {
+  213|            guard moving else { return .ignored }
+                                    ^0
+  214|            dragCancelled = true; dragStart = nil; dragDuration = nil; return .handled
+  215|        }
+  216|        .onKeyPress(.return) { onEdit(); return .handled }
+                                   ^0
+  217|        .onHover { hovering = $0 }
+                       ^0
+  218|        .help("\(block.identifier) · \(duration) minutes · \(candidate.timeRange) · \(block.timeZoneID ?? TimeZone.current.identifier). Right-click to edit or start focus.")
+                                                                                                                   ^0
+  219|        .accessibilityElement(children: .combine)
+  220|        .accessibilityLabel("\(block.title), \(duration) minutes, \(time(start)) to \(time(start + duration))")
+  221|        .accessibilityAction(named: "Edit") { onEdit() }
+                                                  ^0
+  222|        .accessibilityAction(named: "Start focus") { startFocus() }
+                                                         ^0
+  223|        .contextMenu {
+  224|            Menu("Start focus") {
+  225|                Button("Block duration · \(duration) min") { startFocus() }
+                                                                  ^0
+  226|                ForEach([25, 50, 90], id: \.self) { minutes in Button("\(minutes) minutes") { startFocus(minutes: minutes) } }
+                                                        ^0                                        ^0
+  227|            }.disabled(usage.linearIssue(id: block.issueID).map { !TaskPlanningStore.isOpen($0) } ?? true)
+                                                                                                           ^0
+  228|            Button("Edit…", action: onEdit)
+  229|            Divider()
+  230|            Button("Delete block") { focus.plan.removeBlock(block.id) }
+                                         ^0
+  231|        }
+  232|    }
+  233|    private func finishDrag() {
+  234|        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
+                                           ^0
+  235|            if !dragCancelled, moving { focus.plan.edit(block, start: start, duration: duration) }
+                                            ^2
+  236|            dragStart = nil; dragDuration = nil; dragCancelled = false
+  237|        }
+  238|    }
+  239|    private func time(_ minute: Int) -> String { String(format: "%02d:%02d", minute / 60, minute % 60) }
+  240|    private func startFocus(minutes: Int? = nil) {
+  241|        guard let issue = usage.linearIssue(id: block.issueID), TaskPlanningStore.isOpen(issue) else { return }
+  242|        focus.pin(issue, minutes: minutes ?? duration, blockID: block.id)
+  243|    }
+  244|}
+  245|
+  246|@MainActor
+  247|private struct TaskBlockEditor: View {
+  248|    let block: TaskTimeBlock
+  249|    @Environment(FocusSessionStore.self) private var focus
+  250|    @Environment(UsageStore.self) private var usage
+  251|    @Environment(\.dismiss) private var dismiss
+  252|    @State private var date: Date
+  253|    @State private var duration: Int
+  254|    init(block: TaskTimeBlock) {
+  255|        self.block = block
+  256|        let parts = block.day.split(separator: "-").compactMap { Int($0) }
+  257|        var calendar = Calendar.current
+  258|        calendar.timeZone = block.timeZoneID.flatMap(TimeZone.init(identifier:)) ?? .current
+  259|        let base = parts.count == 3 ? calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) : nil
+  260|        _date = State(initialValue: block.startAt ?? calendar.date(bySettingHour: block.startMinute / 60,
+  261|            minute: block.startMinute % 60, second: 0, of: base ?? Date()) ?? Date())
+  262|        _duration = State(initialValue: block.durationMinutes)
+  263|    }
+  264|    var body: some View {
+  265|        VStack(alignment: .leading, spacing: 16) {
+  266|            Text("Edit time block").font(.title2)
+  267|            Text(block.title).lineLimit(2)
+  268|            DatePicker("Start", selection: $date, displayedComponents: [.date, .hourAndMinute])
+  269|                .environment(\.timeZone, block.timeZoneID.flatMap(TimeZone.init(identifier:)) ?? .current)
+  270|            Text(block.timeZoneID ?? TimeZone.current.identifier).font(.caption).foregroundStyle(.secondary)
+  271|            Stepper("Duration: \(duration) min", value: $duration, in: 5...180, step: 5)
+  272|            HStack {
+  273|                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+  274|                Spacer()
+  275|                Button("Save") {
+  276|                    var calendar = Calendar.current
+  277|                    calendar.timeZone = block.timeZoneID.flatMap(TimeZone.init(identifier:)) ?? .current
+  278|                    let c = calendar.dateComponents([.hour, .minute], from: date)
+  279|                    if focus.plan.edit(block, start: (c.hour ?? 0) * 60 + (c.minute ?? 0), duration: duration,
+  280|                                       day: TaskPlanningStore.dayKey(date, calendar: calendar)) { dismiss() }
+  281|                }.keyboardShortcut(.defaultAction)
+  282|            }
+  283|            if let error = focus.plan.blockError { Text(error).font(.caption).foregroundStyle(.orange) }
+  284|        }.padding(24)
+  285|    }
+  286|}
+
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/UI/TaskPlanningView.swift:
+    1|import AppKit
+    2|import SwiftUI
+    3|
+    4|@MainActor
+    5|struct TaskPlanningView: View {
+    6|    @Environment(UsageStore.self) private var usage
+    7|    @Environment(FocusSessionStore.self) private var focus
+    8|    @Environment(MainWindowNavigation.self) private var nav
+    9|    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+   10|    @State private var adding: PlanningGroup?
+   11|    @State private var dropGroups: Set<PlanningGroup> = []
+   12|    @State private var choosingDay = false
+   13|    private var plan: TaskPlanningStore { focus.plan }
+   14|    private var query: String { nav.workspaceQueries[.today] ?? "" }
+   15|    private var issues: [LinearIssueSummary] { TaskPlanningStore.issues(in: usage) }
+   16|    private var matching: [LinearIssueSummary] {
+   17|        issues.filter { (plan.projectFilter.isEmpty || $0.projectID == plan.projectFilter) &&
+                                                             ^0
+   18|            (query.isEmpty || ($0.title + " " + $0.identifier).localizedCaseInsensitiveContains(query)) }
+                                    ^0
+   19|    }
+   20|
+   21|    var body: some View {
+   22|        @Bindable var plan = plan
+   23|        VStack(alignment: .leading, spacing: 14) {
+   24|            ViewThatFits(in: .horizontal) {
+   25|                HStack { dayPicker; Spacer(); options }
+   26|                VStack(alignment: .leading, spacing: 10) { dayPicker; options }
+   27|            }
+   28|            HStack {
+   29|                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+   30|                TextField("Search issues…", text: Binding(
+   31|                    get: { query }, set: { nav.workspaceQueries[.today] = $0 })).textFieldStyle(.plain)
+                                               ^0
+   32|                if !plan.projectFilter.isEmpty { Button("Clear project") { plan.projectFilter = "" }.buttonStyle(.link) }
+                                                     ^0                        ^0
+   33|                Text(plan.linked ? "Linked moves" : "Personal plan")
+   34|                    .font(.system(size: 11)).foregroundStyle(plan.linked ? Color.blue : .secondary).fixedSize()
+   35|            }.padding(10).background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7))
+   36|                .mainWindowBorder(cornerRadius: 7)
+   37|            if plan.syncing { Label("Updating Linear…", systemImage: "arrow.triangle.2.circlepath").font(.caption) }
+                                  ^0
+   38|            if let error = plan.syncError {
+   39|                HStack {
+   40|                    Text(error).font(.caption).foregroundStyle(.orange)
+   41|                    if plan.canRetry { Button("Retry") { Task { await plan.retry(usage: usage) } }.disabled(plan.syncing) }
+   42|                }
+   43|            }
+   44|            if let error = plan.storageError ?? focus.storageError { Text(error).font(.caption).foregroundStyle(.orange) }
+                                                                         ^0
+   45|            if plan.undoMove != nil {
+                     ^0
+   46|                Button("Undo last move") { Task { await plan.undo(usage: usage) } }.buttonStyle(.link).disabled(plan.syncing)
+                                               ^0     ^0
+   47|            }
+   48|            ScrollView {
+   49|                LazyVStack(alignment: .leading, spacing: 16) {
+   50|                    if !earlierToday.isEmpty { carryReview }
+                                                   ^0
+   51|                    VStack(alignment: .leading, spacing: 20) {
+   52|                        ForEach(PlanningGroup.allCases) { group in section(group) }
+   53|                    }.padding(12).background(.primary.opacity(0.02), in: RoundedRectangle(cornerRadius: 10))
+   54|                        .mainWindowBorder(cornerRadius: 10)
+   55|                    Divider().padding(.vertical, 4)
+   56|                    issueTray
+   57|                    if !usage.linearIntegrationEnabled || !usage.linearAPIKeyConfigured {
+                             ^0
+   58|                        VStack(alignment: .leading, spacing: 8) {
+   59|                            Text("Connect Linear to choose issues for your plan.").foregroundStyle(.secondary)
+   60|                            Button("Open Settings") { nav.select(.settings) }.buttonStyle(.link)
+   61|                            Button("Start a task timer") { nav.select(.focus) }.buttonStyle(.link)
+   62|                        }.mainWindowCard()
+   63|                    }
+   64|                }.padding(.bottom, 8).scrollTargetLayout()
+   65|            }.scrollIndicators(.hidden).roundedScrollViewport()
+   66|                .scrollPosition(id: Binding(get: { nav.workspaceScrollIDs[.today] }, set: { nav.workspaceScrollIDs[.today] = $0 }))
+                                                                                                ^0
+   67|        }
+   68|        .contextMenu { planningCommands }
+   69|        .sheet(item: $adding) { group in
+   70|            TaskPlanningPicker(group: group, issues: issues.filter { plan.entry($0.id) == nil })
+   71|                .frame(width: 540, height: 460)
+   72|        }
+   73|    }
+   74|    private var dayPicker: some View {
+   75|        HStack(spacing: 6) {
+   76|            Button { shiftDay(-1) } label: { Image(systemName: "chevron.left").frame(width: 26, height: 30) }.help("Previous day")
+                         ^0
+   77|            Button { choosingDay.toggle() } label: {
+                         ^0
+   78|                HStack(spacing: 7) {
+   79|                    Image(systemName: "calendar").foregroundStyle(.secondary)
+   80|                    Text(plan.selectedDay.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+   81|                    Image(systemName: "chevron.down").font(.system(size: 9)).foregroundStyle(.secondary)
+   82|                }.font(.system(size: 13, weight: .medium)).padding(.horizontal, 10).frame(height: 32)
+   83|                    .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7)).mainWindowBorder(cornerRadius: 7)
+   84|            }.help("Choose planning date").accessibilityLabel("Choose planning date")
+   85|                .accessibilityIdentifier("planning-date")
+   86|                .popover(isPresented: $choosingDay) {
+   87|                    VStack(alignment: .leading, spacing: 10) {
+   88|                        Text("Planning date").font(.headline)
+   89|                        DatePicker("Planning date", selection: Binding(get: { plan.selectedDay }, set: {
+   90|                            plan.selectedDay = $0; choosingDay = false
+   91|                        }), displayedComponents: .date).datePickerStyle(.graphical).labelsHidden()
+   92|                        Button("Today") { plan.selectedDay = Date(); choosingDay = false }.buttonStyle(.link)
+   93|                    }.padding(16)
+   94|                }
+   95|            Button { shiftDay(1) } label: { Image(systemName: "chevron.right").frame(width: 26, height: 30) }.help("Next day")
+                         ^0
+   96|            if !Calendar.current.isDateInToday(plan.selectedDay) {
+   97|                Button("Today") { plan.selectedDay = Date() }.foregroundStyle(.secondary)
+                                      ^0
+   98|            }
+   99|        }.buttonStyle(.plain)
+  100|    }
+  101|    private func shiftDay(_ delta: Int) {
+  102|        plan.selectedDay = Calendar.current.date(byAdding: .day, value: delta, to: plan.selectedDay) ?? plan.selectedDay
+  103|    }
+  104|    private var options: some View {
+  105|        HStack(spacing: 12) {
+  106|            Menu(plan.projectFilter.isEmpty ? "All projects" : usage.linearProjects.first { $0.id == plan.projectFilter }?.name ?? "Selected project") {
+                                                                     ^0                         ^0                                       ^0
+  107|                Button("All projects") { plan.projectFilter = "" }
+                                             ^0
+  108|                ForEach(usage.linearProjects) { project in Button(project.name) { plan.projectFilter = project.id } }
+                                                    ^0                                ^0
+  109|            }.menuStyle(.borderlessButton).fixedSize().frame(maxWidth: 180, alignment: .leading)
+  110|            Menu { planningCommands } label: { Image(systemName: "slider.horizontal.3") }
+  111|                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+  112|                .help("Planning options").accessibilityLabel("Planning options")
+  113|            Button { Task { _ = await usage.refreshLinearIssues() } } label: { Image(systemName: "arrow.clockwise") }
+                         ^0     ^0
+  114|                .buttonStyle(.plain).help("Refresh issues").disabled(usage.isRefreshingLinearIssues)
+  115|        }
+  116|    }
+  117|    @ViewBuilder private var planningCommands: some View {
+  118|        Button("Fold all") { animate { plan.foldAll(true); nav.planningIssueFolded = Set(PlanningGroup.allCases) } }
+                                 ^0        ^0
+  119|        Button("Unfold all") { animate { plan.foldAll(false); nav.planningIssueFolded = [] } }
+                                   ^0        ^0
+  120|        Picker("Sort", selection: Binding(get: { plan.sort }, set: { plan.sort = $0 })) {
+                                                                         ^0
+  121|            ForEach(PlanningSort.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                                                             ^0
+  122|        }
+  123|        Divider()
+  124|        Toggle("Link explicit moves to Linear status", isOn: Binding(get: { plan.linked }, set: { plan.linked = $0 }))
+                                                                                                      ^0
+  125|        Button(usage.todayDeskLayout.rightCollapsed ? "Show timeline" : "Hide timeline") {
+                                                            ^6                ^51
+  126|            usage.todayDeskLayout = usage.todayDeskLayout.togglingRight()
+  127|        }
+  128|    }
+  129|    private func animate(_ action: () -> Void) { withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16), action) }
+                                                                                    ^0
+  130|    private func values(_ group: PlanningGroup) -> [LinearIssueSummary] {
+  131|        let values = matching.filter { issue in
+  132|            guard let entry = plan.entry(issue.id), entry.group == group else { return false }
+                                                                                    ^144
+  133|            return group != .today || entry.day == plan.dayKey
+  134|        }
+  135|        switch plan.sort {
+  136|        case .manual: return values.sorted { (plan.entry($0.id)?.order ?? 0) < (plan.entry($1.id)?.order ?? 0) }
+                                                 ^0                             ^0                                ^0
+  137|        case .priority: return LinearIssueSort.priority.sorted(values)
+              ^0
+  138|        case .title: return values.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+              ^0                                ^0
+  139|        }
+  140|    }
+  141|    private func section(_ group: PlanningGroup) -> some View {
+  142|        let values = values(group)
+  143|        let context = LinearIssueHierarchy.includingAncestors(values, in: usage.allLinearIssues)
+  144|        let folded = plan.folded.contains(group) && !dropGroups.contains(group)
+                                                          ^1
+  145|        return VStack(alignment: .leading, spacing: 12) {
+  146|            HStack {
+  147|                Button { animate { plan.fold(group) } } label: {
+                             ^2        ^2
+  148|                    HStack(spacing: 8) {
+  149|                        Image(systemName: folded ? "chevron.right" : "chevron.down").font(.system(size: 10))
+                                                         ^1                ^59
+  150|                        Text(group.title).fontWeight(.semibold)
+  151|                        Text("\(values.count)").foregroundStyle(.secondary).font(.caption)
+  152|                        Spacer()
+  153|                    }.contentShape(Rectangle())
+  154|                }.buttonStyle(.plain).accessibilityValue(folded ? "Folded" : "Unfolded")
+                                                                        ^1         ^59
+  155|                    .accessibilityIdentifier("planning-fold-\(group.rawValue)")
+  156|                Button { adding = group } label: { Image(systemName: "plus").frame(width: 26, height: 26) }
+                             ^0
+  157|                    .buttonStyle(.plain).help("Add to \(group.title)").proximityUtility()
+  158|            }
+  159|            if !folded {
+  160|                if values.isEmpty { Text("Choose an issue for \(group.title.lowercased()).").font(.caption).foregroundStyle(.secondary) }
+                         ^59            ^51
+  161|                ForEach(LinearIssueHierarchy.roots(values, in: context)) { issue in
+  162|                    LinearIssueEntityRow(issue: issue, childScope: Set(context.map(\.id))) { nav.select(.focus) }
+                                                                                                 ^0
+  163|                        .dropDestination(for: String.self) { ids, _ in
+  164|                            guard let id = ids.first, id != issue.id, let moving = issues.first(where: { $0.id == id }) else { return false }
+  165|                            Task {
+  166|                                if plan.entry(id)?.group != group || (group == .today && plan.entry(id)?.day != plan.dayKey) {
+  167|                                    await plan.move(moving, to: group, usage: usage)
+  168|                                }
+  169|                                plan.reorder(id, before: issue.id)
+  170|                            }; return true
+  171|                        }
+  172|                    if plan.linked, TaskPlanningStore.stateID(for: group, issue: issue) != issue.stateId {
+  173|                        Label("Linear status differs from the plan", systemImage: "arrow.triangle.2.circlepath")
+  174|                            .font(.caption).foregroundStyle(.secondary)
+  175|                    }
+  176|                }
+  177|            }
+  178|        }.id(group.rawValue).padding(.vertical, 2).contentShape(Rectangle())
+  179|            .background(.blue.opacity(dropGroups.contains(group) ? 0.07 : 0), in: RoundedRectangle(cornerRadius: 7))
+                                                                         ^0
+  180|            .dropDestination(for: String.self) { ids, _ in
+  181|                guard let id = ids.first, let issue = issues.first(where: { $0.id == id }) else { return false }
+  182|                Task { await plan.move(issue, to: group, usage: usage) }; return true
+  183|            } isTargeted: { targeted in
+  184|                animate { if targeted { dropGroups.insert(group) } else { dropGroups.remove(group) } }
+  185|            }
+  186|    }
+  187|    private var issueTray: some View {
+  188|        VStack(alignment: .leading, spacing: 20) {
+  189|            HStack {
+  190|                Text("Issues").font(.system(size: 14, weight: .semibold))
+  191|                Spacer()
+  192|                Text("Drag into a group or onto the timeline").font(.caption).foregroundStyle(.secondary)
+  193|            }
+  194|            ForEach(PlanningGroup.allCases) { group in issueStatusSection(group) }
+  195|        }.id("planning-issue-tray")
+  196|    }
+  197|    private func issueStatusSection(_ group: PlanningGroup) -> some View {
+  198|        let available = LinearClient.sortedByPriority(matching.filter { plan.entry($0.id) == nil && group.matchesStatus($0) })
+                                                                                                          ^144
+  199|        let context = LinearIssueHierarchy.includingAncestors(available, in: usage.allLinearIssues)
+  200|        let folded = nav.planningIssueFolded.contains(group)
+  201|        return VStack(alignment: .leading, spacing: 12) {
+  202|            Button {
+  203|                animate {
+  204|                    if folded { nav.planningIssueFolded.remove(group) } else { nav.planningIssueFolded.insert(group) }
+                                    ^1                                             ^1
+  205|                }
+  206|            } label: {
+  207|                HStack(spacing: 8) {
+  208|                    Image(systemName: folded ? "chevron.right" : "chevron.down").font(.system(size: 10))
+                                                     ^1                ^65
+  209|                    Text(group.statusName).fontWeight(.semibold)
+  210|                    Text("\(available.count)").foregroundStyle(.secondary).font(.caption)
+  211|                    Spacer()
+  212|                }.contentShape(Rectangle())
+  213|            }.buttonStyle(.plain).accessibilityValue(folded ? "Folded" : "Unfolded")
+                                                                    ^1         ^65
+  214|                .accessibilityIdentifier("planning-status-\(group.rawValue)")
+  215|            if !folded {
+  216|                if available.isEmpty { Text("No unplanned issues in this status.").font(.caption).foregroundStyle(.secondary) }
+                                           ^18
+  217|                ForEach(LinearIssueHierarchy.roots(available, in: context)) { issue in
+  218|                    LinearIssueEntityRow(issue: issue, childScope: Set(context.map(\.id))) { nav.select(.focus) }
+                                                                                                 ^0
+  219|                }
+  220|            }
+  221|        }.id("planning-status-\(group.rawValue)").padding(.vertical, 2)
+  222|    }
+  223|    private var earlierToday: [LinearIssueSummary] {
+  224|        matching.filter { issue in
+  225|            guard let entry = plan.entry(issue.id), entry.group == .today, let day = entry.day else { return false }
+                                                                                                          ^43
+  226|            return day < plan.dayKey
+  227|        }
+  228|    }
+  229|    private var carryReview: some View {
+  230|        DisclosureGroup("Review earlier Today tasks · \(earlierToday.count)") {
+  231|            ForEach(earlierToday) { issue in
+  232|                HStack {
+  233|                    Text(issue.title).lineLimit(1)
+  234|                    Spacer()
+  235|                    Menu("Move") { TaskPlanningIssueMenu(issue: issue) }
+  236|                }.padding(.vertical, 4)
+  237|            }
+  238|        }.font(.caption).padding(12).mainWindowBorder(cornerRadius: 10)
+  239|    }
+  240|}
+  241|
+  242|@MainActor
+  243|struct TaskPlanningIssueMenu: View {
+  244|    let issue: LinearIssueSummary
+  245|    @Environment(UsageStore.self) private var usage
+  246|    @Environment(FocusSessionStore.self) private var focus
+  247|    var body: some View {
+  248|        ForEach(PlanningGroup.allCases) { group in
+  249|            Button("Move to \(group.title)") { Task { await focus.plan.move(issue, to: group, usage: usage) } }
+  250|                .disabled(focus.plan.syncing || !TaskPlanningStore.isOpen(issue))
+  251|        }
+  252|        Menu("Schedule") {
+  253|            ForEach([25, 30, 50, 90], id: \.self) { duration in
+  254|                Button("\(duration) minutes") {
+  255|                    let hour = Calendar.current.component(.hour, from: Date())
+  256|                    _ = focus.plan.schedule(issue, start: hour * 60, duration: duration)
+  257|                    usage.todayDeskLayout.rightCollapsed = false
+  258|                    focus.openPlanning()
+  259|                }
+  260|            }
+  261|        }.disabled(!TaskPlanningStore.isOpen(issue))
+  262|        if focus.plan.entry(issue.id) != nil { Button("Remove from plan") { focus.plan.remove(issue.id) } }
+  263|        if let entry = focus.plan.entry(issue.id), focus.plan.linked,
+  264|           TaskPlanningStore.stateID(for: entry.group, issue: issue) != issue.stateId {
+  265|            Text("Planning and Linear status differ")
+  266|        }
+  267|        if let url = issue.issueURL { Link("Open in Linear", destination: url) }
+  268|    }
+  269|}
+  270|
+  271|@MainActor
+  272|private struct TaskPlanningPicker: View {
+  273|    let group: PlanningGroup
+  274|    let issues: [LinearIssueSummary]
+  275|    @Environment(\.dismiss) private var dismiss
+  276|    @Environment(UsageStore.self) private var usage
+  277|    @Environment(FocusSessionStore.self) private var focus
+  278|    @State private var query = ""
+  279|    var body: some View {
+  280|        VStack(alignment: .leading, spacing: 16) {
+  281|            HStack { Text("Add to \(group.title)").font(.title2); Spacer(); Button("Close") { dismiss() } }
+  282|            TextField("Find an unplanned issue…", text: $query).textFieldStyle(.roundedBorder)
+  283|            ScrollView {
+  284|                LazyVStack(alignment: .leading, spacing: 4) {
+  285|                    ForEach(issues.filter { query.isEmpty || ($0.title + " " + $0.identifier).localizedCaseInsensitiveContains(query) }) { issue in
+  286|                        Button {
+  287|                            Task { await focus.plan.move(issue, to: group, usage: usage); dismiss() }
+  288|                        } label: {
+  289|                            HStack { LinearCardStatusIcon(issue: issue); Text(issue.identifier).foregroundStyle(.secondary); Text(issue.title).lineLimit(2); Spacer() }
+  290|                                .padding(10).contentShape(Rectangle())
+  291|                        }.buttonStyle(.plain).disabled(focus.plan.syncing)
+  292|                    }
+  293|                    if issues.isEmpty { Text("No unplanned issues in the current Linear snapshot.").foregroundStyle(.secondary) }
+  294|                }
+  295|            }
+  296|            Text("Personal planning is the default. Status linking applies only when explicitly enabled.")
+  297|                .font(.caption).foregroundStyle(.secondary)
+  298|        }.padding(24)
+  299|    }
+  300|}
+
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/UI/MainWindowView.swift:
+    1|import AppKit
+    2|import SwiftUI
+    3|
+    4|@MainActor
+    5|struct MainWindowView: View {
+    6|    @Environment(UsageStore.self) private var store
+    7|    @Environment(CompanionStore.self) private var companion
+    8|    @Environment(FocusSessionStore.self) private var session
+    9|    @Environment(MainWindowNavigation.self) private var nav
+   10|    @Environment(\.colorScheme) private var scheme
+   11|    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+   12|    @FocusState private var searchFocused: Bool
+   13|    private var l: L { companion.l }
+   14|    private var theme: MainWindowTheme { MainWindowTheme(scheme: scheme) }
+   15|
+   16|    var body: some View {
+   17|        GeometryReader { geometry in
+   18|            let width = max(0, geometry.size.width - 24)
+   19|            let layout = store.todayDeskLayout.resolved(containerWidth: width, collapsedLeftWidth: 56)
+   20|            VStack(spacing: 0) {
+   21|                toolbar(layout: layout)
+   22|                HStack(alignment: .top, spacing: 0) {
+   23|                    if layout.leftCollapsed {
+   24|                        iconNavigation.frame(width: layout.leftWidth)
+   25|                    } else {
+   26|                        navigation.frame(width: layout.leftWidth)
+   27|                    }
+   28|                    MainWindowResizeBoundary(width: layout.leftWidth, reversed: false,
+   29|                        collapsed: layout.leftCollapsed) { value in
+   30|                            store.todayDeskLayout = store.todayDeskLayout.settingLeftWidth(value, containerWidth: width)
+   31|                        }
+   32|                    canvas
+   33|                        .environment(\.popoverContentWidth, max(280, layout.centerWidth - 48))
+   34|                    MainWindowResizeBoundary(width: layout.rightWidth, reversed: true,
+   35|                        collapsed: layout.rightCollapsed) { value in
+   36|                            store.todayDeskLayout = store.todayDeskLayout.settingRightWidth(value, containerWidth: width, collapsedLeftWidth: 56)
+   37|                        }
+   38|                    if !layout.rightCollapsed {
+   39|                        Group {
+   40|                            if nav.page == .today { TaskTimelineView() }
+                                                        ^4
+   41|                            else { MainWindowExtrasView() }
+                                       ^1
+   42|                        }.frame(width: layout.rightWidth)
+   43|                    }
+   44|                }
+   45|                .padding(.horizontal, 12).padding(.bottom, 12)
+   46|                .animation(reduceMotion ? nil : .easeInOut(duration: 0.20), value: layout.leftCollapsed)
+                                                ^0
+   47|                .animation(reduceMotion ? nil : .easeInOut(duration: 0.20), value: layout.rightCollapsed)
+                                                ^0
+   48|            }
+   49|        }
+   50|        .coordinateSpace(name: "main-window")
+   51|        .background(theme.shell).foregroundStyle(theme.text).tint(.blue)
+   52|        .font(.system(size: 14))
+   53|        .environment(nav.content)
+   54|        .environment(\.mainWindowChrome, true)
+   55|        .environment(\.menuBarChrome, true)
+   56|        .environment(\.menuBarContentFitting, false)
+   57|        .background {
+   58|            Button("") {
+   59|                store.todayDeskLayout.leftCollapsed = false
+   60|                searchFocused = true
+   61|            }.keyboardShortcut("k", modifiers: .command).hidden()
+   62|        }
+   63|        .onChange(of: nav.content.showSettings) { _, value in
+   64|            if value { nav.select(.settings) }
+   65|        }
+   66|        .onChange(of: nav.content.tab) { _, value in
+   67|            if value == .focus && nav.page != .today { nav.select(.focus) }
+                                        ^0                 ^0
+   68|            if value == .collection { nav.select(.collection) }
+                                          ^0
+   69|        }
+   70|        .task(id: store.linearIntegrationEnabled && store.linearAPIKeyConfigured) {
+   71|            if store.linearIntegrationEnabled && store.linearAPIKeyConfigured {
+   72|                _ = await store.refreshLinearIssues()
+   73|            }
+   74|        }
+   75|    }
+   76|
+   77|    private func toolbar(layout: TodayDeskLayout.Resolved) -> some View {
+   78|        // Match the canvas edge (outer gutter + sidebar + resize boundary).
+   79|        // A collapsed sidebar still leaves room for traffic lights and navigation.
+   80|        let navigationWidth: CGFloat = 90 + 3 * 26 + 12
+   81|        let tabLeading = layout.leftCollapsed ? 204
+                                                      ^2
+   82|            : max(navigationWidth + 4, 12 + layout.leftWidth + TodayDeskMetrics.splitterWidth)
+                    ^12
+   83|        let navigationSpacing = min(12, (tabLeading - navigationWidth) / 2)
+   84|        return HStack(spacing: 0) {
+   85|            HStack(spacing: navigationSpacing) {
+   86|                chromeButton("sidebar.left", title: store.todayDeskLayout.leftCollapsed ? l.expandLeftSidebar : l.collapseLeftSidebar) {
+                                                                                                ^2                    ^12
+   87|                    store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+   88|                }
+   89|                chromeButton("chevron.left", title: l.back, enabled: nav.canGoBack) { nav.back() }
+                                                                                          ^1
+   90|                chromeButton("chevron.right", title: "Forward", enabled: nav.canGoForward) { nav.forward() }
+                                                                                                 ^0
+   91|            }
+   92|            .padding(.leading, 90)
+   93|            .frame(width: tabLeading, alignment: .leading)
+   94|            Label(nav.page.title(l), systemImage: nav.page.symbol)
+   95|                .font(.system(size: 12, weight: .medium))
+   96|                .padding(.horizontal, 14).padding(.vertical, 6)
+   97|                .frame(minWidth: 160, alignment: .leading)
+   98|                .background(theme.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+   99|                .mainWindowBorder(cornerRadius: 7)
+  100|            Spacer()
+  101|            chromeButton("sidebar.right", title: store.todayDeskLayout.rightCollapsed ? l.expandRightSidebar : l.collapseRightSidebar) {
+                                                                                              ^9                     ^5
+  102|                store.todayDeskLayout = store.todayDeskLayout.togglingRight()
+  103|            }
+  104|        }
+  105|        .padding(.trailing, 22).frame(height: 48)
+  106|    }
+  107|
+  108|    private func chromeButton(_ icon: String, title: String, enabled: Bool = true,
+  109|                              action: @escaping () -> Void) -> some View {
+  110|        Button(action: action) {
+  111|            Image(systemName: icon).frame(width: 26, height: 28).contentShape(Rectangle())
+  112|        }.buttonStyle(.plain).help(title).accessibilityLabel(title).disabled(!enabled)
+  113|    }
+  114|
+  115|    private var navigation: some View {
+  116|        @Bindable var nav = nav
+  117|        return VStack(alignment: .leading, spacing: 24) {
+  118|            VStack(alignment: .leading, spacing: 12) {
+  119|                HStack(spacing: 10) {
+  120|                    Image(nsImage: MenuBarIcon.pokeBall).resizable().frame(width: 23, height: 23)
+  121|                    Text("PokeTasks").font(.system(size: 17, weight: .semibold))
+  122|                }
+  123|                Text("Your workspace").foregroundStyle(theme.secondary).font(.system(size: 13))
+  124|            }.padding(.horizontal, 10).padding(.top, 12)
+  125|            HStack(spacing: 7) {
+  126|                Image(systemName: "magnifyingglass")
+  127|                TextField("Search pages…", text: $nav.search)
+  128|                    .textFieldStyle(.plain).focused($searchFocused)
+  129|                    .onSubmit {
+  130|                        if let first = MainWindowPage.visiblePages.first(where: {
+  131|                            $0.title(l).localizedCaseInsensitiveContains(nav.search)
+  132|                        }) { nav.select(first); nav.search = "" }
+  133|                    }
+  134|            }
+  135|            .font(.system(size: 13)).padding(9)
+  136|            .background(theme.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+  137|            .mainWindowBorder(cornerRadius: 7)
+  138|            ScrollView {
+  139|                VStack(spacing: 4) {
+  140|                    ForEach(MainWindowPage.visiblePages.filter { $0 != .settings &&
+  141|                        (nav.search.isEmpty || $0.title(l).localizedCaseInsensitiveContains(nav.search)) }) { page in
+                              ^84                    ^0
+  142|                        navigationRow(page)
+  143|                    }
+  144|                }
+  145|            }.scrollIndicators(.hidden)
+  146|            navigationRow(.settings)
+  147|        }
+  148|        .padding(.horizontal, 8).padding(.bottom, 12)
+  149|        .contextMenu { layoutCommands }
+  150|    }
+  151|
+  152|    private var iconNavigation: some View {
+  153|        VStack(spacing: 10) {
+  154|            Image(nsImage: MenuBarIcon.pokeBall).resizable().frame(width: 23, height: 23).padding(.vertical, 12)
+  155|            chromeButton("magnifyingglass", title: "Search pages") {
+  156|                store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+  157|                searchFocused = true
+  158|            }
+  159|            ScrollView {
+  160|                VStack(spacing: 4) {
+  161|                    ForEach(MainWindowPage.visiblePages.filter { $0 != .settings }) { page in
+                                                                     ^16
+  162|                        iconRow(page)
+  163|                    }
+  164|                }
+  165|            }.scrollIndicators(.hidden)
+  166|            iconRow(.settings)
+  167|        }.padding(.bottom, 12).contextMenu { layoutCommands }
+  168|    }
+  169|    private func iconRow(_ page: MainWindowPage) -> some View {
+  170|        Button { nav.select(page) } label: {
+                     ^0
+  171|            Image(systemName: page.symbol).font(.system(size: 17))
+  172|                .frame(width: 40, height: 40)
+  173|                .background(nav.page == page ? theme.selected : .clear, in: RoundedRectangle(cornerRadius: 8))
+                                                     ^3               ^20
+  174|        }.buttonStyle(.plain).help(page.title(l)).accessibilityLabel(page.title(l))
+  175|            .accessibilityIdentifier("main-nav-\(page.rawValue)")
+  176|            .accessibilityAddTraits(nav.page == page ? .isSelected : [])
+                                                             ^3            ^20
+  177|    }
+  178|    @ViewBuilder private var layoutCommands: some View {
+  179|        Button(store.todayDeskLayout.leftCollapsed ? "Expand navigation" : "Fold navigation") {
+                                                           ^2                    ^12
+  180|            store.todayDeskLayout = store.todayDeskLayout.togglingLeft()
+  181|        }
+  182|        Button(store.todayDeskLayout.rightCollapsed ? "Expand side panel" : "Fold side panel") {
+                                                            ^9                    ^5
+  183|            store.todayDeskLayout = store.todayDeskLayout.togglingRight()
+  184|        }
+  185|        Button("Fold both panels") {
+  186|            store.todayDeskLayout.leftCollapsed = true
+  187|            store.todayDeskLayout.rightCollapsed = true
+  188|        }
+  189|        Button("Unfold both panels") {
+  190|            store.todayDeskLayout.leftCollapsed = false
+  191|            store.todayDeskLayout.rightCollapsed = false
+  192|        }
+  193|    }
+  194|
+  195|    private func navigationRow(_ page: MainWindowPage) -> some View {
+  196|        Button { nav.search = ""; nav.select(page) } label: {
+                     ^1
+  197|            HStack(spacing: 12) {
+  198|                Image(systemName: page.symbol).font(.system(size: 17)).frame(width: 23)
+  199|                Text(page.title(l)).font(.system(size: 14))
+  200|                Spacer(minLength: 0)
+  201|            }.padding(.horizontal, 10).padding(.vertical, 10)
+  202|                .background(nav.page == page ? theme.selected : .clear,
+                                                     ^7               ^54
+  203|                            in: RoundedRectangle(cornerRadius: 8))
+  204|                .contentShape(Rectangle())
+  205|        }.buttonStyle(.plain)
+  206|            .accessibilityIdentifier("main-nav-\(page.rawValue)")
+  207|            .accessibilityAddTraits(nav.page == page ? .isSelected : [])
+                                                             ^7            ^54
+  208|    }
+  209|
+  210|    private var canvas: some View {
+  211|        VStack(alignment: .leading, spacing: 22) {
+  212|            VStack(alignment: .leading, spacing: 6) {
+  213|                Text(nav.page.title(l)).font(.system(size: 30, weight: .semibold))
+  214|                if nav.page == .today {
+  215|                    Text(session.plan.selectedDay, format: .dateTime.weekday(.wide).day().month(.wide).year())
+  216|                        .foregroundStyle(theme.secondary)
+  217|                }
+  218|            }
+  219|            pageContent.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  220|        }
+  221|        .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  222|        .background(theme.canvas, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+  223|        .mainWindowBorder(cornerRadius: 14)
+  224|        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+  225|    }
+  226|
+  227|    @ViewBuilder private var pageContent: some View {
+  228|        switch nav.page {
+  229|        case .today: TaskPlanningView()
+              ^6
+  230|        case .insights: TaskInsightsView()
+              ^0
+  231|        case .focus: MainWindowFocusView()
+              ^0
+  232|        case .issues, .projects, .initiatives: MainWindowWorkspacesView(page: nav.page)
+              ^8
+  233|        case .collection: MainWindowCollectionView()
+              ^0
+  234|        case .usage: UsageTabView()
+              ^0
+  235|        case .settings:
+  236|            SettingsView(onClose: { nav.back() }, onChooseRepresentative: {
+  237|                nav.content.openRepresentativeDex(); nav.select(.collection)
+  238|            }, startExpanded: nav.content.expandAdvancedOnOpen)
+  239|        }
+  240|    }
+  241|}
+  242|
+  243|/// The hit target is always available; its guide is visible only near the boundary.
+  244|@MainActor
+  245|private struct MainWindowResizeBoundary: View {
+  246|    let width: CGFloat
+  247|    let reversed: Bool
+  248|    let collapsed: Bool
+  249|    let onResize: (CGFloat) -> Void
+  250|    @State private var hovering = false
+  251|    @State private var origin: CGFloat?
+  252|    var body: some View {
+  253|        Rectangle().fill(.clear).frame(width: TodayDeskMetrics.splitterWidth)
+  254|            .frame(maxHeight: .infinity).contentShape(Rectangle())
+  255|            .overlay { Rectangle().fill(Color.primary.opacity(hovering || origin != nil ? 0.14 : 0))
+                                                                                                ^6     ^11
+  256|                .frame(width: 1).padding(.vertical, 16) }
+  257|            .onHover { value in
+  258|                guard !collapsed else { return }
+  259|                if value != hovering {
+  260|                    hovering = value
+  261|                    if value { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+  262|                }
+  263|            }
+  264|            .onDisappear { if hovering { NSCursor.pop(); hovering = false } }
+                               ^6   ^6       ^0
+  265|            .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("main-window")).onChanged { value in
+  266|                guard !collapsed else { return }
+                                            ^0
+  267|                if origin == nil { origin = width }
+                                       ^1
+  268|                onResize((origin ?? width) + value.translation.width * (reversed ? -1 : 1))
+                                          ^0                                             ^0
+  269|            }.onEnded { _ in origin = nil })
+                            ^0
+  270|            .accessibilityElement(children: .ignore)
+  271|            .accessibilityLabel(reversed ? "Extras width" : "Navigation width")
+                                                 ^7               ^10
+  272|            .accessibilityValue("\(Int(width)) points")
+  273|            .accessibilityAdjustableAction { direction in
+  274|                switch direction {
+  275|                case .increment: onResize(width + 16)
+  276|                case .decrement: onResize(width - 16)
+  277|                @unknown default: break
+  278|                }
+  279|            }
+  280|            .accessibilityHidden(collapsed)
+  281|    }
+  282|}
+  283|
+  284|@MainActor
+  285|struct MainWindowTodayView: View {
+  286|    @Environment(UsageStore.self) private var usage
+  287|    @Environment(CompanionStore.self) private var companion
+  288|    @Environment(FocusSessionStore.self) private var session
+  289|    @Environment(MainWindowNavigation.self) private var nav
+  290|    private var l: L { companion.l }
+  291|    var body: some View {
+  292|        GeometryReader { geometry in
+  293|            ScrollView {
+  294|                VStack(spacing: 24) {
+  295|                    VStack(spacing: 6) {
+  296|                        Text(greeting).font(.system(size: 27, weight: .semibold))
+  297|                        Text("One thing at a time.").foregroundStyle(.secondary)
+  298|                    }.padding(.top, 8)
+  299|                    MainWindowCompanionHero(size: min(240, max(140, geometry.size.height * 0.34)))
+  300|                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12),
+  301|                                             count: geometry.size.width >= 500 ? 3 : 1), spacing: 12) {
+  302|                        shortcut(.issues, detail: "View and manage")
+  303|                        shortcut(.projects, detail: "Your workspaces")
+  304|                        shortcut(.collection, detail: "Your Pokémon")
+  305|                    }
+  306|                    nextFocus
+  307|                }.frame(maxWidth: .infinity).padding(.bottom, 4)
+  308|            }.scrollIndicators(.hidden)
+  309|        }
+  310|    }
+  311|    private var greeting: String {
+  312|        switch Calendar.current.component(.hour, from: Date()) {
+  313|        case 5..<12: "Good morning."
+  314|        case 12..<18: "Good afternoon."
+  315|        default: "Good evening."
+  316|        }
+  317|    }
+  318|    private func shortcut(_ page: MainWindowPage, detail: String) -> some View {
+  319|        Button { nav.select(page) } label: {
+  320|            HStack(spacing: 10) {
+  321|                Image(systemName: page.symbol).font(.system(size: 20))
+  322|                VStack(alignment: .leading, spacing: 5) {
+  323|                    Text(page.title(l)).fontWeight(.medium)
+  324|                    Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
+  325|                }
+  326|                Spacer(minLength: 0)
+  327|                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+  328|            }.padding(14).frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+  329|                .contentShape(Rectangle())
+  330|        }.buttonStyle(MainWindowShortcutStyle())
+  331|    }
+  332|    private var nextFocus: some View {
+  333|        VStack(alignment: .leading, spacing: 12) {
+  334|            Text(session.session == nil ? "Next focus" : l.currentFocus)
+  335|                .font(.system(size: 12)).foregroundStyle(.secondary)
+  336|            if let current = session.session {
+  337|                HStack(spacing: 16) {
+  338|                    VStack(alignment: .leading, spacing: 4) {
+  339|                        Text(current.issue.identifier).font(.system(size: 12)).foregroundStyle(.secondary)
+  340|                        Text(current.issue.title).fontWeight(.medium).lineLimit(2)
+  341|                    }
+  342|                    Spacer()
+  343|                    Text(session.clockDisplay().text).monospacedDigit()
+  344|                    Button("Open Focus") { nav.select(.focus) }.tahoeButtonStyle(.prominent)
+  345|                }
+  346|            } else if let issue = usage.linearInProgressIssues.first {
+  347|                HStack(spacing: 12) {
+  348|                    VStack(alignment: .leading, spacing: 5) {
+  349|                        Text(issue.identifier).font(.system(size: 12)).foregroundStyle(.secondary)
+  350|                        Text(issue.title).fontWeight(.medium).lineLimit(2)
+  351|                    }
+  352|                    Spacer()
+  353|                    LinearFocusButton(issue: issue, openDeskOnPin: false) { nav.select(.focus) }
+  354|                }
+  355|            } else {
+  356|                HStack {
+  357|                    Text(usage.linearAPIKeyConfigured ? "Choose an issue, or start a focus timer." : "Connect Linear to choose your next issue.")
+  358|                        .foregroundStyle(.secondary)
+  359|                    Spacer()
+  360|                    Button(usage.linearAPIKeyConfigured ? l.focusTab : l.settings) {
+  361|                        nav.select(usage.linearAPIKeyConfigured ? .focus : .settings)
+  362|                    }.tahoeButtonStyle(.regular)
+  363|                }
+  364|            }
+  365|        }.mainWindowCard()
+  366|    }
+  367|}
+  368|
+  369|@MainActor
+  370|private struct MainWindowShortcutStyle: ButtonStyle {
+  371|    @Environment(\.colorScheme) private var scheme
+  372|    func makeBody(configuration: Configuration) -> some View {
+  373|        configuration.label.background(configuration.isPressed ? MainWindowTheme(scheme: scheme).selected : MainWindowTheme(scheme: scheme).surface,
+  374|                                       in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+  375|            .mainWindowBorder(cornerRadius: 10)
+  376|    }
+  377|}
+  378|
+  379|@MainActor
+  380|struct MainWindowCompanionHero: View {
+  381|    @Environment(CompanionStore.self) private var companion
+  382|    var size: CGFloat = 220
+  383|    var body: some View {
+  384|        VStack(spacing: 12) {
+  385|            SpriteView(speciesID: companion.currentSpeciesID, size: size, animated: true,
+  386|                       shiny: companion.currentIsShiny, cropToContent: true)
+  387|                .frame(height: size)
+  388|            HStack(spacing: 8) {
+  389|                Text(companion.state.trainingEmpty ? "Choose a Pokémon" : companion.displayName)
+  390|                    .font(.system(size: 20, weight: .semibold))
+  391|                if let rarity = companion.rarity {
+  392|                    Text(companion.l.rarityLabel(rarity)).font(.system(size: 10, weight: .semibold))
+  393|                        .padding(.horizontal, 8).padding(.vertical, 3)
+  394|                        .background(rarityColor(rarity).opacity(0.12), in: Capsule())
+  395|                        .foregroundStyle(rarityColor(rarity))
+  396|                }
+  397|            }
+  398|            Text(companion.stageText).font(.system(size: 12)).foregroundStyle(.secondary)
+  399|            if !companion.state.trainingEmpty {
+  400|                VStack(spacing: 7) {
+  401|                    ProgressView(value: companion.isEgg ? companion.eggProgress : companion.progress)
+  402|                        .progressViewStyle(MenuBarProgressStyle(tint: .blue)).controlSize(.small)
+  403|                    Text("\(TokenFormatter.compact(companion.isEgg ? companion.eggTokensToHatch : companion.tokensToNext)) XP to \(companion.isEgg ? "hatch" : companion.isFinalStage ? "graduation" : "evolution")")
+  404|                        .font(.system(size: 12)).foregroundStyle(.secondary)
+  405|                }.frame(maxWidth: 290)
+  406|            }
+  407|        }.frame(maxWidth: .infinity)
+  408|    }
+  409|}
+
