@@ -1375,24 +1375,28 @@ final class CompanionStore {
         let generation = activeGeneration
         isHatching = true
         defer { isHatching = false }
-        // 프리패칭된 종이 있으면 그대로 사용(라인·스프라이트 예열됨 → 딜레이 ~0), 없으면 지금 롤.
-        let base: Int?
-        if let pending = state.pendingHatchID {
-            base = pending
-        } else {
-            base = await chooseBase()
+        // Retry owned rolls now; bound work when the eligible collection is already complete.
+        for _ in 0..<16 {
+            let base: Int?
+            if let pending = state.pendingHatchID {
+                base = pending
+            } else {
+                base = await chooseBase()
+            }
+            guard isCurrentReadyEgg(generation: generation) else {
+                AppLog.write("hatch: discarded before result handling — subject replaced during species roll")
+                kickLineLoadIfNeeded()
+                return
+            }
+            guard let base else {
+                isHatchRetryDelayed = true
+                return
+            }
+            let pendingForm = state.pendingHatchID == base ? state.pendingUnownForm : nil
+            guard case .duplicate = await hatchCore(baseID: base, generation: generation,
+                                                   unownForm: pendingForm) else { return }
         }
-        guard isCurrentReadyEgg(generation: generation) else {
-            AppLog.write("hatch: discarded before result handling — subject replaced during species roll")
-            kickLineLoadIfNeeded()
-            return
-        }
-        guard let base else {
-            isHatchRetryDelayed = true
-            return
-        }
-        let pendingForm = state.pendingHatchID == base ? state.pendingUnownForm : nil
-        await hatchCore(baseID: base, generation: generation, unownForm: pendingForm)
+        markHatchRetryDelayedIfReady(generation: generation)
     }
 
     /// 부화가 폐기된 뒤 남은 개체(대개 방금 불러온 개체)의 진화 라인을 다시 로드한다.
@@ -1488,7 +1492,7 @@ final class CompanionStore {
         let generation = activeGeneration
         isHatching = true
         defer { isHatching = false }
-        await hatchCore(baseID: baseID, generation: generation)
+        _ = await hatchCore(baseID: baseID, generation: generation)
     }
 
     // MARK: 메타몽 위장/리빌
@@ -1503,15 +1507,17 @@ final class CompanionStore {
         roll % (charmOwned ? ShinyCharm.shinyDenominator : PokemonOdds.shinyDenominator) == 0
     }
 
+    private enum HatchResult { case finished, duplicate }
+
     /// 실제 부화 로직 — isHatching 락은 호출자(hatch / hatchIfNeeded)가 소유·해제한다.
-    private func hatchCore(baseID: Int, generation: Int, unownForm pendingForm: UnownForm? = nil) async {
+    private func hatchCore(baseID: Int, generation: Int, unownForm pendingForm: UnownForm? = nil) async -> HatchResult {
         let line: EvoLine
         do {
             line = try await provider.line(baseSpeciesID: baseID)
         } catch {
             markHatchRetryDelayedIfReady(generation: generation)
             AppLog.write("hatch: line fetch failed for base \(baseID) — egg kept, retry next tick")
-            return
+            return .finished
         }
         // 라인 fetch 창(네트워크) 동안 활성 개체가 교체됐으면 이 부화 결과를 폐기한다. 세이브 불러오기가
         // 그 창에 들어오면, 여기서 멈추지 않는 한 갓 부화한 개체가 방금 불러온 개체를 덮어쓴다.
@@ -1519,7 +1525,7 @@ final class CompanionStore {
         guard activeGeneration == generation else {
             AppLog.write("hatch: discarded — active subject replaced during line fetch")
             kickLineLoadIfNeeded()
-            return
+            return .finished
         }
         // 산 보증을 지키는 마지막 관문 — 진짜 등급을 아는 건 여기뿐이다(후보 인덱스엔 capture_rate 만
         // 있고 is_legendary 가 없다). 필터가 어긋났으면(인덱스 stale 등) 낮은 등급을 그냥 내주지 말고
@@ -1531,7 +1537,7 @@ final class CompanionStore {
             prefetchedLineID = nil
             markHatchRetryDelayedIfReady(generation: generation)
             save()
-            return
+            return .finished
         }
         let unownForm: UnownForm? = line.baseID == UnownForm.speciesID
             ? (pendingForm ?? .roll(rng.next(), collected: state.collectedUnownForms)) : nil
@@ -1542,7 +1548,7 @@ final class CompanionStore {
             state.pendingUnownForm = nil
             prefetchedLineID = nil
             save()
-            return
+            return .duplicate
         }
         state.pendingHatchID = nil
         state.pendingUnownForm = nil
@@ -1587,6 +1593,7 @@ final class CompanionStore {
         if state.active != nil { fireCelebration(.hatch(shiny: showShiny)) }
         save()
         if detailProvider != nil { Task { await self.loadPokemonDetails(speciesID: line.baseID) } }
+        return .finished
     }
 
     /// 위장 → 리빌: 진화 못 하는 메타몽이 "첫 진화 임계"에서 진화 대신 정체를 드러내는 순간.

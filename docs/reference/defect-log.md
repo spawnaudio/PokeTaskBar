@@ -304,6 +304,19 @@ read_when:
 
 ## 판정·데이터
 
+- **A ready egg must retry an owned roll within the same hatch attempt.** XP was
+  credited correctly, but ownership rejection returned from `hatchIfNeeded`, leaving
+  the egg at 100% until another award or refresh. Large collections made repeated
+  rejections look like broken time XP. Earlier XP tests used an empty collection;
+  ownership tests checked rejection without checking automatic recovery. The shared
+  hatch path now tries up to 16 rolls under the same hatch lock and generation guard.
+  Network failures and rarity-guarantee failures still stop immediately; exhausting
+  duplicate rolls keeps the earned XP and reports the existing delayed-hatch state.
+  `EggHatchRetryTests` reproduces a collected pre-rolled species followed by a new
+  candidate through real time-open XP and token/focus/issue/project awards, preserves
+  overflow without awarding XP twice, and covers an all-owned pool and offline failure.
+  The recovery and bounded-retry assertions fail against the previous implementation.
+
 - **Hatch ownership must include ungraduated partners in storage.** The duplicate
   gate used `ownsSpecies`, which only checked the dex and active trainee; banking
   a partner removed its ownership until graduation. The original hatch test used
