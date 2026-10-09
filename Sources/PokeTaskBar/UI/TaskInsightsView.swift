@@ -7,15 +7,21 @@ import UniformTypeIdentifiers
 struct TaskInsightsView: View {
     @Environment(FocusSessionStore.self) private var focus
     @Environment(UsageStore.self) private var usage
+    @Environment(CompanionStore.self) private var companion
     @Environment(\.colorScheme) private var scheme
-    @State private var period = 7
+    @State private var period = 0
     @State private var project = ""
     @State private var selectedDay: Date?
     @State private var exportError: String?
     @State private var query = ""
     private var calendar: Calendar { .current }
     private var end: Date { calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))! }
-    private var start: Date { selectedDay.map { calendar.startOfDay(for: $0) } ?? calendar.date(byAdding: .day, value: -period, to: end)! }
+    private var start: Date {
+        if let selectedDay { return calendar.startOfDay(for: selectedDay) }
+        if period > 0 { return calendar.date(byAdding: .day, value: -period, to: end)! }
+        let dates = records.flatMap { [$0.finishedAt] + $0.segments.map(\.start) } + completionAwards.map(\.awardedAt)
+        return calendar.startOfDay(for: dates.min() ?? Date())
+    }
     private var until: Date { selectedDay.flatMap { calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: $0)) } ?? end }
     private var records: [TaskSessionRecord] { focus.sessionRecords.filter {
         (project.isEmpty || $0.projectID == project) &&
@@ -25,12 +31,21 @@ struct TaskInsightsView: View {
         records.filter { TaskTimeReport.seconds([$0], from: start, until: until) > 0 || ($0.finishedAt >= start && $0.finishedAt < until) }
     }
     private var days: [Date] {
-        let count = selectedDay == nil ? period : 1
+        let count = selectedDay == nil ? max(1, calendar.dateComponents([.day], from: start, to: until).day ?? 1) : 1
         return (0..<count).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
     }
     private var completedCount: Int {
-        Set(inPeriod.filter { $0.finishedAt >= start && $0.finishedAt < until &&
-            ($0.finish == .doneOnTime || $0.finish == .doneOvertime) }.map(\.issueID)).count
+        TaskTimeReport.completedTaskCount(records, awards: completionAwards, from: start, until: until)
+    }
+    private var completionAwards: [LinearIssueXPRecord] {
+        companion.state.linearIssueXP.filter { award in
+            if project.isEmpty && query.isEmpty { return true }
+            let issue = usage.linearIssue(id: award.id)
+            let record = records.first { $0.issueID == award.id }
+            let title = issue?.title ?? record?.title ?? award.identifier
+            return (project.isEmpty || (issue?.projectID ?? record?.projectID) == project) &&
+                (query.isEmpty || (title + " " + award.identifier).localizedCaseInsensitiveContains(query))
+        }
     }
     private var plannedBlocks: [TaskTimeBlock] {
         focus.plan.blocks.filter { $0.day >= TaskPlanningStore.dayKey(start) && $0.day < TaskPlanningStore.dayKey(until) &&
@@ -55,7 +70,7 @@ struct TaskInsightsView: View {
                     heatmap.mainWindowCard()
                     taskTable.mainWindowCard()
                     if records.contains(where: \.partial) {
-                        Text("Legacy history is partial. It retains the latest available summary per issue and is excluded from measured charts and coverage.")
+                        Text("Overall totals include saved legacy durations. Older history is partial and dated by completion; measured charts and plan coverage use detailed sessions only.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     TaskInsightsSessionNotice()
@@ -65,7 +80,7 @@ struct TaskInsightsView: View {
     }
     private var filters: some View {
         HStack(spacing: 12) {
-            TahoeTabBar(selection: $period, items: [TahoeTabItem(1, title: "Day"),
+            TahoeTabBar(selection: $period, items: [TahoeTabItem(0, title: "All time"), TahoeTabItem(1, title: "Day"),
                 TahoeTabItem(7, title: "Week"), TahoeTabItem(30, title: "Month")])
                 .onChange(of: period) { _, _ in selectedDay = nil }
             Picker("Recorded project", selection: $project) {
@@ -92,7 +107,8 @@ struct TaskInsightsView: View {
         }
     }
     @ViewBuilder private var metricCards: some View {
-        metric("Measured focus", TaskTimeReport.duration(TaskTimeReport.seconds(records, from: start, until: until)))
+        metric(period == 0 && selectedDay == nil ? "Overall focus" : "Recorded focus",
+               TaskTimeReport.duration(TaskTimeReport.recordedSeconds(records, from: start, until: until)))
         metric("Tasks completed", "\(completedCount)")
         let coverage = TaskTimeReport.planCoverage(records: records, blocks: plannedBlocks)
         metric("Plan coverage", coverage.map { "\(Int(($0 * 100).rounded()))%" } ?? "No plan")
@@ -194,7 +210,7 @@ struct TaskInsightsView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(TaskTimeReport.duration(TaskTimeReport.seconds(values, from: start, until: until))).monospacedDigit()
+                        Text(TaskTimeReport.duration(TaskTimeReport.recordedSeconds(values, from: start, until: until))).monospacedDigit()
                         Text("\(values.count) sessions").font(.caption).foregroundStyle(.secondary)
                     }
                 }

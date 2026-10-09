@@ -1,0 +1,38 @@
+Building for debugging...
+[2 / 4] PokeTaskBar-product
+[3 / 5] PokeTaskBar-product
+[5 / 8] PokeTaskBar
+[6 / 9] PokeTaskBar
+[14 / 18] PokeTaskBar-product
+[21 / 25] PokeTaskBar-product
+[24 / 28] PokeTaskBar-product
+[26 / 29] PokeTaskBar-product
+[28 / 32] PokeTaskBar
+[32 / 35] PokeTaskBar
+[39 / 42] PokeTaskBar
+[42 / 45] PokeTaskBar
+[45 / 47] PokeTaskBarTests-product
+[52 / 54] PokeTaskBarTests-product
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[56 / 57] PokeTaskBarTests-product
+Build complete! (13.93 sec.)
+Test Suite 'Selected tests' started at 2026-10-02 04:15:29.972.
+Test Suite 'PokeTaskBarTests.xctest' started at 2026-10-02 04:15:29.972.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:15:29.972.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' passed (4.411 seconds).
+Test Suite 'MainWindowTests' passed at 2026-10-02 04:15:34.384.
+	 Executed 1 test, with 0 failures (0 unexpected) in 4.411 (4.412) seconds
+Test Suite 'PokeTaskBarTests.xctest' passed at 2026-10-02 04:15:34.384.
+	 Executed 1 test, with 0 failures (0 unexpected) in 4.411 (4.412) seconds
+Test Suite 'Selected tests' passed at 2026-10-02 04:15:34.384.
+	 Executed 1 test, with 0 failures (0 unexpected) in 4.411 (4.412) seconds

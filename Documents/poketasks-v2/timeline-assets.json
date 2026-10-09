@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-02",
+  "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+  "issue": "PER-245",
+  "assets": [
+    {
+      "appearance": "dark",
+      "filename": "v2-vertical-status-groups-dark.png",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/932180a6-e540-4f7c-b04d-c6a63c673380/2826bc84-430d-428a-b65b-ecbb3b6999cc",
+      "attachment": {
+        "id": "ba892952-19f1-454c-9985-3c70052e0a13",
+        "title": "PokeTasks v2 — Vertical issue status groups, dark",
+        "subtitle": "Native app fixture; 2 October 2026",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/932180a6-e540-4f7c-b04d-c6a63c673380/2826bc84-430d-428a-b65b-ecbb3b6999cc?signature=[expired-signature-removed]"
+      }
+    },
+    {
+      "appearance": "light",
+      "filename": "v2-vertical-status-groups-light.png",
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e02cc58c-3ca6-4042-baa8-b8c18c678903/16d3c780-d433-4456-ae04-3b133422f9f1",
+      "attachment": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"id\":\"be67fb01-a946-4ee0-866c-b82cdbde579a\",\"title\":\"PokeTasks v2 — Vertical issue status groups, light\",\"subtitle\":\"Native app fixture; 2 October 2026\",\"url\":\"https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e02cc58c-3ca6-4042-baa8-b8c18c678903/16d3c780-d433-4456-ae04-3b133422f9f1?signature=[expired-signature-removed]\"}"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}

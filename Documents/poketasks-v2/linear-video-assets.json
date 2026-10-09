@@ -1,0 +1,157 @@
+{
+  "date": "2026-10-01",
+  "projectId": "191c2b8c-3de2-459b-b99c-403f5db3245b",
+  "kind": "animation mockups; planning only",
+  "issue": "PER-245",
+  "videos": [
+    {
+      "filename": "workspace-motion.mp4",
+      "bytes": 1090498,
+      "sha256": "33dadfde52f8050536932b5de5b2d7340fc9f69a9eb652f8a52cc69e04fac0ce",
+      "durationSeconds": 22,
+      "frames": 1320,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": [],
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e3df6346-328f-481c-9c2e-8ca617c3c30b/113e4a92-8efb-4dc2-9d84-3c3e06cfd175",
+      "attachment": {
+        "id": "f45b364b-8cfc-4ecf-9563-05f8bd134bc8",
+        "title": "PokeTasks v2 — workspace motion",
+        "subtitle": "Planning animation concept; app behavior unchanged",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/e3df6346-328f-481c-9c2e-8ca617c3c30b/113e4a92-8efb-4dc2-9d84-3c3e06cfd175"
+      }
+    },
+    {
+      "filename": "today-timeline-motion.mp4",
+      "bytes": 805515,
+      "sha256": "a91b822a31c03dfbaf7559ab737147ea17092483c7eb8801793606ea4eec1e5a",
+      "durationSeconds": 26,
+      "frames": 1560,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": [],
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/a8ca6ff8-1f1f-49cf-b75c-f9315c8c016e/8f18117d-a876-4220-a7e3-b8ea5ae68103",
+      "attachment": {
+        "id": "0a936eef-1856-49ac-8f9c-9318f680f1f8",
+        "title": "PokeTasks v2 — today timeline motion",
+        "subtitle": "Planning animation concept; app behavior unchanged",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/a8ca6ff8-1f1f-49cf-b75c-f9315c8c016e/8f18117d-a876-4220-a7e3-b8ea5ae68103"
+      }
+    },
+    {
+      "filename": "floating-timer-motion.mp4",
+      "bytes": 258980,
+      "sha256": "a59b79af8dd35982e0dde77d629f5a6238c564993fe09b3a89bcec6397538c6b",
+      "durationSeconds": 18,
+      "frames": 1080,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": [],
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/adff2cc4-3cf6-4cbe-a012-28539e9e8a5c/533fefba-944f-444d-adf2-25e8279c309b",
+      "attachment": {
+        "id": "2640695e-e705-483d-b898-e834ba0c20a7",
+        "title": "PokeTasks v2 — floating timer motion",
+        "subtitle": "Planning animation concept; app behavior unchanged",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/adff2cc4-3cf6-4cbe-a012-28539e9e8a5c/533fefba-944f-444d-adf2-25e8279c309b"
+      }
+    },
+    {
+      "filename": "poketasks-v2-motion-preview.mp4",
+      "bytes": 2154723,
+      "sha256": "c0660b415bea9927e37a6ddddd5da3f053b29cc475ff3de490837695fe3bb37a",
+      "durationSeconds": 66,
+      "frames": 3960,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": [
+        {
+          "id": 0,
+          "time_base": "1/15360",
+          "start": 0,
+          "start_time": "0.000000",
+          "end": 337920,
+          "end_time": "22.000000",
+          "tags": {
+            "title": "Workspace controls and folding"
+          }
+        },
+        {
+          "id": 1,
+          "time_base": "1/15360",
+          "start": 337920,
+          "start_time": "22.000000",
+          "end": 737280,
+          "end_time": "48.000000",
+          "tags": {
+            "title": "Today sections and timeline"
+          }
+        },
+        {
+          "id": 2,
+          "time_base": "1/15360",
+          "start": 737280,
+          "start_time": "48.000000",
+          "end": 1013760,
+          "end_time": "66.000000",
+          "tags": {
+            "title": "Floating timer actions over title"
+          }
+        }
+      ],
+      "assetUrl": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/dba31434-7fc3-4147-945e-b204d3905d15/2045d5b3-d06f-42ea-b3a4-f39f679eade6",
+      "attachment": {
+        "id": "5ffda8a6-ac1c-4b64-b603-f9872bddde3c",
+        "title": "PokeTasks v2 — poketasks v2 motion preview",
+        "subtitle": "Planning animation concept; app behavior unchanged",
+        "url": "https://uploads.linear.app/a141582e-95cc-44d1-be9a-788a5efdeb3c/dba31434-7fc3-4147-945e-b204d3905d15/2045d5b3-d06f-42ea-b3a4-f39f679eade6"
+      }
+    }
+  ],
+  "remoteChecks": [
+    {
+      "filename": "workspace-motion.mp4",
+      "headVerified": true,
+      "contentLength": 1090498,
+      "contentType": "video/mp4"
+    },
+    {
+      "filename": "today-timeline-motion.mp4",
+      "headVerified": true,
+      "contentLength": 805515,
+      "contentType": "video/mp4"
+    },
+    {
+      "filename": "floating-timer-motion.mp4",
+      "headVerified": true,
+      "contentLength": 258980,
+      "contentType": "video/mp4"
+    },
+    {
+      "filename": "poketasks-v2-motion-preview.mp4",
+      "headVerified": true,
+      "contentLength": 2154723,
+      "contentType": "video/mp4"
+    }
+  ]
+}
+

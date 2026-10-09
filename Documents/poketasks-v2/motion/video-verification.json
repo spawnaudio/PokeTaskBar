@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-01",
+  "kind": "rendered concept validation; app behavior unchanged",
+  "videos": [
+    {
+      "filename": "workspace-motion.mp4",
+      "bytes": 1090498,
+      "sha256": "33dadfde52f8050536932b5de5b2d7340fc9f69a9eb652f8a52cc69e04fac0ce",
+      "durationSeconds": 22,
+      "frames": 1320,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": []
+    },
+    {
+      "filename": "today-timeline-motion.mp4",
+      "bytes": 805515,
+      "sha256": "a91b822a31c03dfbaf7559ab737147ea17092483c7eb8801793606ea4eec1e5a",
+      "durationSeconds": 26,
+      "frames": 1560,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": []
+    },
+    {
+      "filename": "floating-timer-motion.mp4",
+      "bytes": 258980,
+      "sha256": "a59b79af8dd35982e0dde77d629f5a6238c564993fe09b3a89bcec6397538c6b",
+      "durationSeconds": 18,
+      "frames": 1080,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": []
+    },
+    {
+      "filename": "poketasks-v2-motion-preview.mp4",
+      "bytes": 2154723,
+      "sha256": "c0660b415bea9927e37a6ddddd5da3f053b29cc475ff3de490837695fe3bb37a",
+      "durationSeconds": 66,
+      "frames": 3960,
+      "codec": "h264",
+      "width": 1440,
+      "height": 1000,
+      "fps": 60,
+      "pixelFormat": "yuv420p",
+      "silent": true,
+      "fullDecodePassed": true,
+      "chapters": [
+        {
+          "id": 0,
+          "time_base": "1/15360",
+          "start": 0,
+          "start_time": "0.000000",
+          "end": 337920,
+          "end_time": "22.000000",
+          "tags": {
+            "title": "Workspace controls and folding"
+          }
+        },
+        {
+          "id": 1,
+          "time_base": "1/15360",
+          "start": 337920,
+          "start_time": "22.000000",
+          "end": 737280,
+          "end_time": "48.000000",
+          "tags": {
+            "title": "Today sections and timeline"
+          }
+        },
+        {
+          "id": 2,
+          "time_base": "1/15360",
+          "start": 737280,
+          "start_time": "48.000000",
+          "end": 1013760,
+          "end_time": "66.000000",
+          "tags": {
+            "title": "Floating timer actions over title"
+          }
+        }
+      ]
+    }
+  ],
+  "timerClockPixelsIdentical": true,
+  "timerClockCrop": [
+    299,
+    422,
+    399,
+    470
+  ],
+  "reviewedPreviewFrames": 24,
+  "limits": [
+    "Native runtime behavior, accessibility, live sync, and installed-app smoothness are not proven by these rendered concepts."
+  ]
+}

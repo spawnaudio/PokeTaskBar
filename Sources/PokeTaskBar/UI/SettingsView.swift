@@ -377,27 +377,40 @@ struct SettingsView: View {
                 }
                 Divider()
                 groupRow {
-                    Text(l.floatingPetSizeLabel).font(.callout)
-                    Slider(value: $store.floatingPetSize, in: 48...384, step: 8)
-                        .accessibilityLabel(l.floatingPetSizeLabel)
-                    Text("\(Int(store.floatingPetSize))px")
+                    if store.floatingPetStyle == .battle {
+                        Text("Battle window scale").font(.callout)
+                        Slider(value: $store.battleWindowScale, in: FloatingTimerMetrics.scaleRange, step: 0.05)
+                            .accessibilityLabel("Battle window scale")
+                            .accessibilityValue("\(Int((store.battleWindowScale * 100).rounded()))%")
+                        Text("\(Int((store.battleWindowScale * 100).rounded()))%")
+                            .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
+                    } else {
+                        Text(l.floatingPetSizeLabel).font(.callout)
+                        Slider(value: $store.floatingPetSize, in: 48...384, step: 8)
+                            .accessibilityLabel(l.floatingPetSizeLabel)
+                        Text("\(Int(store.floatingPetSize))px")
+                            .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
+                    }
+                }
+                if store.floatingPetStyle == .classic {
+                    Divider()
+                    toggleRow(l.floatingPetBubbleAlertsLabel, $store.floatingPetBubbleAlerts)
+                }
+            }
+            if store.floatingPetStyle == .classic {
+                Divider()
+                groupRow {
+                    Text(l.floatingTimerSizeLabel).font(.callout)
+                    Slider(value: $store.floatingTimerScale, in: FloatingTimerMetrics.scaleRange, step: 0.05)
+                        .accessibilityLabel(l.floatingTimerSizeLabel)
+                        .accessibilityValue("\(Int((store.floatingTimerScale * 100).rounded()))%")
+                    Text("\(Int((store.floatingTimerScale * 100).rounded()))%")
                         .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
                 }
                 Divider()
-                toggleRow(l.floatingPetBubbleAlertsLabel, $store.floatingPetBubbleAlerts)
+                toggleRow(l.detachFloatingTimer, $store.floatingTimerDetached)
             }
-            Divider()
-            groupRow {
-                Text(l.floatingTimerSizeLabel).font(.callout)
-                Slider(value: $store.floatingTimerScale, in: FloatingTimerMetrics.scaleRange, step: 0.05)
-                    .accessibilityLabel(l.floatingTimerSizeLabel)
-                    .accessibilityValue("\(Int((store.floatingTimerScale * 100).rounded()))%")
-                Text("\(Int((store.floatingTimerScale * 100).rounded()))%")
-                    .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
-            }
-            Divider()
-            toggleRow(l.detachFloatingTimer, $store.floatingTimerDetached)
-            if store.floatingTimerDetached {
+            if store.floatingTimerDetached || store.floatingPetStyle == .battle {
                 Divider()
                 toggleRow(l.pinFloatingTimer, $store.floatingTimerPinned)
             }

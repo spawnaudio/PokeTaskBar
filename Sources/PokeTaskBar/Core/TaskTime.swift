@@ -43,6 +43,24 @@ struct TaskSessionRecord: Codable, Equatable, Identifiable {
 }
 
 enum TaskTimeReport {
+    /// Legacy summaries retain elapsed time but cannot reconstruct dated active segments.
+    /// Include their saved duration in totals, dated by completion; charts remain measured-only.
+    static func recordedSeconds(_ records: [TaskSessionRecord], from: Date, until: Date) -> Double {
+        seconds(records, from: from, until: until) + records.filter {
+            $0.partial && $0.finishedAt >= from && $0.finishedAt < until
+        }.reduce(0) { $0 + max(0, $1.activeSeconds) }
+    }
+
+    static func completedTaskCount(_ records: [TaskSessionRecord], awards: [LinearIssueXPRecord],
+                                   from: Date, until: Date) -> Int {
+        let finished = records.filter {
+            $0.finishedAt >= from && $0.finishedAt < until &&
+                ($0.finish == .doneOnTime || $0.finish == .doneOvertime)
+        }.map(\.issueID)
+        let awarded = awards.filter { $0.awardedAt >= from && $0.awardedAt < until }.map(\.id)
+        return Set(finished + awarded).count
+    }
+
     static func secondsByDay(_ records: [TaskSessionRecord], calendar: Calendar = .current) -> [String: Double] {
         activityByDay(records, calendar: calendar).mapValues { $0.seconds }
     }

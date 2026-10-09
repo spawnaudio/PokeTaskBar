@@ -567,6 +567,7 @@ struct PopoverShellToolbar: View {
     private var theme: MenuBarTheme { MenuBarTheme(scheme: scheme) }
 
     var body: some View {
+        @Bindable var store = store
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 if nav.canGoBack {
@@ -604,6 +605,10 @@ struct PopoverShellToolbar: View {
             }
         }
         .padding(.bottom, 4)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Toggle("Float on Top", isOn: $store.menuBarPanelFloatsOnTop)
+        }
     }
 
     private func iconButton(_ symbol: String, title: String, selected: Bool = false,

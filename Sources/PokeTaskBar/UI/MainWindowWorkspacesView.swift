@@ -137,10 +137,11 @@ struct MainWindowWorkspacesView: View {
         LazyVStack(alignment: .leading, spacing: 12) {
             if values.isEmpty { Text(query.isEmpty ? (emptyText ?? l.linearContainerEmptyIssues) : "No matching issues.")
                 .foregroundStyle(.secondary).padding(.vertical, 24) }
-            ForEach(LinearIssueHierarchy.roots(values, in: store.allLinearIssues)) { issue in
+            ForEach(LinearIssueHierarchy.roots(values, in: values)) { issue in
                 LinearIssueEntityRow(issue: issue, minimization: Binding(
                     get: { nav.issueMinimization[issue.id] ?? false }, set: { nav.issueMinimization[issue.id] = $0 }),
-                    expansion: Binding(get: { nav.issueExpansion[issue.id] ?? false }, set: { nav.issueExpansion[issue.id] = $0 })) { nav.select(.focus) }
+                    expansion: Binding(get: { nav.issueExpansion[issue.id] ?? false }, set: { nav.issueExpansion[issue.id] = $0 }),
+                    issuesTab: nav.issuesTab) { nav.select(.focus) }
             }
         }.scrollTargetLayout()
     }

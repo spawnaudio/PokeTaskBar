@@ -1,0 +1,196 @@
+{
+  "note": "UI border and shading samples from user-selected generated mockups. Centers remain native, editable UI. Coordinates in original source pixels; borders sampled at 4x and assembled as transparent nine-slice assets.",
+  "assets": {
+    "window-frame": {
+      "source": "window",
+      "crop": [
+        10,
+        10,
+        1465,
+        1054
+      ],
+      "corner": 8,
+      "size": [
+        24,
+        24
+      ],
+      "note": "Twelve-pixel corner motifs reduced to eight pixels; preserve the complete eight-pixel blue edge instead of sampling cream interior."
+    },
+    "panel-frame": {
+      "source": "window",
+      "crop": [
+        33,
+        34,
+        1441,
+        160
+      ],
+      "corner": 5,
+      "size": [
+        18,
+        18
+      ]
+    },
+    "button-frame": {
+      "source": "controls",
+      "crop": [
+        369,
+        124,
+        690,
+        216
+      ],
+      "corner": 4,
+      "size": [
+        16,
+        16
+      ]
+    },
+    "button-selected-frame": {
+      "source": "controls",
+      "crop": [
+        41,
+        124,
+        360,
+        216
+      ],
+      "corner": 4,
+      "size": [
+        16,
+        16
+      ]
+    },
+    "hp-frame": {
+      "source": "bars",
+      "crop": [
+        84,
+        30,
+        512,
+        70
+      ],
+      "corner": 1,
+      "size": [
+        10,
+        10
+      ],
+      "note": "One-pixel dark outline; discard inner fill pixels from the frame slices."
+    },
+    "xp-frame": {
+      "source": "bars",
+      "crop": [
+        84,
+        85,
+        444,
+        125
+      ],
+      "corner": 1,
+      "size": [
+        10,
+        10
+      ],
+      "note": "One-pixel dark outline; discard inner fill pixels from the frame slices."
+    },
+    "panel-fill": {
+      "source": "window",
+      "crop": [
+        800,
+        45,
+        804,
+        144
+      ],
+      "size": [
+        1,
+        24
+      ]
+    },
+    "button-fill": {
+      "source": "controls",
+      "crop": [
+        394,
+        135,
+        398,
+        205
+      ],
+      "size": [
+        1,
+        20
+      ]
+    },
+    "button-selected-fill": {
+      "source": "controls",
+      "crop": [
+        120,
+        135,
+        124,
+        205
+      ],
+      "size": [
+        1,
+        20
+      ]
+    },
+    "hp-empty": {
+      "source": "bars",
+      "crop": [
+        350,
+        36,
+        354,
+        65
+      ],
+      "size": [
+        1,
+        8
+      ]
+    },
+    "hp-fill": {
+      "source": "bars",
+      "crop": [
+        140,
+        36,
+        144,
+        65
+      ],
+      "size": [
+        1,
+        8
+      ]
+    },
+    "xp-empty": {
+      "source": "bars",
+      "crop": [
+        330,
+        91,
+        334,
+        117
+      ],
+      "size": [
+        1,
+        7
+      ]
+    },
+    "xp-fill": {
+      "source": "bars",
+      "crop": [
+        170,
+        91,
+        174,
+        117
+      ],
+      "size": [
+        1,
+        7
+      ]
+    },
+    "cursor": {
+      "source": "window",
+      "crop": [
+        73,
+        461,
+        115,
+        524
+      ],
+      "size": [
+        7,
+        11
+      ]
+    }
+  }
+}

@@ -16,7 +16,7 @@ struct SessionIslandView: View {
                 hasIsland: session.isActive, prompt: session.prompt,
                 composingNote: session.isComposingNote,
                 confirm: session.forfeitPrompt != nil ? .forfeit : session.resetPrompt ? .reset : .none,
-                setupIsland: session.pomodoroSetupOpen && !session.isActive,
+                setupIsland: (session.pomodoroSetupOpen || store.floatingDisplayMode == .timerOnly) && !session.isActive,
                 timerWidth: CGFloat(store.floatingTimerWidth))
             content.scaledFloatingTimer(size: NSSize(width: CGFloat(store.floatingTimerWidth), height: reserved.height),
                                         scale: CGFloat(store.floatingTimerScale))
@@ -26,7 +26,7 @@ struct SessionIslandView: View {
     }
 
     @ViewBuilder private var content: some View {
-        if session.pomodoroSetupOpen, session.session == nil {
+        if session.pomodoroSetupOpen || store.floatingDisplayMode == .timerOnly, session.session == nil {
             PomodoroSetupIsland(onResizeTimer: onResizeTimer)
         } else if let current = session.session {
             let expanded = store.floatingTimerDetached || !store.floatingPetIslandFolded

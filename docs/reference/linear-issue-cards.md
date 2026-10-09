@@ -30,8 +30,11 @@ its confirmation before switching away from an active issue. Opening the menu al
 does not start a timer. The expanded Focus action remains available.
 
 Issue tabs are **In progress**, **Todo**, **Planned**, and **Completed** in both the
-main window and compact Linear page. Todo matches the named workflow status rather
-than all unstarted issues. Completed is a label change and retains the existing
+main window and compact Linear page. In progress, Todo and Planned match their named
+workflow statuses; other active statuses such as Waiting or In Review do not appear
+in In progress. Parents and expanded sub-issues must match the selected tab too;
+a matching child appears on its own when its parent has another status.
+Completed is a label change and retains the existing
 completed-today data window. Each tab remembers its own sort choice while its
 navigation/view is alive: priority, earliest due date, recently updated, newest
 created, or title A–Z. Missing dates sort last; the default remains priority.

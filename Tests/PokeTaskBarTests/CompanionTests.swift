@@ -1137,6 +1137,60 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertTrue(s.isEgg)
     }
 
+    func testGraduationSendsFirstStoredPartnerBeforeEggAndPreservesProgress() async throws {
+        for useCandy in [false, true] {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("graduate-storage-\(UUID().uuidString).json")
+            defer { try? FileManager.default.removeItem(at: url) }
+            var seed = CompanionState()
+            seed.usedSinceInstall = EconomyScale.xpForCoins(FreshEgg.price * 3)
+            seed.inventory[ItemKind.rareCandy.rawValue] = 1
+            try JSONEncoder().encode(seed).write(to: url)
+            let provider = IndexProvider()
+            let s = CompanionStore(provider: provider, clock: { fixedNow },
+                                   fileURL: url, rng: SeededRNG(seed: 1))
+            await s.hatch(baseID: 1)
+            s.applyUsage(1_234)
+            XCTAssertTrue(s.buyFreshEgg())
+            XCTAssertTrue(s.buyFreshEgg())
+            XCTAssertTrue(s.swapFromStorage(try XCTUnwrap(s.storedCompanions.last?.id)))
+            guard case .partner(let firstID, let firstPartner) = try XCTUnwrap(s.storedCompanions.last) else {
+                return XCTFail("first partner should be banked")
+            }
+            XCTAssertNotNil(firstPartner.profile)
+
+            await s.hatch(baseID: 2)
+            s.applyUsage(5_678)
+            XCTAssertTrue(s.buyFreshEgg())
+            XCTAssertTrue(s.swapFromStorage(try XCTUnwrap(s.storedCompanions.last?.id)))
+            let remainingStorage = s.storedCompanions.filter { $0.id != firstID }
+            XCTAssertEqual(remainingStorage.count, 2, "one egg and the second partner remain")
+            await s.hatch(baseID: 3)
+            let spent = s.state.spentTokens
+
+            if useCandy {
+                s.applyUsage(s.threshold - RareCandy.xp / 2)
+                XCTAssertEqual(s.useRareCandy(), .graduated)
+            } else {
+                s.applyProgressXP(s.threshold * 2)
+            }
+
+            XCTAssertEqual(s.state.active, firstPartner, "resume the banked individual without resetting or adding graduation overflow")
+            XCTAssertFalse(s.isEgg)
+            XCTAssertFalse(s.state.trainingEmpty)
+            XCTAssertEqual(s.storedCompanions, remainingStorage, "remove only the chosen partner; do not bank a free egg")
+            XCTAssertEqual(s.state.dex.map(\.finalID), [3])
+            XCTAssertEqual(s.state.spentTokens, spent)
+            XCTAssertEqual(s.currentLine?.baseID, firstPartner.baseID, "reuse the stored evolution line immediately")
+
+            let reloaded = CompanionStore(provider: provider, clock: { fixedNow },
+                                          fileURL: url, rng: SeededRNG(seed: 1))
+            XCTAssertEqual(reloaded.state.active, firstPartner)
+            XCTAssertEqual(reloaded.storedCompanions, remainingStorage)
+            s.applyProgressXP(100)
+            XCTAssertEqual(s.state.active?.usedAtStage, firstPartner.usedAtStage + 100)
+        }
+    }
+
     func testStateDecodesWithoutEggUsage() throws {
         // 기존 저장(필드 없음)도 깨지지 않고 eggUsage=0 으로 로드
         let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[],"collectedFinals":[],"language":"ko"}"#

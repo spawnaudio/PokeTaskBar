@@ -164,6 +164,21 @@ final class UsageStore {
     var floatingPetStyle: FloatingPetStyle {
         didSet { defaults.set(floatingPetStyle.rawValue, forKey: "floatingPetStyle") }
     }
+    enum FloatingDisplayMode: Int, CaseIterable { case battle, classic, timerOnly }
+    /// Reuse the saved pet/timer settings so Settings and the context menu agree.
+    var floatingDisplayMode: FloatingDisplayMode {
+        get {
+            if !floatingPetEnabled, floatingTimerDetached, floatingPetStyle == .classic { return .timerOnly }
+            return floatingPetStyle == .battle ? .battle : .classic
+        }
+        set {
+            floatingPetStyle = newValue == .battle ? .battle : .classic
+            floatingPetEnabled = newValue != .timerOnly
+            floatingTimerDetached = newValue == .timerOnly
+            if newValue == .battle { battleWindowFolded = false }
+            floatingPetIslandFolded = false
+        }
+    }
     var floatingPetSize: Double {
         didSet { defaults.set(floatingPetSize, forKey: "floatingPetSize") }
     }
@@ -182,6 +197,9 @@ final class UsageStore {
     var floatingTimerPinned: Bool {
         didSet { defaults.set(floatingTimerPinned, forKey: "floatingTimerPinned") }
     }
+    var floatingDisplaysFloatOnTop: Bool {
+        didSet { defaults.set(floatingDisplaysFloatOnTop, forKey: "floatingDisplaysFloatOnTop") }
+    }
     var focusOverlayEnabled: Bool { floatingPetEnabled || floatingTimerDetached }
     var floatingTimerScale: Double {
         didSet {
@@ -189,6 +207,16 @@ final class UsageStore {
             if floatingTimerScale != clamped { floatingTimerScale = clamped }
             defaults.set(floatingTimerScale, forKey: FloatingTimerMetrics.scaleKey)
         }
+    }
+    var battleWindowScale: Double {
+        didSet {
+            let clamped = FloatingTimerMetrics.scale(battleWindowScale)
+            if battleWindowScale != clamped { battleWindowScale = clamped }
+            defaults.set(battleWindowScale, forKey: "battleWindowScale")
+        }
+    }
+    var battleWindowFolded: Bool {
+        didSet { defaults.set(battleWindowFolded, forKey: "battleWindowFolded") }
     }
     /// Preferred expanded timer width. The controller additionally fits it to the screen.
     var floatingTimerWidth: Double {
@@ -202,6 +230,9 @@ final class UsageStore {
     /// Only the in-panel button detaches or snaps it back — dragging does not.
     var menuBarPanelDetached: Bool {
         didSet { defaults.set(menuBarPanelDetached, forKey: MenuBarPanelMetrics.detachedKey) }
+    }
+    var menuBarPanelFloatsOnTop: Bool {
+        didSet { defaults.set(menuBarPanelFloatsOnTop, forKey: "menuBarPanelFloatsOnTop") }
     }
     /// Today desk left sidebar preferred width (pt). Independent of window frame autosave.
     var todayDeskLeftWidth: Double {
@@ -730,10 +761,17 @@ final class UsageStore {
         floatingPetIslandFolded = d.object(forKey: "floatingPetIslandFolded") as? Bool ?? false
         floatingTimerDetached = d.object(forKey: "floatingTimerDetached") as? Bool ?? false
         floatingTimerPinned = d.object(forKey: "floatingTimerPinned") as? Bool ?? false
-        floatingTimerScale = FloatingTimerMetrics.scale(d.object(forKey: FloatingTimerMetrics.scaleKey) as? Double ?? 1)
+        floatingDisplaysFloatOnTop = d.object(forKey: "floatingDisplaysFloatOnTop") as? Bool ?? true
+        let savedTimerScale = FloatingTimerMetrics.scale(d.object(forKey: FloatingTimerMetrics.scaleKey) as? Double ?? 1)
+        floatingTimerScale = savedTimerScale
+        let savedBattleScale = FloatingTimerMetrics.scale(d.object(forKey: "battleWindowScale") as? Double ?? savedTimerScale)
+        battleWindowScale = savedBattleScale
+        if d.object(forKey: "battleWindowScale") == nil { d.set(savedBattleScale, forKey: "battleWindowScale") }
+        battleWindowFolded = d.object(forKey: "battleWindowFolded") as? Bool ?? false
         floatingTimerWidth = Double(FloatingTimerMetrics.width(
             CGFloat(d.object(forKey: FloatingTimerMetrics.widthKey) as? Double ?? Double(FloatingTimerMetrics.defaultWidth))))
         menuBarPanelDetached = d.object(forKey: MenuBarPanelMetrics.detachedKey) as? Bool ?? false
+        menuBarPanelFloatsOnTop = d.object(forKey: "menuBarPanelFloatsOnTop") as? Bool ?? true
         let desk = TodayDeskLayout.load(from: d)
         todayDeskLeftWidth = Double(desk.leftWidth)
         todayDeskRightWidth = Double(desk.rightWidth)

@@ -1,0 +1,11 @@
+{
+  "app": "/Applications/PokeTasks v2.0.app",
+  "bundleID": "io.github.spawnaudio.poketasks.v2",
+  "version": "2.0.0",
+  "sha256": "345cb637d8bbc93ff1ee3a152d49b2f022ec666eeca7bed23ff3a3ca75d6f107",
+  "iconSHA256": "cd4de25cef6d2af348561ac04ffed17e501516cb4a49f73507e75d1a31c1d216",
+  "packagedAndInstalledMatch": true,
+  "strictSignatureVerified": true,
+  "originalAppUnchanged": true,
+  "developmentBuild": "1"
+}

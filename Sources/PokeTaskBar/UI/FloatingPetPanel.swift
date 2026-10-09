@@ -4,8 +4,23 @@ import SwiftUI
 /// Pet overlay panel. Stock `.nonactivatingPanel` cannot become key, so overlay
 /// `TextField`s (session notes, check-in) swallow clicks and drop keystrokes.
 final class FloatingPetPanel: NSPanel {
+    var contextMenuProvider: (() -> NSMenu)?
+    var onMenuTrackingChange: ((Bool) -> Void)?
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func sendEvent(_ event: NSEvent) {
+        // Handle this before SwiftUI controls or WebKit choose their own menu.
+        if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)),
+           let menu = contextMenuProvider?(), let contentView {
+            onMenuTrackingChange?(true)
+            defer { onMenuTrackingChange?(false) }
+            NSApp.activate(ignoringOtherApps: true)
+            NSMenu.popUpContextMenu(menu, with: event, for: contentView)
+            return
+        }
+        super.sendEvent(event)
+    }
 }
 
 final class FloatingTimerHostingView: NSHostingView<AnyView> {
@@ -26,6 +41,21 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private let companion: CompanionStore
     private let session: FocusSessionStore
     private let defaults: UserDefaults
+    private lazy var displayMenu: FloatingDisplayMenu = {
+        let menu = FloatingDisplayMenu(store: store)
+        menu.language = { [weak self] in self?.companion.language ?? .systemDefault }
+        menu.onOpen = { [weak self] in
+            guard let self else { return }
+            if self.store.floatingPetStyle == .battle && self.store.battleWindowFolded { self.expandBattleWindow() }
+            else { self.onOpenPopover?() }
+        }
+        menu.onOpenToday = { [weak self] in self?.onOpenToday?() }
+        menu.onNewIssue = { [weak self] in self?.onNewIssue?() }
+        menu.onHide = { [weak self] in self?.onHide?() }
+        menu.onToggleTuck = { [weak self] in self?.toggleEdgeTucking() }
+        menu.tuckEnabled = { [weak self] in self?.tuckEdge != nil }
+        return menu
+    }()
     private var battle: BattleWindow?
     private var battleHeight: CGFloat = 180
     private var battleInput = false
@@ -51,6 +81,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     private static let originXKey = "floatingPetOriginX"
     private static let originYKey = "floatingPetOriginY"
+    private static let battleAnchorXKey = "battleWindowAnchorX"
+    private static let battleAnchorYKey = "battleWindowAnchorY"
 
     /// Squared movement (pt²) below which a mouse-up counts as a click, not a drag.
     static let clickThresholdSquared: CGFloat = 16  // ~4pt
@@ -147,6 +179,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             guard let self else { return }
             self.store.floatingPetStyle = .battle
             self.store.floatingPetEnabled = true
+            self.store.battleWindowFolded = false
             self.sync()
             self.battle?.openBag()
         }
@@ -182,7 +215,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private func positionXPReward() {
         guard let panel, let screen = panel.screen, let rewardPanel else { return }
         let size = CGFloat(store.floatingPetSize)
-        let pet = NSRect(x: panel.frame.maxX - size, y: panel.frame.minY, width: size, height: size)
+        let pet = store.floatingPetStyle == .battle ? panel.frame
+            : NSRect(x: panel.frame.maxX - size, y: panel.frame.minY, width: size, height: size)
         rewardPanel.follow(pet: pet, screen: screen)
     }
 
@@ -196,10 +230,16 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         withObservationTracking {
             _ = store.floatingPetStyle
             _ = store.floatingPetEnabled
-            _ = store.floatingPetSize
+            _ = store.floatingDisplaysFloatOnTop
             _ = store.floatingPetIslandFolded
             _ = store.floatingTimerWidth
-            _ = store.floatingTimerScale
+            if store.floatingPetStyle == .battle {
+                _ = store.battleWindowScale
+                _ = store.battleWindowFolded
+            } else {
+                _ = store.floatingPetSize
+                _ = store.floatingTimerScale
+            }
             _ = store.floatingTimerDetached
             _ = store.currentSpeechBubble
             _ = companion.language
@@ -395,7 +435,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let reserved = Self.panelSize(petSize: 0, showingBubble: false,
             hasIsland: session.isActive, prompt: session.prompt,
             composingNote: session.isComposingNote, confirm: overlayConfirm,
-            setupIsland: session.pomodoroSetupOpen && !session.isActive,
+            setupIsland: (session.pomodoroSetupOpen || store.floatingDisplayMode == .timerOnly) && !session.isActive,
             timerWidth: CGFloat(store.floatingTimerWidth))
         let scale = CGFloat(store.floatingTimerScale)
         return NSSize(width: CGFloat(store.floatingTimerWidth) * scale, height: reserved.height * scale)
@@ -403,7 +443,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     private func syncDetachedTimer() {
         guard store.floatingPetStyle != .battle, store.floatingTimerDetached, displayAwake,
-              session.isActive || session.pomodoroSetupOpen else {
+              session.isActive || session.pomodoroSetupOpen || store.floatingDisplayMode == .timerOnly else {
             timerPanel?.orderOut(nil)
             timerPanel?.contentView = nil
             timerTextInputArmed = false
@@ -411,6 +451,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         }
         let p = timerPanel ?? makePanel()
         timerPanel = p
+        p.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         p.identifier = NSUserInterfaceItemIdentifier(Self.timerPanelIdentifier)
         if !(p.contentView is NSHostingView<AnyView>) {
             p.contentView = FloatingTimerHostingView(rootView: AnyView(
@@ -453,11 +494,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         defaults.set(timerPanel.frame.minY, forKey: Self.timerAnchorYKey)
     }
 
+    private var overlayIsEditing: Bool {
+        store.floatingPetStyle == .battle ? (!store.battleWindowFolded && battleInput)
+            : Self.overlayNeedsKeyWindow(composingNote: session.isComposingNote, prompt: session.prompt)
+    }
+
     private var displayedTuckEdge: TuckEdge? {
-        guard !edgeRevealed,
-              store.floatingTimerDetached || !battleInput, !Self.overlayNeedsKeyWindow(
-                composingNote: session.isComposingNote, prompt: session.prompt)
-        else { return nil }
+        guard !edgeRevealed, !overlayIsEditing else { return nil }
         return tuckEdge
     }
 
@@ -466,7 +509,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         if tuckEdge != nil {
             tuckEdge = nil
         } else if let panel, let screen = panel.screen {
-            let petCenter = panel.frame.maxX - CGFloat(store.floatingPetSize) / 2
+            let petCenter = store.floatingPetStyle == .battle ? panel.frame.midX
+                : panel.frame.maxX - CGFloat(store.floatingPetSize) / 2
             tuckEdge = petCenter < screen.visibleFrame.midX ? .left : .right
         }
         defaults.set(tuckEdge?.rawValue, forKey: Self.tuckEdgeKey)
@@ -491,10 +535,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
                 while !Task.isCancelled {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
                     guard let self, let panel = self.panel, panel.isVisible else { return }
-                    guard !self.menuTracking, !self.battleInput, NSEvent.pressedMouseButtons == 0,
-                          panel.childWindows?.contains(where: \.isVisible) != true,
-                          !Self.overlayNeedsKeyWindow(composingNote: self.session.isComposingNote,
-                                                      prompt: self.session.prompt)
+                    guard !self.menuTracking, !self.overlayIsEditing, NSEvent.pressedMouseButtons == 0,
+                          panel.childWindows?.contains(where: \.isVisible) != true
                     else { continue }
                     guard !panel.frame.contains(NSEvent.mouseLocation) else { return }
                     self.edgeRevealed = false
@@ -507,8 +549,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     /// Crop at the screen boundary instead of moving a window onto an adjacent display.
     static func edgeFrame(expanded: NSRect, edge: TuckEdge, visible: NSRect,
-                          petSize: CGFloat, tucked: Bool) -> NSRect {
-        let size = tucked ? NSSize(width: edgePeekWidth, height: petSize) : expanded.size
+                          petSize: CGFloat, tucked: Bool, peekWidth: CGFloat = edgePeekWidth) -> NSRect {
+        let size = tucked ? NSSize(width: peekWidth, height: petSize) : expanded.size
         let frame = NSRect(x: edge == .left ? visible.minX : visible.maxX - size.width,
                            y: expanded.minY, width: size.width, height: size.height)
         return FloatingTimerMetrics.constrained(frame, to: visible)
@@ -524,8 +566,14 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private func showBattle() {
         let p = panel ?? makePanel()
         panel = p
+        p.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         p.identifier = NSUserInterfaceItemIdentifier("PokeTasks.BattleWindow")
-        if battle == nil {
+        builtAnimated = nil
+        let folded = store.battleWindowFolded
+        p.title = folded ? "PokeTasks · Game Boy" : "PokeTasks · Battle window"
+        if folded {
+            battle?.setPublishing(false)
+        } else if battle == nil {
             let game = BattleWindow(usage: store, companion: companion, focus: session)
             game.onLayout = { [weak self] height, input in
                 guard let self else { return }
@@ -537,36 +585,93 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             game.onTuck = { [weak self] in self?.toggleEdgeTucking() }
             game.onHover = { [weak self] in self?.hoverChanged($0) }
             battle = game
-            p.contentView = game.content
-            builtAnimated = nil
         }
-        let scale = CGFloat(store.floatingTimerScale)
-        let size = NSSize(width: 360 * scale, height: battleHeight * scale)
+        let scale = CGFloat(store.battleWindowScale)
+        let size = folded ? NSSize(width: GameBoyIcon.size.width * scale, height: GameBoyIcon.size.height * scale)
+            : NSSize(width: 360 * scale, height: battleHeight * scale)
         let petSize = CGFloat(store.floatingPetSize)
         let fallback = Self.defaultPetOrigin(petSize: petSize)
-        let origin = NSPoint(x: defaults.object(forKey: Self.originXKey) as? Double ?? fallback.x,
-                             y: defaults.object(forKey: Self.originYKey) as? Double ?? fallback.y)
-        var target = NSRect(x: origin.x + petSize - size.width, y: origin.y, width: size.width, height: size.height)
+        let savedX = defaults.object(forKey: Self.battleAnchorXKey) as? Double
+        let savedY = defaults.object(forKey: Self.battleAnchorYKey) as? Double
+        let anchor = NSPoint(x: savedX ?? (defaults.object(forKey: Self.originXKey) as? Double ?? fallback.x) + petSize,
+                             y: savedY ?? defaults.object(forKey: Self.originYKey) as? Double ?? fallback.y)
+        var target = NSRect(x: anchor.x - size.width, y: anchor.y, width: size.width, height: size.height)
         let screen = NSScreen.screens.first { $0.visibleFrame.intersects(target) } ?? NSScreen.main
         if let screen {
             target = FloatingTimerMetrics.constrained(target, to: screen.visibleFrame)
-            if let tuckEdge {
-                target = Self.edgeFrame(expanded: target, edge: tuckEdge, visible: screen.visibleFrame,
-                                        petSize: size.height, tucked: displayedTuckEdge != nil)
+        }
+        if savedX == nil || savedY == nil {
+            defaults.set(target.maxX, forKey: Self.battleAnchorXKey)
+            defaults.set(target.minY, forKey: Self.battleAnchorYKey)
+        }
+        if let screen, let tuckEdge {
+            target = Self.edgeFrame(expanded: target, edge: tuckEdge, visible: screen.visibleFrame,
+                                    petSize: size.height, tucked: displayedTuckEdge != nil,
+                                    peekWidth: folded ? size.width / 2 : Self.edgePeekWidth)
+        }
+        if folded {
+            let icon = AnyView(GameBoyIcon(scale: scale, tuckedEdge: displayedTuckEdge).environment(session))
+            let hosting = p.contentView as? PetHostingView ?? PetHostingView(rootView: icon)
+            hosting.rootView = icon
+            hosting.hasIsland = false
+            hosting.petSize = size.width
+            hosting.tuckedEdge = displayedTuckEdge
+            hosting.onOpenPopover = { [weak self] in self?.expandBattleWindow() }
+            hosting.onAccessibilityPress = hosting.onOpenPopover
+            hosting.clockSession = session
+            hosting.openMenuTitle = "Open Battle window"
+            hosting.movementLocked = { [weak self] in self?.store.floatingTimerPinned ?? false }
+            hosting.onOpenToday = onOpenToday
+            hosting.onNewIssue = onNewIssue
+            hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
+            hosting.onHide = onHide
+            hosting.contextMenuProvider = { [weak self] in self?.displayMenu.makeMenu() ?? NSMenu() }
+            hosting.onHoverChange = { [weak self] in self?.hoverChanged($0) }
+            hosting.onToggleTuck = { [weak self] in self?.toggleEdgeTucking() }
+            hosting.tuckEnabled = { [weak self] in self?.tuckEdge != nil }
+            hosting.languageProvider = { [weak self] in self?.companion.language ?? .en }
+            hosting.onMenuTrackingChange = { [weak self] tracking in
+                guard let self else { return }
+                self.menuTracking = tracking
+                if !tracking { self.hoverChanged(self.panel?.frame.contains(NSEvent.mouseLocation) == true) }
+            }
+            hosting.toolTip = "Open Battle window · Right-click to tuck at screen edge"
+            hosting.setAccessibilityElement(true)
+            hosting.setAccessibilityRole(.button)
+            hosting.setAccessibilityLabel("Open Battle window")
+            hosting.wantsLayer = true; hosting.layer?.masksToBounds = true
+            if p.contentView !== hosting {
+                p.contentView = hosting
+                p.makeFirstResponder(hosting)
+            }
+        } else if let battle {
+            battle.content.gameSize = size
+            battle.content.tuckedRight = displayedTuckEdge == .right
+            if p.contentView !== battle.content {
+                p.contentView = battle.content
+                p.makeFirstResponder(battle.webView)
             }
         }
-        battle?.content.gameSize = size
-        battle?.content.tuckedRight = displayedTuckEdge == .right
         if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
             applyingFrame = true; p.setFrame(target, display: true); applyingFrame = false
         }
         if !p.isVisible { p.orderFrontRegardless() }
-        if battleInput, !textInputArmed {
+        if !folded, battleInput, !textInputArmed {
             NSApp.activate(ignoringOtherApps: true)
             p.makeKeyAndOrderFront(nil)
         }
-        textInputArmed = battleInput
-        battle?.publish()
+        textInputArmed = !folded && battleInput
+        if !folded {
+            battle?.setPublishing(true)
+            battle?.publish()
+        }
+    }
+
+    private func expandBattleWindow() {
+        tuckTask?.cancel()
+        edgeRevealed = tuckEdge != nil
+        store.battleWindowFolded = false
+        sync()
     }
 
     private func show() {
@@ -577,11 +682,14 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         }
         let p = panel ?? makePanel()
         panel = p
+        p.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         let wantAnimated = Self.shouldAnimate(lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
+        p.title = "PokeTasks · Floating companion"
         if p.contentView == nil || builtAnimated != wantAnimated {
             let hosting = PetHostingView(rootView: petView(animated: wantAnimated))
             hosting.onOpenPopover = onOpenPopover
             hosting.onHide = onHide
+            hosting.contextMenuProvider = { [weak self] in self?.displayMenu.makeMenu() ?? NSMenu() }
             hosting.onOpenToday = onOpenToday
             hosting.onNewIssue = onNewIssue
             hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
@@ -619,16 +727,20 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             hosting.onNewIssue = onNewIssue
             hosting.canCreateIssue = { [weak self] in self?.store.canComposeLinearIssue ?? false }
         }
+        if let hosting = p.contentView as? PetHostingView {
+            hosting.onAccessibilityPress = nil
+            hosting.clockSession = nil
+            hosting.openMenuTitle = nil
+            hosting.movementLocked = { false }
+        }
         let petSize = CGFloat(store.floatingPetSize)
         let target = targetFrame(petSize: petSize, showingBubble: store.currentSpeechBubble != nil)
         if Self.shouldApplyPanelFrame(current: p.frame, target: target, isVisible: p.isVisible) {
             applyingFrame = tuckEdge != nil
             p.setFrame(target, display: true)
             applyingFrame = false
-            p.orderFrontRegardless()
-        } else if !p.isVisible {
-            p.orderFrontRegardless()
         }
+        if !p.isVisible { p.orderFrontRegardless() }
         let needsKey = !store.floatingTimerDetached && Self.overlayNeedsKeyWindow(
             composingNote: session.isComposingNote, prompt: session.prompt)
         if needsKey, !textInputArmed {
@@ -656,6 +768,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func updateHoverTooltip() {
+        guard store.floatingPetStyle != .battle else { return }
         if let hosting = panel?.contentView as? PetHostingView {
             hosting.toolTip = displayedTuckEdge == nil ? currentHoverText() : L(companion.language).floatingPetReveal
         }
@@ -701,6 +814,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
         let hp = hoverPanel ?? makeHoverPanel()
         hoverPanel = hp
+        hp.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         hp.appearance = appearance
         hp.contentView = container
         hp.setContentSize(size)
@@ -721,7 +835,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = true
-        p.level = .floating
+        p.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
@@ -813,7 +927,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = false
-        p.level = .floating
+        p.level = store.floatingDisplaysFloatOnTop ? .floating : .normal
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         p.isMovableByWindowBackground = false
         p.hidesOnDeactivate = false
@@ -821,6 +935,18 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         p.becomesKeyOnlyIfNeeded = true
         p.allowsToolTipsWhenApplicationIsInactive = true
         p.animationBehavior = .none
+        p.contextMenuProvider = { [weak self] in self?.displayMenu.makeMenu() ?? NSMenu() }
+        p.onMenuTrackingChange = { [weak self, weak p] tracking in
+            guard let self else { return }
+            if let hosting = p?.contentView as? PetHostingView {
+                hosting.onMenuTrackingChange?(tracking)
+                return
+            }
+            self.menuTracking = tracking
+            self.tuckTask?.cancel()
+            if tracking { self.hideHoverCallout() }
+            else { self.hoverChanged(self.panel?.frame.contains(NSEvent.mouseLocation) == true) }
+        }
         p.delegate = self
         return p
     }
@@ -842,18 +968,28 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     private func persistPetOrigin() {
         guard tuckEdge == nil, let p = panel, p.isVisible else { return }
-        let petSize = CGFloat(store.floatingPetSize)
-        let pet = Self.petOrigin(panelOrigin: p.frame.origin, petSize: petSize,
-                                 panelSize: p.frame.size, hasIsland: true)
-        defaults.set(Double(pet.x), forKey: Self.originXKey)
-        defaults.set(Double(pet.y), forKey: Self.originYKey)
+        if store.floatingPetStyle == .battle {
+            defaults.set(p.frame.maxX, forKey: Self.battleAnchorXKey)
+            defaults.set(p.frame.minY, forKey: Self.battleAnchorYKey)
+        } else {
+            let petSize = CGFloat(store.floatingPetSize)
+            let pet = Self.petOrigin(panelOrigin: p.frame.origin, petSize: petSize,
+                                     panelSize: p.frame.size, hasIsland: true)
+            defaults.set(Double(pet.x), forKey: Self.originXKey)
+            defaults.set(Double(pet.y), forKey: Self.originYKey)
+        }
         positionXPReward()
         if hoverPanel?.isVisible == true { showHoverCallout() }
     }
 }
 
 final class PetHostingView: NSHostingView<AnyView> {
+    var contextMenuProvider: (() -> NSMenu)?
     var onOpenPopover: (() -> Void)?
+    var onAccessibilityPress: (() -> Void)?
+    var clockSession: FocusSessionStore?
+    var openMenuTitle: String?
+    var movementLocked: () -> Bool = { false }
     var onHide: (() -> Void)?
     var onOpenToday: (() -> Void)?
     var onNewIssue: (() -> Void)?
@@ -877,7 +1013,22 @@ final class PetHostingView: NSHostingView<AnyView> {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    override func menu(for event: NSEvent) -> NSMenu? {
+        if let contextMenuProvider { return contextMenuProvider() }
+        return onAccessibilityPress == nil ? super.menu(for: event) : makeContextMenu()
+    }
+
+    override func accessibilityRole() -> NSAccessibility.Role? {
+        onAccessibilityPress == nil ? super.accessibilityRole() : .button
+    }
+
+    override func accessibilityValue() -> Any? {
+        guard let clockSession else { return super.accessibilityValue() }
+        return clockSession.isActive ? clockSession.clockDisplay().text : "No active timer"
+    }
+
     override func accessibilityPerformPress() -> Bool {
+        if let onAccessibilityPress { onAccessibilityPress(); return true }
         guard tuckedEdge != nil else { return super.accessibilityPerformPress() }
         onHoverChange?(true)
         return true
@@ -940,7 +1091,7 @@ final class PetHostingView: NSHostingView<AnyView> {
             super.mouseDragged(with: event)
             return
         }
-        guard let window, let start = mouseDownScreen, let origin = originAtDown else { return }
+        guard !movementLocked(), let window, let start = mouseDownScreen, let origin = originAtDown else { return }
         let now = NSEvent.mouseLocation
         if !Self.isClick(from: start, to: now) { didDrag = true }
         window.setFrameOrigin(NSPoint(x: origin.x + (now.x - start.x),
@@ -976,10 +1127,11 @@ final class PetHostingView: NSHostingView<AnyView> {
     }
 
     func makeContextMenu() -> NSMenu {
+        if let contextMenuProvider { return contextMenuProvider() }
         let l = L(languageProvider())
         let menu = NSMenu(title: "")
         menu.autoenablesItems = false
-        let open = menu.addItem(withTitle: l.floatingPetMenuOpen,
+        let open = menu.addItem(withTitle: openMenuTitle ?? l.floatingPetMenuOpen,
                                 action: #selector(handleOpen(_:)), keyEquivalent: "")
         open.target = self
         open.isEnabled = true

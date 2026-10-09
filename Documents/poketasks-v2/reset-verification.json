@@ -1,0 +1,28 @@
+{
+  "profile": "/Users/squeakyvermin/Library/Application Support/PokeTasks v2.0",
+  "backup": "/Users/squeakyvermin/Library/Application Support/PokeTasks v2.0/backups/pre-reset-20261002-023952",
+  "performedAt": "2026-10-02T02:39:52.224783+08:00",
+  "statsAndCollectionReset": true,
+  "linearConnectionAndPlanPreserved": true,
+  "originalProfileTouched": false,
+  "previousCounts": {
+    "dex": 91,
+    "storage": 27,
+    "sessions": 17,
+    "issueHistory": 17
+  },
+  "freshCounts": {
+    "dex": 0,
+    "storage": 0,
+    "sessions": 0,
+    "issueHistory": 0,
+    "earnedXP": 0
+  },
+  "backupFiles": {
+    "usage-cache.json": "sha256:9089d80fcc799470a962a6027989729c01f003630c8ff14e102988c8f9c804dc",
+    "companion-state.json": "sha256:da3878d5dc1870138c20a6b606500da3067230f259ad07b46ffecbd70ac44e7f",
+    "focus-session.json": "sha256:64e3ed074f15fa4f2633b84c560d9968cd35937e538b72501ebb495e54ca3176",
+    "cursor-usage-api-cache.json": "sha256:519259a087c39b881bf8d53c60a3fcb4ef8fed8bc40d89cb21789e89b29052d1",
+    "last-snapshot.json": "sha256:a53d74583f241454a810e9db45e9a386aecd1954d7cc76520921f1559a23c81a"
+  }
+}

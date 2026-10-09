@@ -42,20 +42,22 @@ enum LinearIssuesTab: CaseIterable, Hashable {
 
     func issues(in store: UsageStore, projectID: String? = nil) -> [LinearIssueSummary] {
         if let projectID, let project = store.linearProjects.first(where: { $0.id == projectID }) {
-            switch self {
-            case .inProgress:
-                return project.issues.filter(LinearClient.isInProgressIssue)
-            case .todo: return project.issues.filter(LinearClient.isTodoIssue)
-            case .planned: return project.issues.filter(LinearClient.isPlannedIssue)
-            case .completedToday:
-                return project.issues.filter { $0.stateType?.lowercased() == "completed" }
-            }
+            return project.issues.filter(matches)
         }
         switch self {
         case .inProgress: return store.linearInProgressIssues
         case .todo: return store.linearTodoIssues
         case .planned: return store.linearPlannedIssues
         case .completedToday: return store.linearCompletedTodayIssues
+        }
+    }
+
+    func matches(_ issue: LinearIssueSummary) -> Bool {
+        switch self {
+        case .inProgress: LinearClient.isInProgressIssue(issue)
+        case .todo: LinearClient.isTodoIssue(issue)
+        case .planned: LinearClient.isPlannedIssue(issue)
+        case .completedToday: issue.stateType?.lowercased() == "completed"
         }
     }
 }
@@ -217,7 +219,7 @@ struct LinearIntegrationView: View {
         } else {
             ContentFittingScrollView(fillsViewport: visibleIssues.count > 8) {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(LinearIssueHierarchy.roots(visibleIssues, in: store.allLinearIssues)) { issue in
+                    ForEach(LinearIssueHierarchy.roots(visibleIssues, in: visibleIssues)) { issue in
                         issueCard(issue)
                     }
                 }
@@ -255,7 +257,7 @@ struct LinearIntegrationView: View {
     }
 
     private func issueCard(_ issue: LinearIssueSummary, nested: Bool = false) -> some View {
-        LinearIssueEntityRow(issue: issue, nested: nested) {
+        LinearIssueEntityRow(issue: issue, nested: nested, issuesTab: selectedIssuesTab) {
             nav.showFocus()
         }
     }
@@ -372,6 +374,7 @@ struct LinearIssueEntityRow: View {
     private var usesExternalMinimization: Bool
     private var usesExternalExpansion: Bool
     var childScope: Set<String>? = nil
+    var issuesTab: LinearIssuesTab? = nil
     var hiddenIssueStatuses: Set<String> = []
     var ancestors: Set<String> = []
     @State private var hovering = false
@@ -381,7 +384,7 @@ struct LinearIssueEntityRow: View {
 
     init(issue: LinearIssueSummary, nested: Bool = false, parentProjectID: String? = nil, initiallyMinimized: Bool = false,
          minimization: Binding<Bool>? = nil,
-         expansion: Binding<Bool>? = nil, childScope: Set<String>? = nil, ancestors: Set<String> = [],
+         expansion: Binding<Bool>? = nil, childScope: Set<String>? = nil, issuesTab: LinearIssuesTab? = nil, ancestors: Set<String> = [],
          hiddenIssueStatuses: Set<String> = [],
          onPin: @escaping () -> Void) {
         self.issue = issue
@@ -393,6 +396,7 @@ struct LinearIssueEntityRow: View {
         usesExternalMinimization = minimization != nil
         usesExternalExpansion = expansion != nil
         self.childScope = childScope
+        self.issuesTab = issuesTab
         self.hiddenIssueStatuses = hiddenIssueStatuses
         self.ancestors = ancestors
         _localMinimized = State(initialValue: initiallyMinimized)
@@ -409,7 +413,7 @@ struct LinearIssueEntityRow: View {
     private var children: [LinearIssueSummary] {
         LinearClient.sortedByPriority(LinearProjectIssueFilter.visible(store.allLinearIssues, hiding: hiddenIssueStatuses).filter {
             $0.parentID == issue.id && $0.id != issue.id && !ancestors.contains($0.id) &&
-                (childScope == nil || childScope!.contains($0.id))
+                (childScope == nil || childScope!.contains($0.id)) && (issuesTab == nil || issuesTab!.matches($0))
         })
     }
 
@@ -470,7 +474,7 @@ struct LinearIssueEntityRow: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Sub-issues · \(children.count)").font(.caption).foregroundStyle(.secondary)
                             ForEach(children) { child in
-                                AnyView(LinearIssueEntityRow(issue: child, nested: true, parentProjectID: parentProjectID, childScope: childScope,
+                                AnyView(LinearIssueEntityRow(issue: child, nested: true, parentProjectID: parentProjectID, childScope: childScope, issuesTab: issuesTab,
                                     ancestors: ancestors.union([issue.id]), hiddenIssueStatuses: hiddenIssueStatuses, onPin: onPin))
                             }
                         }.padding(.leading, 12)

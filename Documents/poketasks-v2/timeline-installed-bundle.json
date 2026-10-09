@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-02",
+  "installedPath": "/Applications/PokeTasks v2.0.app",
+  "bundleID": "io.github.spawnaudio.poketasks.v2",
+  "version": "2.0.0",
+  "binarySHA256": "6abbf6e115ea28c7f15b8eb4b35136d3e7bc38b035d7ac9ecda51c182e7f1a0f",
+  "matchesPackagedBinary": true,
+  "iconSHA256": "cd4de25cef6d2af348561ac04ffed17e501516cb4a49f73507e75d1a31c1d216",
+  "profilePreserved": {
+    "collection": true,
+    "history": true,
+    "planning": true,
+    "connection": true,
+    "sessionIdentity": true
+  },
+  "noSecondReset": true,
+  "hadActiveSession": false,
+  "launch": {
+    "bundleID": "io.github.spawnaudio.poketasks.v2",
+    "executablePath": "/Applications/PokeTasks v2.0.app/Contents/MacOS/PokeTasks v2.0",
+    "installedPath": "/Applications/PokeTasks v2.0.app",
+    "pid": 45334,
+    "runningInstances": 1
+  },
+  "activeSessionRestoredPaused": null,
+  "restartPolicy": "restore an active session paused"
+}

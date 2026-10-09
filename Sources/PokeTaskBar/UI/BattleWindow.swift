@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import WebKit
 
 /// The approved game UI runs locally; Swift owns every timer, reward and inventory mutation.
@@ -18,6 +19,8 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private var ready = false
     private var pendingBag = false
     private var mutating = false
+    private var gameHeight: CGFloat = 180
+    private var gameInput = false
     var onLayout: ((CGFloat, Bool) -> Void)?
     var onTuck: (() -> Void)?
     var onHover: ((Bool) -> Void)?
@@ -36,6 +39,12 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         webView.navigationDelegate = self
         content.onHover = { [weak self] in self?.onHover?($0) }
         webView.loadFileURL(resourceURL, allowingReadAccessTo: resourceURL.deletingLastPathComponent())
+        setPublishing(true)
+    }
+
+    func setPublishing(_ enabled: Bool) {
+        if !enabled { timer?.invalidate(); timer = nil; return }
+        guard timer == nil else { return }
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.publish() }
         }
@@ -44,13 +53,15 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 
     func stop() {
+        if content.taskPicker != nil { focus.cancelForfeit(); content.taskPicker = nil }
         ready = false
-        timer?.invalidate(); timer = nil
+        setPublishing(false)
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "battle")
         webView.stopLoading()
     }
 
     func openBag() {
+        closeTaskPicker()
         guard ready else { pendingBag = true; return }
         webView.evaluateJavaScript("window.pokeTasksOpenBag?.()")
     }
@@ -72,12 +83,16 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 if pendingBag { pendingBag = false; openBag() }
             case "layout":
                 if let height = body["height"] as? Int, [180, 200, 260].contains(height) {
-                    onLayout?(CGFloat(height), body["input"] as? Bool ?? false)
+                    gameHeight = CGFloat(height)
+                    gameInput = body["input"] as? Bool ?? false
+                    if content.taskPicker == nil { onLayout?(gameHeight, gameInput) }
                 }
             case "pause": focus.togglePause()
+            case "fold": usage.battleWindowFolded = true
             case "pin": usage.floatingTimerPinned.toggle()
             case "tuck": onTuck?()
             case "tasks": focus.openDesk()
+            case "choose-task": openTaskPicker()
             case "start":
                 if let minutes = Self.wholeMinutes(body["minutes"]), !focus.isActive,
                    (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) {
@@ -114,6 +129,27 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
               number.doubleValue.isFinite, number.doubleValue.rounded() == number.doubleValue,
               (1...Double(SessionXP.maxMinutes)).contains(number.doubleValue) else { return nil }
         return number.intValue
+    }
+
+    func openTaskPicker() {
+        guard content.taskPicker == nil else { return }
+        let picker = BattleTaskPicker(onClose: { [weak self] in self?.closeTaskPicker() },
+            onFocused: { [weak self] in
+                guard let self, focus.forfeitPrompt == nil else { return }
+                closeTaskPicker()
+                publish()
+            })
+            .environment(usage).environment(companion).environment(focus)
+        content.taskPicker = NSHostingView(rootView: AnyView(picker))
+        onLayout?(380, true)
+    }
+
+    func closeTaskPicker() {
+        guard content.taskPicker != nil else { return }
+        focus.cancelForfeit()
+        content.taskPicker = nil
+        onLayout?(gameHeight, gameInput)
+        content.window?.makeFirstResponder(webView)
     }
 
     private static func potion(_ value: Any?) -> ItemKind? {
@@ -153,7 +189,7 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 "bag": Dictionary(uniqueKeysWithValues: FocusPotion.kinds.map { ($0.spriteName!, companion.itemCount($0)) }),
                 "prices": Dictionary(uniqueKeysWithValues: FocusPotion.kinds.map { ($0.spriteName!, companion.price(of: $0) ?? 0) }),
                 "itemImages": itemImages, "defaultMinutes": focus.plannedMinutes,
-                "scale": usage.floatingTimerScale, "pinned": usage.floatingTimerPinned]
+                "scale": usage.battleWindowScale, "pinned": usage.floatingTimerPinned]
     }
 
     private func refreshArtwork() {
@@ -217,6 +253,15 @@ final class BattlePanelContent: NSView {
     var onHover: ((Bool) -> Void)?
     var gameSize = NSSize(width: 360, height: 180) { didSet { needsLayout = true } }
     var tuckedRight = false { didSet { needsLayout = true } }
+    var taskPicker: NSView? {
+        willSet { taskPicker?.removeFromSuperview() }
+        didSet {
+            if let taskPicker { addSubview(taskPicker) }
+            webView.isHidden = taskPicker != nil
+            header.isHidden = taskPicker != nil
+            needsLayout = true
+        }
+    }
 
     init(webView: WKWebView, pinned: @escaping () -> Bool) {
         self.webView = webView; self.header = BattleHeaderDragView(pinned: pinned)
@@ -228,9 +273,11 @@ final class BattlePanelContent: NSView {
     override func layout() {
         super.layout()
         let x = tuckedRight ? bounds.width - gameSize.width : 0
+        taskPicker?.frame = NSRect(x: x, y: 0, width: gameSize.width, height: gameSize.height)
         webView.frame = NSRect(x: x, y: 0, width: gameSize.width, height: gameSize.height)
         header.frame = NSRect(x: 0, y: bounds.height - 32 * gameSize.width / 360,
-                              width: bounds.width, height: 32 * gameSize.width / 360)
+                              width: max(0, bounds.width - 40 * gameSize.width / 360),
+                              height: 32 * gameSize.width / 360)
     }
     override func updateTrackingAreas() {
         if let tracking { removeTrackingArea(tracking) }
@@ -240,6 +287,77 @@ final class BattlePanelContent: NSView {
     }
     override func mouseEntered(with event: NSEvent) { onHover?(true) }
     override func mouseExited(with event: NSEvent) { onHover?(false) }
+}
+
+/// Reuse the actual issue cards and focus flow inside the existing Battle panel.
+@MainActor
+private struct BattleTaskPicker: View {
+    let onClose: () -> Void
+    let onFocused: () -> Void
+    @Environment(UsageStore.self) private var usage
+    @Environment(CompanionStore.self) private var companion
+    @Environment(FocusSessionStore.self) private var focus
+    @Environment(\.colorScheme) private var scheme
+    @State private var query = ""
+
+    private var issues: [LinearIssueSummary] {
+        TaskPlanningStore.issues(in: usage).filter {
+            query.isEmpty || "\($0.identifier) \($0.title) \($0.projectName ?? "")".localizedStandardContains(query)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Choose task").font(.headline)
+                Spacer()
+                Button {
+                    Task { _ = await usage.refreshLinearIssues() }
+                } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.plain).help(companion.l.refreshNow)
+                    .accessibilityLabel(companion.l.refreshNow)
+                    .disabled(!usage.linearIntegrationEnabled || !usage.linearAPIKeyConfigured || usage.isRefreshingLinearIssues)
+                Button(action: onClose) { Image(systemName: "xmark") }
+                    .buttonStyle(.plain).keyboardShortcut(.cancelAction)
+                    .accessibilityLabel(companion.l.close)
+                    .accessibilityIdentifier("battle-task-picker-close")
+            }
+            if let warning = focus.forfeitPrompt {
+                FocusForfeitWarningCard(warning: warning)
+                Spacer()
+            } else {
+                TextField("Search issues", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("battle-task-search")
+                Text("Use the focus button on an issue to choose its duration.")
+                    .font(.caption).foregroundStyle(.secondary)
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        if issues.isEmpty {
+                            Text(!usage.linearIntegrationEnabled || !usage.linearAPIKeyConfigured
+                                 ? companion.l.linearIssuesNeedsSetup
+                                 : usage.isRefreshingLinearIssues ? "Loading issues…"
+                                 : usage.linearIssuesError != nil ? "Could not load issues. Try refreshing."
+                                 : query.isEmpty ? "No open issues." : "No matching issues.")
+                                .font(.callout).foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        ForEach(issues) { issue in
+                            LinearIssueEntityRow(issue: issue, onPin: onFocused)
+                        }
+                    }.padding(2)
+                }.scrollIndicators(.hidden)
+            }
+        }
+        .padding(12)
+        .background(MenuBarTheme(scheme: scheme).canvas)
+        .scaledFloatingTimer(size: NSSize(width: 360, height: 380), scale: CGFloat(usage.battleWindowScale))
+        .onChange(of: focus.session?.issue.id) { _, _ in onFocused() }
+        .task {
+            guard usage.linearIntegrationEnabled, usage.linearAPIKeyConfigured else { return }
+            _ = await usage.refreshLinearIssues()
+        }
+    }
 }
 
 @MainActor

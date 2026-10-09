@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-02",
+  "checks": 112,
+  "passed": 109,
+  "skipped": 3,
+  "failed": 0,
+  "log": "final-validation.log",
+  "regionCoverage": "final-region-coverage.txt",
+  "toolchain": "Xcode-beta / Swift 6, native build, coverage enabled",
+  "originalAppHashVerifiedAtInitialInstall": true,
+  "installedBinarySHA256": "345cb637d8bbc93ff1ee3a152d49b2f022ec666eeca7bed23ff3a3ca75d6f107",
+  "limitations": [
+    "Historical full-suite baseline has failures; latest full suite not rerun.",
+    "Live Linear write operations tested with intercepted responses.",
+    "Full VoiceOver, notarization and multi-monitor/travel UI checks not completed."
+  ]
+}

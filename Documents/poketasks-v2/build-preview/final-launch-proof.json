@@ -1,0 +1,13 @@
+{
+  "appPaths": [
+    "/Applications/PokeTasks v2.0.app"
+  ],
+  "runningInstances": 1,
+  "windowIDs": [
+    308,
+    611
+  ],
+  "mainWindowTitleMatched": false,
+  "observedNativeFloatingTimer": true,
+  "initialMainWindowProof": "installed-launch.json"
+}

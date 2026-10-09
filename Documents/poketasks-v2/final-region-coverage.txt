@@ -1,0 +1,1301 @@
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/TaskPlanning.swift:
+    1|       |import Foundation
+    2|       |import Observation
+    3|       |
+    4|       |enum PlanningGroup: String, Codable, CaseIterable, Identifiable {
+    5|       |    case today, soon, later
+    6|     57|    var id: String { rawValue }
+    7|    109|    var title: String { rawValue.capitalized }
+    8|     41|    var statusName: String { switch self { case .today: "In Progress"; case .soon: "Planned"; case .later: "Todo" } }
+                                                         ^17                         ^13                    ^11
+    9|       |}
+   10|       |
+   11|       |struct TaskPlanEntry: Codable, Equatable, Identifiable {
+   12|       |    var id: String
+   13|       |    var group: PlanningGroup
+   14|       |    var day: String?
+   15|       |    var order: Int
+   16|       |}
+   17|       |
+   18|       |struct TaskTimeBlock: Codable, Equatable, Identifiable {
+   19|      7|    var id = UUID()
+   20|       |    var issueID: String
+   21|       |    var identifier: String
+   22|       |    var title: String
+   23|       |    var projectID: String?
+   24|       |    var day: String
+   25|       |    var startMinute: Int
+   26|       |    var durationMinutes: Int
+   27|      6|    var timeZoneID: String? = TimeZone.current.identifier
+   28|       |    var startAt: Date?
+   29|       |    var endAt: Date?
+   30|      1|    var endMinute: Int { startMinute + durationMinutes }
+   31|     18|    var timeRange: String {
+   32|     18|        guard let startAt, let endAt else { return String(format: "%02d:%02d – %02d:%02d", startMinute / 60, startMinute % 60, endMinute / 60, endMinute % 60) }
+                                                        ^0
+   33|     18|        let formatter = DateFormatter()
+   34|     18|        formatter.timeZone = timeZoneID.flatMap(TimeZone.init(identifier:)) ?? .current
+                                                                                             ^0
+   35|     18|        formatter.dateFormat = "HH:mm"
+   36|     18|        return "\(formatter.string(from: startAt)) – \(formatter.string(from: endAt))"
+   37|     18|    }
+   38|       |
+   39|     92|    static func snapped(_ minute: Double) -> Int {
+   40|     92|        guard minute.isFinite else { return 0 }
+                                                 ^1
+   41|     91|        return Int((min(1440, max(0, minute)) / 5).rounded()) * 5
+   42|     92|    }
+   43|     44|    mutating func set(start: Int, duration: Int) {
+   44|     44|        durationMinutes = min(180, max(5, Self.snapped(Double(duration))))
+   45|     44|        startMinute = min(1440 - durationMinutes, max(0, Self.snapped(Double(start))))
+   46|     44|        var calendar = Calendar(identifier: .gregorian)
+   47|     44|        calendar.timeZone = timeZoneID.flatMap(TimeZone.init(identifier:)) ?? .current
+                                                                                            ^0
+   48|    131|        let parts = day.split(separator: "-").compactMap { Int($0) }
+   49|     44|        startAt = nil; endAt = nil
+   50|     44|        if parts.count == 3 {
+   51|     43|            startAt = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2],
+   52|     43|                hour: startMinute / 60, minute: startMinute % 60))
+   53|     43|            if let startAt {
+   54|     43|                let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: startAt)
+   55|     43|                if c.year != parts[0] || c.month != parts[1] || c.day != parts[2] ||
+   56|     43|                    c.hour != startMinute / 60 || c.minute != startMinute % 60 { self.startAt = nil }
+                                                                ^42                          ^1
+   57|     43|            }
+   58|     43|            endAt = startAt?.addingTimeInterval(Double(durationMinutes * 60))
+   59|     43|        }
+   60|     44|    }
+   61|       |}
+   62|       |
+   63|       |enum PlanningSort: String, Codable, CaseIterable { case manual, priority, title }
+   64|       |
+   65|       |private struct TaskPlanningState: Codable {
+   66|     78|    var entries: [TaskPlanEntry] = []
+   67|     78|    var blocks: [TaskTimeBlock] = []
+   68|     78|    var folded: Set<PlanningGroup> = []
+   69|     78|    var linked = false
+   70|     78|    var sort: PlanningSort = .manual
+   71|       |}
+   72|       |
+   73|       |@MainActor @Observable
+   74|       |final class TaskPlanningStore {
+   75|     76|    private var state = TaskPlanningState()
+   76|       |    private let fileURL: URL
+   77|       |    private let clock: () -> Date
+   78|       |    private(set) var storageError: String?
+   79|     76|    private var canSave = true
+   80|     76|    private(set) var syncing = false
+   81|       |    private(set) var syncError: String?
+   82|       |    private(set) var undoMove: Move?
+   83|       |    private var failedMove: Move?
+   84|       |    private var blockUndo: (blocks: [TaskTimeBlock], entries: [TaskPlanEntry])?
+   85|       |    private(set) var blockError: String?
+   86|      8|    var canUndoBlock: Bool { blockUndo != nil }
+   87|      3|    var canRetry: Bool { failedMove != nil }
+   88|     76|    var timelineHour = 8
+   89|       |    var selectedDay: Date
+   90|     76|    var projectFilter = ""
+   91|       |
+   92|       |    struct Move {
+   93|       |        var issue: LinearIssueSummary
+   94|       |        var before: TaskPlanEntry?
+   95|       |        var after: TaskPlanEntry?
+   96|       |        var priorStateID: String?
+   97|       |        var targetStateID: String?
+   98|       |        var linked: Bool
+   99|       |    }
+  100|       |
+  101|     76|    init(fileURL: URL, clock: @escaping () -> Date = Date.init) {
+                                                                   ^4
+  102|     76|        self.fileURL = fileURL
+  103|     76|        self.clock = clock
+  104|     76|        selectedDay = clock()
+  105|     76|        if FileManager.default.fileExists(atPath: fileURL.path) {
+  106|      3|            do {
+  107|      3|                state = try JSONDecoder().decode(TaskPlanningState.self, from: Data(contentsOf: fileURL))
+  108|      2|                // Validate persisted geometry once at the storage boundary.
+  109|      2|                for index in state.blocks.indices {
+  110|      1|                    state.blocks[index].set(start: state.blocks[index].startMinute, duration: state.blocks[index].durationMinutes)
+  111|      2|                }
+  112|      2|                var seen = Set<String>()
+  113|      4|                state.entries = state.entries.filter { seen.insert($0.id).inserted }
+  114|      2|                state.entries.sort { $0.order < $1.order }
+  115|      4|                for index in state.entries.indices { state.entries[index].order = index }
+  116|      2|            } catch {
+  117|      1|                canSave = false
+  118|      1|                storageError = "The planning file could not be read. It has been preserved."
+  119|      3|            }
+  120|     76|        }
+  121|     76|    }
+  122|       |
+  123|      1|    var entries: [TaskPlanEntry] { state.entries }
+  124|     30|    var blocks: [TaskTimeBlock] { state.blocks }
+  125|     45|    var folded: Set<PlanningGroup> { state.folded }
+  126|     96|    var linked: Bool { get { state.linked } set { state.linked = newValue; save() } }
+                                                              ^3
+  127|     73|    var sort: PlanningSort { get { state.sort } set { state.sort = newValue; save() } }
+                                                                  ^1
+  128|     50|    var dayKey: String { Self.dayKey(selectedDay) }
+  129|     61|    static func issues(in usage: UsageStore) -> [LinearIssueSummary] {
+  130|    183|        usage.allLinearIssues.filter(isOpen)
+  131|     61|    }
+  132|     61|    nonisolated static func dayKey(_ date: Date, calendar: Calendar = .current) -> String {
+  133|     61|        let c = calendar.dateComponents([.year, .month, .day], from: date)
+  134|     61|        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+                                                                        ^0            ^0          ^0
+  135|     61|    }
+  136|      6|    func fold(_ group: PlanningGroup) {
+  137|      6|        if state.folded.contains(group) { state.folded.remove(group) } else { state.folded.insert(group) }
+                                                      ^2                                  ^4
+  138|      6|        save()
+  139|      6|    }
+  140|      4|    func foldAll(_ folded: Bool) { state.folded = folded ? Set(PlanningGroup.allCases) : []; save() }
+                                                                         ^3                            ^1
+  141|    216|    func entry(_ id: String) -> TaskPlanEntry? { state.entries.first { $0.id == id } }
+                                                                                   ^143
+  142|    211|    nonisolated static func isOpen(_ issue: LinearIssueSummary) -> Bool {
+  143|    211|        !["completed", "canceled", "cancelled"].contains(issue.stateType?.lowercased() ?? "")
+                                                                                                        ^0
+  144|    211|    }
+  145|      5|    nonisolated static func stateID(for group: PlanningGroup, issue: LinearIssueSummary) -> String? {
+  146|      5|        // All three names must resolve for this team; a missing mapping leaves it personal.
+  147|     13|        guard PlanningGroup.allCases.allSatisfy({ group in
+  148|     37|            issue.teamStates.filter { $0.name.caseInsensitiveCompare(group.statusName) == .orderedSame &&
+  149|     37|                !["completed", "canceled", "cancelled"].contains($0.type.lowercased()) }.count == 1
+                              ^13
+  150|     13|        }) else { return nil }
+                              ^2
+  151|      4|        return issue.teamStates.first { $0.name.caseInsensitiveCompare(group.statusName) == .orderedSame }?.id
+  152|      5|    }
+  153|       |
+  154|       |    func move(_ issue: LinearIssueSummary, to group: PlanningGroup, usage: UsageStore,
+  155|     10|              update: ((LinearIssueSummary, String) async -> Bool)? = nil) async {
+  156|     10|        guard !syncing, Self.isOpen(issue), canSave else { return }
+                                                                       ^1
+  157|      9|        let before = entry(issue.id)
+  158|      9|        let after = TaskPlanEntry(id: issue.id, group: group, day: group == .today ? dayKey : nil,
+                                                                                                   ^7       ^2
+  159|      9|                                 order: (state.entries.map(\.order).max() ?? 0) + 1)
+                                                                         ^5                ^5
+  160|      9|        let move = Move(issue: issue, before: before, after: after, priorStateID: issue.stateId,
+  161|      9|                        targetStateID: state.linked ? Self.stateID(for: group, issue: issue) : nil, linked: state.linked)
+                                                                    ^4                                       ^5
+  162|      9|        setEntry(after, id: issue.id)
+  163|      9|        undoMove = move
+  164|      9|        guard storageError == nil else { return }
+                                                     ^1
+  165|      8|        await synchronize(move, usage: usage, update: update)
+  166|      8|    }
+  167|      3|    func undo(usage: UsageStore, update: ((LinearIssueSummary, String) async -> Bool)? = nil) async {
+  168|      3|        guard !syncing, let move = undoMove, canSave else { return }
+                                                                        ^0
+  169|      3|        setEntry(move.before, id: move.issue.id)
+  170|      3|        undoMove = nil
+  171|      3|        var restore = move
+  172|      3|        restore.targetStateID = move.targetStateID == nil ? nil : move.priorStateID
+                                                                          ^1    ^2
+  173|      3|        await synchronize(restore, usage: usage, update: update)
+  174|      3|    }
+  175|      1|    func retry(usage: UsageStore, update: ((LinearIssueSummary, String) async -> Bool)? = nil) async {
+  176|      1|        guard !syncing, let failedMove else { return }
+                                                          ^0
+  177|      1|        await synchronize(failedMove, usage: usage, update: update)
+  178|      1|    }
+  179|       |    private func synchronize(_ move: Move, usage: UsageStore,
+  180|     12|                             update: ((LinearIssueSummary, String) async -> Bool)? = nil) async {
+  181|     12|        syncError = nil; failedMove = nil
+  182|     12|        guard move.linked else { return }
+                                             ^6
+  183|      6|        guard let target = move.targetStateID else {
+  184|      1|            syncError = "Personal move saved. This team needs valid In Progress, Planned and Todo mappings before linking."
+  185|      1|            return
+  186|      5|        }
+  187|      5|        let current = usage.linearIssue(id: move.issue.id) ?? move.issue
+                                                                            ^3
+  188|      5|        guard Self.isOpen(current) else {
+  189|      0|            syncError = "The issue is closed in Linear. Its status was left unchanged."
+  190|      0|            return
+  191|      5|        }
+  192|      5|        if current.stateId == target { return }
+                                                   ^1
+  193|      4|        syncing = true
+  194|      4|        defer { syncing = false }
+  195|      4|        let succeeded: Bool
+  196|      4|        if let update { succeeded = await update(current, target) }
+                                    ^2
+  197|      4|        else { succeeded = await usage.moveLinearIssueToState(current, stateID: target) }
+                           ^2
+  198|      4|        if !succeeded { failedMove = move; syncError = "The plan was saved, but Linear did not update. Retry or Undo." }
+                                    ^1
+  199|      4|    }
+  200|      0|    func remove(_ id: String) { guard !syncing else { return }; setEntry(nil, id: id) }
+  201|     16|    private func setEntry(_ entry: TaskPlanEntry?, id: String) {
+  202|     16|        state.entries.removeAll { $0.id == id }
+                                              ^11
+  203|     16|        if let entry { state.entries.append(entry) }
+                                   ^15
+  204|     16|        save()
+  205|     16|    }
+  206|      1|    func reorder(_ issueID: String, before otherID: String) {
+  207|      1|        guard let target = entry(otherID), let moving = entry(issueID), target.group == moving.group,
+  208|      1|              target.day == moving.day else { return }
+                                                          ^0
+  209|      2|        var ordered = state.entries.filter { $0.group == target.group && $0.day == target.day }
+  210|      2|            .sorted { $0.order < $1.order }.filter { $0.id != issueID }
+                                  ^1
+  211|      1|        ordered.insert(moving, at: ordered.firstIndex { $0.id == otherID } ?? ordered.endIndex)
+                                                                                            ^0
+  212|      2|        for (order, value) in ordered.enumerated() {
+  213|      3|            if let index = state.entries.firstIndex(where: { $0.id == value.id }) { state.entries[index].order = order }
+                                                                                                ^2
+  214|      2|        }
+  215|      1|        save()
+  216|      1|    }
+  217|       |    @discardableResult
+  218|      6|    func schedule(_ issue: LinearIssueSummary, start: Int, duration: Int = 30) -> TaskTimeBlock? {
+  219|      6|        guard Self.isOpen(issue), canSave else { return nil }
+                                                             ^1
+  220|      5|        var block = TaskTimeBlock(issueID: issue.id, identifier: issue.identifier, title: issue.title,
+  221|      5|                                  projectID: issue.projectID, day: dayKey, startMinute: 0, durationMinutes: 30)
+  222|      5|        block.set(start: start, duration: duration)
+  223|      5|        guard block.startAt != nil else { blockError = "That time is unavailable in this time zone. Choose another time."; return nil }
+                                                      ^0
+  224|      5|        guard !hasConflict(block) else { blockError = "That time overlaps another block. Choose a free time."; return nil }
+                                                     ^1
+  225|      4|        blockUndo = (state.blocks, state.entries)
+  226|      4|        blockError = nil
+  227|      4|        state.blocks.append(block)
+  228|      4|        // Scheduling chooses a personal day; status linking only runs on explicit group moves.
+  229|      4|        setEntry(TaskPlanEntry(id: issue.id, group: .today, day: dayKey,
+  230|      4|            order: (state.entries.map(\.order).max() ?? 0) + 1), id: issue.id)
+                                                    ^2                ^2
+  231|      4|        return block
+  232|      6|    }
+  233|       |    @discardableResult
+  234|      6|    func edit(_ block: TaskTimeBlock, start: Int, duration: Int, day: String? = nil) -> Bool {
+  235|      8|        guard canSave, let index = state.blocks.firstIndex(where: { $0.id == block.id }) else { return false }
+                                                                                                            ^0
+  236|      6|        var updated = state.blocks[index]
+  237|      6|        if let day { updated.day = day }
+                                 ^2
+  238|      6|        updated.set(start: start, duration: duration)
+  239|      6|        guard updated.startAt != nil else { blockError = "That time is unavailable in this time zone. Choose another time."; return false }
+                                                        ^1
+  240|      5|        guard !hasConflict(updated, excluding: block.id) else { blockError = "That time overlaps another block. Choose a free time."; return false }
+                                                                            ^1
+  241|      4|        blockUndo = (state.blocks, state.entries)
+  242|      4|        blockError = nil
+  243|      4|        state.blocks[index] = updated
+  244|      4|        save()
+  245|      4|        return storageError == nil
+  246|      6|    }
+  247|     16|    func hasConflict(_ block: TaskTimeBlock, excluding id: UUID? = nil) -> Bool {
+  248|     16|        state.blocks.contains { other in
+  249|     14|            guard other.id != id else { return false }
+                                                    ^10
+  250|      4|            if let start = block.startAt, let end = block.endAt, let otherStart = other.startAt, let otherEnd = other.endAt {
+  251|      4|                return otherStart < end && start < otherEnd
+  252|      4|            }
+  253|      0|            return other.day == block.day && other.startMinute < block.endMinute && block.startMinute < other.endMinute
+  254|     14|        }
+  255|     16|    }
+  256|      2|    func removeBlock(_ id: UUID) {
+  257|      2|        guard canSave else { return }
+                                         ^0
+  258|      2|        blockUndo = (state.blocks, state.entries)
+  259|      3|        state.blocks.removeAll { $0.id == id }; blockError = nil; save()
+  260|      2|    }
+  261|      5|    func undoBlock() {
+  262|      5|        guard canSave, let blockUndo else { return }
+                                                        ^1
+  263|      4|        state.blocks = blockUndo.blocks; state.entries = blockUndo.entries
+  264|      4|        self.blockUndo = nil; blockError = nil; save()
+  265|      4|    }
+  266|     41|    func save() {
+  267|     41|        guard canSave else { return }
+                                         ^1
+  268|     40|        do { try JSONEncoder().encode(state).write(to: fileURL, options: .atomic); storageError = nil }
+                                                                                               ^38
+  269|     40|        catch { storageError = "The plan could not be saved. Check the storage location and try again." }
+                            ^2
+  270|     40|    }
+  271|       |}
+
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/TaskTime.swift:
+    1|       |import Foundation
+    2|       |
+    3|       |struct FocusActiveSegment: Codable, Equatable {
+    4|       |    var start: Date
+    5|       |    var end: Date
+    6|     28|    var seconds: TimeInterval { max(0, end.timeIntervalSince(start)) }
+    7|     71|    init(start: Date, end: Date) { self.start = start; self.end = end }
+    8|       |    private enum CodingKeys: String, CodingKey { case start, end }
+    9|     19|    init(from decoder: Decoder) throws {
+   10|     19|        let c = try decoder.container(keyedBy: CodingKeys.self)
+   11|     19|        // Numeric instants preserve sub-second measurement; accept the earlier ISO format.
+   12|     19|        if let seconds = try? c.decode(Double.self, forKey: .start) { start = Date(timeIntervalSince1970: seconds) }
+   13|     19|        else { start = try c.decode(Date.self, forKey: .start) }
+                           ^0                                               ^0
+   14|     19|        if let seconds = try? c.decode(Double.self, forKey: .end) { end = Date(timeIntervalSince1970: seconds) }
+   15|     19|        else { end = try c.decode(Date.self, forKey: .end) }
+                           ^0                                           ^0
+   16|     19|        guard start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite,
+   17|     19|              start >= .distantPast, end <= .distantFuture, end >= start else {
+   18|      0|            throw DecodingError.dataCorruptedError(forKey: .end, in: c, debugDescription: "Invalid active time segment")
+   19|     19|        }
+   20|     19|    }
+   21|    174|    func encode(to encoder: Encoder) throws {
+   22|    174|        var c = encoder.container(keyedBy: CodingKeys.self)
+   23|    174|        try c.encode(start.timeIntervalSince1970, forKey: .start)
+   24|    174|        try c.encode(end.timeIntervalSince1970, forKey: .end)
+   25|    174|    }
+   26|       |}
+   27|       |
+   28|       |struct TaskSessionRecord: Codable, Equatable, Identifiable {
+   29|       |    var id: String
+   30|       |    var issueID: String
+   31|       |    var identifier: String
+   32|       |    var title: String
+   33|       |    var projectID: String?
+   34|       |    var projectName: String?
+   35|       |    var blockID: UUID?
+   36|       |    var segments: [FocusActiveSegment]
+   37|       |    var activeSeconds: TimeInterval
+   38|       |    var plannedSeconds: TimeInterval
+   39|       |    var finishedAt: Date
+   40|       |    var finish: FocusFinishKind
+   41|       |    var xp: Int
+   42|       |    var partial: Bool
+   43|       |}
+   44|       |
+   45|       |enum TaskTimeReport {
+   46|      2|    static func secondsByDay(_ records: [TaskSessionRecord], calendar: Calendar = .current) -> [String: Double] {
+   47|      2|        var values: [String: Double] = [:]
+   48|      2|        for record in records where !record.partial {
+   49|      1|            for segment in record.segments {
+   50|      1|                var start = segment.start
+   51|      3|                while start < segment.end {
+   52|      2|                    guard let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: start)),
+   53|      2|                          midnight > start else { break }
+                                                              ^0
+   54|      2|                    let end = min(midnight, segment.end)
+   55|      2|                    values[TaskPlanningStore.dayKey(start, calendar: calendar), default: 0] += end.timeIntervalSince(start)
+   56|      2|                    start = end
+   57|      2|                }
+   58|      1|            }
+   59|      2|        }
+   60|      2|        return values
+   61|      2|    }
+   62|      1|    static func seconds(_ records: [TaskSessionRecord], from: Date, until: Date) -> Double {
+   63|      1|        records.filter { !$0.partial }.reduce(0) { total, record in
+   64|      1|            total + record.segments.reduce(0) { value, segment in
+   65|      1|                value + max(0, min(until, segment.end).timeIntervalSince(max(from, segment.start)))
+   66|      1|            }
+   67|      1|        }
+   68|      1|    }
+   69|      2|    static func planCoverage(records: [TaskSessionRecord], blocks: [TaskTimeBlock]) -> Double? {
+   70|      2|        let planned = blocks.reduce(0.0) { $0 + Double($1.durationMinutes * 60) }
+                                                       ^1
+   71|      2|        guard planned > 0 else { return nil }
+                                             ^1
+   72|      1|        let covered = blocks.reduce(0.0) { value, block in
+   73|      1|            let actual = records.filter { $0.blockID == block.id && !$0.partial }.reduce(0.0) { $0 + $1.activeSeconds }
+   74|      1|            return value + min(Double(block.durationMinutes * 60), actual)
+   75|      1|        }
+   76|      1|        return covered / planned
+   77|      2|    }
+   78|      2|    static func csv(_ records: [TaskSessionRecord]) -> String {
+   79|     22|        func field(_ value: String) -> String { "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+   80|      2|        let formatter = ISO8601DateFormatter()
+   81|      2|        var rows = ["session_id,issue_id,identifier,title,recorded_project,active_seconds,planned_seconds,finish,finished_at_utc,timezone,partial"]
+   82|      2|        rows += records.map { record in
+   83|      2|            [record.id, record.issueID, record.identifier, record.title, record.projectName ?? "",
+                                                                                                             ^0
+   84|      2|             String(record.activeSeconds), String(record.plannedSeconds), record.finish.rawValue,
+   85|      2|             formatter.string(from: record.finishedAt), TimeZone.current.identifier, String(record.partial)]
+   86|      2|                .map(field).joined(separator: ",")
+   87|      2|        }
+   88|      2|        return rows.joined(separator: "\n") + "\n"
+   89|      2|    }
+   90|      0|    static func duration(_ seconds: Double) -> String {
+   91|      0|        let minutes = max(0, Int(seconds / 60))
+   92|      0|        return minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m" : "\(minutes)m"
+   93|      0|    }
+   94|       |}
+
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/FocusSessionStore.swift:
+    1|       |import AppKit
+    2|       |import Foundation
+    3|       |import Observation
+    4|       |
+    5|       |/// Single source of truth for the pinned Linear timer, Today desk, overlay island, and session XP.
+    6|       |@MainActor
+    7|       |@Observable
+    8|       |final class FocusSessionStore {
+    9|       |    private let usage: UsageStore
+   10|       |    private let companion: CompanionStore
+   11|       |    private let clock: () -> Date
+   12|       |    private let fileURL: URL
+   13|       |    private let ticksOnTimer: Bool
+   14|       |    private let postComment: ((String, String) async -> Bool)?
+   15|       |    private var timer: Timer?
+   16|       |
+   17|       |    private(set) var session: FocusSession?
+   18|     71|    private(set) var log: [FocusLogEntry] = []
+   19|     71|    private(set) var logDay = ""
+   20|     71|    private(set) var issueHistory: [FocusIssueHistory] = []
+   21|     71|    private(set) var sessionRecords: [TaskSessionRecord] = []
+   22|     71|    private(set) var trackingBeganAt: Date = Date()
+   23|       |    private(set) var storageError: String?
+   24|     71|    private var canSave = true
+   25|       |    let plan: TaskPlanningStore
+   26|     71|    private var sessionGrantedXP = 0
+   27|     71|    private var sessionCheckIns: [FocusCheckInSummary] = []
+   28|     71|    private var sessionNotes: [String] = []
+   29|     71|    private(set) var isPostingNote = false
+   30|     71|    private(set) var notePostFailed = false
+   31|     71|    var isComposingNote = false
+   32|     71|    var noteDraft = ""
+   33|       |    var plannedMinutes: Int {
+   34|       |        didSet {
+   35|       |            let clamped = SessionXP.clampMinutes(plannedMinutes)
+   36|       |            if clamped != plannedMinutes { plannedMinutes = clamped }
+   37|       |            persist()
+   38|       |        }
+   39|       |    }
+   40|       |    var checkInMinutes: Int {
+   41|       |        didSet {
+   42|       |            let clamped = SessionXP.clampMinutes(checkInMinutes)
+   43|       |            if clamped != checkInMinutes { checkInMinutes = clamped }
+   44|       |            persist()
+   45|       |        }
+   46|       |    }
+   47|     71|    var checkInDraft = ""
+   48|       |    private(set) var forfeitPrompt: FocusForfeitWarning?
+   49|     71|    private(set) var resetPrompt = false
+   50|       |    /// Overlay setup island for a timer with no Linear issue. Not persisted.
+   51|     71|    private(set) var pomodoroSetupOpen = false
+   52|     71|    private(set) var timerAlarmSilenced = false
+   53|       |    var onOpenDesk: (() -> Void)?
+   54|       |    var onOpenPlanning: (() -> Void)?
+   55|       |    var onOpenComposer: (() -> Void)?
+   56|       |    var onRevealOverlay: (() -> Void)?
+   57|     71|    private var isLoading = false
+   58|     71|    private var pendingAfterForfeit: PendingAfterForfeit = .none
+   59|       |    private let createIssue: ((LinearIssueDraft) async -> LinearIssueSummary?)?
+   60|       |    /// Last successful session-file write. Accrual ticks checkpoint on this cadence
+   61|       |    /// instead of rewriting JSON every second on the main actor.
+   62|     71|    private var lastPersistAt: Date = .distantPast
+   63|       |    static let tickPersistInterval: TimeInterval = 10
+   64|       |
+   65|       |    private enum PendingAfterForfeit: Equatable {
+   66|       |        case none
+   67|       |        case idle
+   68|       |        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int, blockID: UUID?)
+   69|       |        case createAndFocus(LinearIssueDraft, minutes: Int)
+   70|       |    }
+   71|       |
+   72|       |    init(
+   73|       |        usage: UsageStore,
+   74|       |        companion: CompanionStore,
+   75|      0|        clock: @escaping () -> Date = Date.init,
+   76|       |        fileURL: URL? = nil,
+   77|       |        ticksOnTimer: Bool = true,
+   78|       |        postComment: ((String, String) async -> Bool)? = nil,
+   79|       |        createIssue: ((LinearIssueDraft) async -> LinearIssueSummary?)? = nil
+   80|     71|    ) {
+   81|     71|        self.usage = usage
+   82|     71|        self.companion = companion
+   83|     71|        self.clock = clock
+   84|     71|        self.fileURL = fileURL ?? AppStatePaths.directory().appendingPathComponent("focus-session.json")
+                                                ^0
+   85|     71|        plan = TaskPlanningStore(fileURL: self.fileURL.deletingLastPathComponent().appendingPathComponent("task-planning.json"), clock: clock)
+   86|     71|        trackingBeganAt = clock()
+   87|     71|        self.ticksOnTimer = ticksOnTimer
+   88|     71|        self.postComment = postComment
+   89|     71|        self.createIssue = createIssue
+   90|     71|        plannedMinutes = SessionXP.defaultPlannedMinutes
+   91|     71|        checkInMinutes = SessionXP.defaultCheckInMinutes
+   92|     71|        load()
+   93|     71|    }
+   94|       |
+   95|     88|    var prompt: FocusPrompt {
+   96|     88|        guard let session else { return .none }
+                                             ^32
+   97|     56|        if session.phase == .awaitingChoice { return .zeroTime }
+                                                          ^7
+   98|     49|        if session.pendingCheckIn { return .checkIn }
+                                                ^3
+   99|     46|        return .none
+  100|     88|    }
+  101|       |
+  102|    102|    var isActive: Bool { session != nil }
+  103|       |
+  104|      0|    var todayDriftCount: Int {
+  105|      0|        let day = todayKey()
+  106|      0|        return log.filter { $0.day == day && $0.kind == .checkIn && $0.checkInAnswer == .no }.count
+  107|      0|    }
+  108|       |
+  109|      7|    var todayLog: [FocusLogEntry] {
+  110|      7|        let day = todayKey()
+  111|      8|        return log.filter { $0.day == day }
+  112|      7|    }
+  113|       |
+  114|     17|    func clockDisplay(at now: Date? = nil) -> (text: String, overtime: Bool) {
+  115|     17|        return session?.clockDisplay(at: now ?? clock()) ?? (FocusClock.format(0), false)
+                                                              ^16         ^0
+  116|     17|    }
+  117|       |
+  118|       |    /// Uses the same clock and pause/sleep accounting as the visible countdown.
+  119|      0|    var plannedProgress: Double {
+  120|      0|        guard let session, session.plannedSeconds > 0 else { return 0 }
+  121|      0|        return min(1, max(0, session.displayedSeconds(at: clock()) / session.plannedSeconds))
+  122|      0|    }
+  123|       |
+  124|      5|    func openDesk() { onOpenDesk?() }
+  125|      0|    func openPlanning() { onOpenPlanning?() }
+  126|       |
+  127|      6|    func openComposer() { onOpenComposer?() }
+  128|       |
+  129|     12|    var canResetClock: Bool {
+  130|     12|        guard let session else { return false }
+                                             ^0
+  131|     12|        return FocusTick.elapsedSeconds(session, now: clock()) > 0
+  132|     12|    }
+  133|       |
+  134|     13|    var canAddRemainingTime: Bool {
+  135|     13|        guard let session else { return false }
+                                             ^0
+  136|     13|        return FocusTick.addRemaining(session, minutes: 5, now: clock()) != nil
+  137|     13|    }
+  138|       |
+  139|     48|    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int, blockID: UUID? = nil) {
+  140|     48|        guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
+                                                                                                 ^0
+  141|     48|        pomodoroSetupOpen = false
+  142|     48|        if let current = session, current.issue.id == issue.id {
+  143|      1|            if openDesk { self.openDesk() }
+                                      ^0
+  144|      1|            return
+  145|     47|        }
+  146|     47|        if session != nil {
+  147|      6|            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes, blockID: blockID))
+  148|      6|            return
+  149|     41|        }
+  150|     41|        start(issue, minutes: minutes, blockID: blockID)
+  151|     41|        if openDesk { self.openDesk() }
+                                  ^1
+  152|     41|    }
+  153|       |
+  154|       |    /// Show duration options on the floating overlay. Does not start the clock.
+  155|      6|    func openPomodoroSetup() {
+  156|      6|        guard session == nil else { return }
+                                                ^1
+  157|      5|        pomodoroSetupOpen = true
+  158|      5|        onRevealOverlay?()
+  159|      5|    }
+  160|       |
+  161|      7|    func cancelPomodoroSetup() {
+  162|      7|        pomodoroSetupOpen = false
+  163|      7|    }
+  164|       |
+  165|       |    /// Start the overlay/Focus clock without a Linear issue. No-op if a session is already running.
+  166|     12|    func startPomodoro() {
+  167|     12|        guard session == nil else { return }
+                                                ^1
+  168|     11|        pomodoroSetupOpen = false
+  169|     11|        startPinned(FocusPinnedIssue.pomodoro(title: companion.l.pomodoroTitle))
+  170|     11|    }
+  171|       |
+  172|      9|    func startLocalTask(title: String, description: String, minutes: Int) {
+  173|      9|        guard session == nil, (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
+                                                                                                                 ^2
+  174|      7|        plannedMinutes = minutes
+  175|      7|        pomodoroSetupOpen = false
+  176|      7|        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+  177|      7|        startPinned(FocusPinnedIssue.localTask(
+  178|      7|            title: title.isEmpty ? companion.l.pomodoroTitle : title, description: description))
+                                                 ^1                          ^6
+  179|      7|        onRevealOverlay?()
+  180|      7|    }
+  181|       |
+  182|     23|    var timerAlarmRinging: Bool {
+  183|     23|        session?.phase == .awaitingChoice && session?.sleepHeld == false && !timerAlarmSilenced
+                                                           ^14                            ^13
+  184|     23|    }
+  185|       |
+  186|      2|    func silenceTimerAlarm() { timerAlarmSilenced = true }
+  187|       |
+  188|      3|    func requestUnfocus() {
+  189|      3|        guard session != nil else { return }
+                                                ^0
+  190|      3|        presentForfeit(pending: .idle)
+  191|      3|    }
+  192|       |
+  193|      3|    func cancelForfeit() {
+  194|      3|        pendingAfterForfeit = .none
+  195|      3|        forfeitPrompt = nil
+  196|      3|    }
+  197|       |
+  198|      9|    func confirmForfeit() async {
+  199|      9|        guard session != nil, forfeitPrompt != nil else { return }
+                                                                      ^0
+  200|      9|        let pending = pendingAfterForfeit
+  201|      9|        let resumeTimeOpen: Bool
+  202|      9|        switch pending {
+  203|      9|        case .pin, .createAndFocus: resumeTimeOpen = false
+                      ^6
+  204|      9|        case .none, .idle: resumeTimeOpen = true
+                      ^3
+  205|      9|        }
+  206|      9|        applyForfeit(resumeTimeOpen: resumeTimeOpen)
+  207|      9|        pendingAfterForfeit = .none
+  208|      9|        switch pending {
+  209|      9|        case .none, .idle:
+  210|      3|            break
+  211|      9|        case .pin(let issue, let openDesk, let minutes, let blockID):
+  212|      4|            start(issue, minutes: minutes, blockID: blockID)
+  213|      4|            if openDesk { self.openDesk() }
+                                      ^0
+  214|      9|        case .createAndFocus(let draft, let minutes):
+  215|      2|            if let created = await performCreate(draft) {
+  216|      2|                start(created, minutes: minutes)
+  217|      2|                openDesk()
+  218|      2|            }
+  219|      9|        }
+  220|      9|    }
+  221|       |
+  222|      1|    func createIssue(_ draft: LinearIssueDraft) async -> LinearIssueSummary? {
+  223|      1|        await performCreate(draft)
+  224|      1|    }
+  225|       |
+  226|      6|    func createAndFocus(_ draft: LinearIssueDraft, minutes: Int) async {
+  227|      6|        guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
+                                                                                                 ^0
+  228|      6|        if session != nil {
+  229|      3|            presentForfeit(pending: .createAndFocus(draft, minutes: minutes))
+  230|      3|            return
+  231|      3|        }
+  232|      3|        guard let created = await performCreate(draft) else { return }
+                                                                          ^1
+  233|      2|        start(created, minutes: minutes)
+  234|      2|        openDesk()
+  235|      2|    }
+  236|       |
+  237|      4|    func requestReset() {
+  238|      4|        guard canResetClock else { return }
+                                               ^1
+  239|      3|        resetPrompt = true
+  240|      3|        forfeitPrompt = nil
+  241|      3|        pendingAfterForfeit = .none
+  242|      3|    }
+  243|       |
+  244|      0|    func cancelReset() {
+  245|      0|        resetPrompt = false
+  246|      0|    }
+  247|       |
+  248|      3|    func confirmReset() {
+  249|      3|        guard let session else { return }
+                                             ^0
+  250|      3|        resetPrompt = false
+  251|      3|        guard let reset = FocusTick.resetClock(session, now: clock()) else { return }
+                                                                                         ^0
+  252|      3|        self.session = reset
+  253|      3|        persist()
+  254|      3|        syncTimer()
+  255|      3|    }
+  256|       |
+  257|      4|    func addRemainingMinutes(_ minutes: Int) {
+  258|      4|        guard let session else { return }
+                                             ^0
+  259|      4|        guard let next = FocusTick.addRemaining(session, minutes: minutes, now: clock()) else { return }
+                                                                                                            ^1
+  260|      3|        self.session = next
+  261|      3|        persist()
+  262|      3|        syncTimer()
+  263|      3|    }
+  264|       |
+  265|     20|    var editableTimerMinuteRange: ClosedRange<Int>? {
+  266|     20|        guard let session else { return SessionXP.minMinutes...SessionXP.maxMinutes }
+                                             ^4
+  267|     16|        let available = TimeInterval(SessionXP.maxMinutes * 60) - FocusTick.elapsedSeconds(session, now: clock())
+  268|     16|        let maximum = Int(floor(available / 60))
+  269|     16|        guard maximum >= 1 else { return nil }
+                                              ^1
+  270|     15|        return 1...maximum
+  271|     20|    }
+  272|       |
+  273|      2|    var timerEditorMinutes: Int {
+  274|      2|        guard let session else { return plannedMinutes }
+                                             ^1
+  275|      1|        let remaining = session.plannedSeconds - FocusTick.elapsedSeconds(session, now: clock())
+  276|      1|        return max(1, Int(ceil(remaining / 60)))
+  277|      2|    }
+  278|       |
+  279|       |    @discardableResult
+  280|      6|    func setTimerMinutes(_ minutes: Int) -> Bool {
+  281|      6|        if let session {
+  282|      3|            guard let next = FocusTick.setRemaining(session, minutes: minutes, now: clock()) else { return false }
+                                                                                                                ^1
+  283|      2|            self.session = next
+  284|      2|            persist()
+  285|      2|            syncTimer()
+  286|      3|        } else {
+  287|      3|            guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return false }
+                                                                                                     ^2
+  288|      1|            plannedMinutes = minutes
+  289|      3|        }
+  290|      3|        return true
+  291|      6|    }
+  292|       |
+  293|     10|    func togglePause() {
+  294|     10|        guard var session else { return }
+                                             ^0
+  295|     10|        let now = clock()
+  296|     10|        if session.userPaused || session.phase == .paused {
+                                               ^4
+  297|      6|            session = FocusTick.resume(session, now: now)
+  298|      6|        } else if session.phase == .running || session.phase == .overtime {
+                                ^4                           ^0
+  299|      4|            session = FocusTick.pause(session, now: now)
+  300|      4|        }
+  301|     10|        self.session = session
+  302|     10|        persist()
+  303|     10|        syncTimer()
+  304|     10|    }
+  305|       |
+  306|      4|    func setDisplayAwake(_ awake: Bool) {
+  307|      4|        guard var session else { return }
+                                             ^0
+  308|      4|        let now = clock()
+  309|      4|        session = awake ? FocusTick.wake(session, now: now) : FocusTick.holdSleep(session, now: now)
+                                        ^2                                  ^2
+  310|      4|        self.session = session
+  311|      4|        persist()
+  312|      4|        syncTimer()
+  313|      4|    }
+  314|       |
+  315|      4|    func continueOvertime() {
+  316|      4|        guard var session, session.phase == .awaitingChoice else { return }
+                                                                               ^0
+  317|      4|        let result = FocusTick.continueOvertime(session, now: clock())
+  318|      4|        session = result.session
+  319|      4|        self.session = session
+  320|      4|        grantSessionXP(result.xp)
+  321|      4|        persist()
+  322|      4|        syncTimer()
+  323|      4|    }
+  324|       |
+  325|     18|    func history(forIssueID id: String) -> FocusIssueHistory? {
+  326|     18|        issueHistory.first { $0.id == id }
+                                         ^13
+  327|     18|    }
+  328|       |
+  329|     19|    func finishLeavingInProgress(resumeTimeOpen: Bool = true) {
+  330|     19|        guard let current = session else { return }
+                                                       ^2
+  331|     17|        let result = FocusTick.apply(current, now: clock())
+  332|     17|        let session = result.session
+  333|     17|        grantSessionXP(result.sessionXP)
+  334|     17|        let xp = FocusTick.settleLeaveInProgress(session)
+  335|     17|        grantSessionXP(xp)
+  336|     17|        appendSessionLog(session)
+  337|     17|        recordHistory(session, finish: .leftInProgress)
+  338|     17|        clearSession(resumeTimeOpen: resumeTimeOpen)
+  339|     17|    }
+  340|       |
+  341|      1|    func markIssueDone() async {
+  342|      1|        guard let session, !session.issue.isLocal else { return }
+  343|      0|        let issue = usage.linearIssue(id: session.issue.id) ?? session.issue.summary
+  344|      0|        guard let stateID = session.issue.completedStateId
+  345|      0|                ?? issue.completedStateId
+  346|      0|                ?? issue.teamStates.first(where: { $0.type.lowercased() == "completed" })?.id
+  347|      0|        else { return }
+  348|      0|        let completed = await usage.updateLinearIssueState(issue, stateID: stateID)
+  349|      0|        if let completed {
+  350|      0|            let outcome = companion.creditLinearCompletions([completed])
+  351|      0|            usage.announceLinearCompletions(outcome.newlyCredited)
+  352|      0|            handleLinearCompletion(completed)
+  353|      0|        }
+  354|      0|    }
+  355|       |
+  356|      5|    func handleLinearCompletion(_ completed: LinearCompletedIssue) {
+  357|      5|        guard let current = session, !current.issue.isLocal, current.issue.id == completed.id else { return }
+                                                                                                                 ^0
+  358|      5|        let result = FocusTick.apply(current, now: clock())
+  359|      5|        let session = result.session
+  360|      5|        grantSessionXP(result.sessionXP)
+  361|      5|        let finish: FocusFinishKind
+  362|      5|        let xp: Int
+  363|      5|        if session.fiveXOpen, !session.enteredOvertime {
+  364|      4|            finish = .doneOnTime
+  365|      4|            xp = FocusTick.settleOnTimeDone(session)
+  366|      4|        } else {
+  367|      1|            finish = .doneOvertime
+  368|      1|            xp = FocusTick.settleOvertimeDone(session)
+  369|      1|        }
+  370|      5|        grantSessionXP(xp)
+  371|      5|        appendSessionLog(session)
+  372|      5|        recordHistory(session, finish: finish)
+  373|      5|        clearSession(resumeTimeOpen: true)
+  374|      5|    }
+  375|       |
+  376|      1|    func answerCheckIn(_ answer: CheckInAnswer) async {
+  377|      1|        guard var session, session.pendingCheckIn else { return }
+                                                                     ^0
+  378|      1|        let note = checkInDraft
+  379|      1|        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+  380|      1|        var notePosted = false
+  381|      1|        if answer != .skip, !trimmed.isEmpty {
+  382|      1|            let body = FocusTick.checkInCommentBody(
+  383|      1|                answer: answer,
+  384|      1|                identifier: session.issue.identifier,
+  385|      1|                elapsedSeconds: session.displayedSeconds(at: clock()),
+  386|      1|                note: trimmed)
+  387|      1|            notePosted = await postLinearComment(issueID: session.issue.id, body: body)
+  388|      1|            if notePosted {
+  389|      0|                applySuccessfulNoteFlag()
+  390|      0|                session = self.session ?? session
+  391|      0|            }
+  392|      1|        }
+  393|      1|        if answer != .skip {
+  394|      1|            appendCheckInLog(session.issue, answer: answer, notePosted: notePosted)
+  395|      1|            sessionCheckIns.append(FocusCheckInSummary(
+  396|      1|                answer: answer,
+  397|      1|                notePosted: notePosted,
+  398|      1|                note: FocusCheckInSummary.truncatedNote(trimmed)))
+  399|      1|        }
+  400|      1|        session = FocusTick.answerCheckIn(session, now: clock())
+  401|      1|        self.session = session
+  402|      1|        checkInDraft = ""
+  403|      1|        persist()
+  404|      1|    }
+  405|       |
+  406|       |    /// Persist an accrual tick when the phase/XP/check-in changed, or when the
+  407|       |    /// last write is at least `tickPersistInterval` old. User actions always persist.
+  408|       |    static func shouldPersistTick(
+  409|       |        elapsedSinceLastPersist: TimeInterval,
+  410|       |        semanticChange: Bool,
+  411|       |        interval: TimeInterval = tickPersistInterval
+  412|     42|    ) -> Bool {
+  413|     42|        semanticChange || elapsedSinceLastPersist >= interval
+                                        ^19
+  414|     42|    }
+  415|       |
+  416|     39|    func tick(now: Date? = nil) {
+  417|     39|        guard let session else { return }
+                                             ^0
+  418|     39|        let instant = now ?? clock()
+                                           ^14
+  419|     39|        let result = FocusTick.apply(session, now: instant)
+  420|     39|        let semantic = result.sessionXP > 0
+  421|     39|            || result.hitZero
+                             ^37
+  422|     39|            || result.checkInBecameDue
+                             ^19
+  423|     39|            || result.session.phase != session.phase
+                             ^17
+  424|     39|            || result.session.pendingCheckIn != session.pendingCheckIn
+                             ^17
+  425|     39|            || result.session.userPaused != session.userPaused
+                             ^17
+  426|     39|        self.session = result.session
+  427|     39|        if result.sessionXP > 0 { grantSessionXP(result.sessionXP) }
+                                              ^2
+  428|     39|        if result.hitZero {
+  429|     18|            timerAlarmSilenced = false
+  430|     18|            usage.announceTimesUp(result.session.issue.displayName)
+  431|     18|        }
+  432|     39|        if Self.shouldPersistTick(
+  433|     39|            elapsedSinceLastPersist: instant.timeIntervalSince(lastPersistAt),
+  434|     39|            semanticChange: semantic)
+  435|     39|        {
+  436|     38|            persist(at: instant)
+  437|     38|        }
+  438|     39|        syncTimer()
+  439|     39|    }
+  440|       |
+  441|      0|    func toggleNoteComposer() {
+  442|      0|        guard session != nil else { return }
+  443|      0|        isComposingNote.toggle()
+  444|      0|        if !isComposingNote { notePostFailed = false }
+  445|      0|    }
+  446|       |
+  447|      8|    func postSessionNote() async {
+  448|      8|        guard let current = session, !isPostingNote else { return }
+                                                                       ^0
+  449|      8|        let trimmed = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+  450|      8|        guard !trimmed.isEmpty else { return }
+                                                  ^2
+  451|      6|
+  452|      6|        isPostingNote = true
+  453|      6|        defer { isPostingNote = false }
+  454|      6|
+  455|      6|        let body = FocusTick.sessionCommentBody(
+  456|      6|            identifier: current.issue.identifier,
+  457|      6|            elapsedSeconds: current.displayedSeconds(at: clock()),
+  458|      6|            note: trimmed)
+  459|      6|        let posted = await postLinearComment(issueID: current.issue.id, body: body)
+  460|      6|        guard posted else {
+  461|      2|            notePostFailed = true
+  462|      2|            return
+  463|      4|        }
+  464|      4|        guard session != nil else { return }
+                                                ^0
+  465|      4|        applySuccessfulNoteFlag()
+  466|      4|        if let stored = FocusCheckInSummary.truncatedNote(trimmed) {
+  467|      4|            sessionNotes.append(stored)
+  468|      4|        }
+  469|      4|        appendNoteLog(current.issue, text: trimmed)
+  470|      4|        noteDraft = ""
+  471|      4|        isComposingNote = false
+  472|      4|        notePostFailed = false
+  473|      4|        persist()
+  474|      4|    }
+  475|       |
+  476|       |    // MARK: - Internals
+  477|       |
+  478|     12|    private func presentForfeit(pending: PendingAfterForfeit) {
+  479|     12|        guard let session else { return }
+                                             ^0
+  480|     12|        resetPrompt = false
+  481|     12|        pendingAfterForfeit = pending
+  482|     12|        forfeitPrompt = FocusTick.forfeitWarning(for: session)
+  483|     12|    }
+  484|       |
+  485|      9|    private func applyForfeit(resumeTimeOpen: Bool) {
+  486|      9|        guard let session else { return }
+                                             ^0
+  487|      9|        let result = FocusTick.unfocusForfeit(session)
+  488|      9|        usage.announceForfeit(
+  489|      9|            identifier: session.issue.identifier,
+  490|      9|            leaveInProgressXP: result.warning.leaveInProgressXP)
+  491|      9|        appendForfeitLog(session, leaveInProgressXP: result.warning.leaveInProgressXP)
+  492|      9|        recordHistory(FocusTick.apply(session, now: clock()).session, finish: .forfeited)
+  493|      9|        forfeitPrompt = nil
+  494|      9|        resetPrompt = false
+  495|      9|        clearSession(resumeTimeOpen: resumeTimeOpen)
+  496|      9|    }
+  497|       |
+  498|      6|    private func performCreate(_ draft: LinearIssueDraft) async -> LinearIssueSummary? {
+  499|      6|        if let createIssue {
+  500|      6|            return await createIssue(draft)
+  501|      6|        }
+  502|      0|        return await usage.createLinearIssue(draft)
+  503|      6|    }
+  504|       |
+  505|      7|    private func postLinearComment(issueID: String, body: String) async -> Bool {
+  506|      7|        if session?.issue.isLocal == true { return false }
+                                                        ^1
+  507|      6|        if let postComment {
+  508|      5|            return await postComment(issueID, body)
+  509|      5|        }
+  510|      1|        return await usage.createLinearComment(issueID: issueID, body: body)
+  511|      7|    }
+  512|       |
+  513|      4|    private func applySuccessfulNoteFlag() {
+  514|      4|        guard let session else { return }
+                                             ^0
+  515|      4|        let marked = FocusTick.markNotePosted(session)
+  516|      4|        self.session = marked.session
+  517|      4|        grantSessionXP(marked.topUpXP)
+  518|      4|    }
+  519|       |
+  520|     49|    private func start(_ issue: LinearIssueSummary, minutes: Int, blockID: UUID? = nil) {
+  521|     49|        plannedMinutes = minutes
+  522|     49|        startPinned(FocusPinnedIssue(issue))
+  523|     49|        session?.plannedBlockID = blockID
+  524|     49|        persist()
+  525|     49|    }
+  526|       |
+  527|     67|    private func startPinned(_ issue: FocusPinnedIssue) {
+  528|     67|        let now = clock()
+  529|     67|        usage.requestNotificationAuthorizationIfNeeded()
+  530|     67|        companion.setTimeOpenXPSuspended(true)
+  531|     67|        sessionGrantedXP = 0
+  532|     67|        sessionCheckIns = []
+  533|     67|        sessionNotes = []
+  534|     67|        noteDraft = ""
+  535|     67|        isComposingNote = false
+  536|     67|        notePostFailed = false
+  537|     67|        session = FocusSession.start(
+  538|     67|            issue: issue,
+  539|     67|            plannedMinutes: plannedMinutes,
+  540|     67|            checkInMinutes: checkInMinutes,
+  541|     67|            now: now)
+  542|     67|        persist()
+  543|     67|        syncTimer()
+  544|     67|    }
+  545|       |
+  546|     31|    private func clearSession(resumeTimeOpen: Bool) {
+  547|     31|        session = nil
+  548|     31|        checkInDraft = ""
+  549|     31|        noteDraft = ""
+  550|     31|        isComposingNote = false
+  551|     31|        notePostFailed = false
+  552|     31|        sessionGrantedXP = 0
+  553|     31|        sessionCheckIns = []
+  554|     31|        sessionNotes = []
+  555|     31|        forfeitPrompt = nil
+  556|     31|        resetPrompt = false
+  557|     31|        pomodoroSetupOpen = false
+  558|     31|        pendingAfterForfeit = .none
+  559|     31|        if resumeTimeOpen {
+  560|     25|            companion.setTimeOpenXPSuspended(false, resumeFromNow: true)
+  561|     25|        }
+  562|     31|        persist()
+  563|     31|        syncTimer()
+  564|     31|    }
+  565|       |
+  566|     54|    private func grantSessionXP(_ delta: Int) {
+  567|     54|        guard delta > 0, usage.timeOpenXPEnabled else { return }
+                                                                    ^41
+  568|     13|        let granted = companion.applyCappedProgressXP(delta, today: todayKey())
+  569|     13|        if granted > 0 { sessionGrantedXP += granted }
+  570|     13|    }
+  571|       |
+  572|     31|    private func recordHistory(_ session: FocusSession, finish: FocusFinishKind) {
+  573|     31|        let id = session.recordID?.uuidString ?? "legacy-\(session.issue.id)-\(session.startedAt.timeIntervalSince1970)"
+                                                               ^0
+  574|     31|        if !sessionRecords.contains(where: { $0.id == id }) {
+                                                         ^11
+  575|     31|            let segments = session.activeSegments ?? []
+                                                                   ^0
+  576|     31|            sessionRecords.append(TaskSessionRecord(id: id, issueID: session.issue.id,
+  577|     31|                identifier: session.issue.identifier, title: session.issue.title,
+  578|     31|                projectID: session.issue.projectID, projectName: session.issue.projectName,
+  579|     31|                blockID: session.plannedBlockID, segments: segments,
+  580|     31|                activeSeconds: session.activeSegments == nil ? session.accumulatedSeconds : segments.reduce(0) { $0 + $1.seconds },
+                                                                             ^0                                              ^27
+  581|     31|                plannedSeconds: session.plannedSeconds, finishedAt: clock(), finish: finish,
+  582|     31|                xp: sessionGrantedXP, partial: session.activeSegments == nil))
+  583|     31|        }
+  584|     31|        let overtime = session.enteredOvertime
+  585|     31|            ? max(0, session.accumulatedSeconds - session.plannedSeconds)
+                            ^3
+  586|     31|            : 0
+                            ^28
+  587|     31|        let entry = FocusIssueHistory(
+  588|     31|            id: session.issue.id,
+  589|     31|            identifier: session.issue.identifier,
+  590|     31|            plannedSeconds: session.plannedSeconds,
+  591|     31|            durationSeconds: session.accumulatedSeconds,
+  592|     31|            overtimeSeconds: overtime,
+  593|     31|            sessionXP: sessionGrantedXP,
+  594|     31|            finish: finish,
+  595|     31|            checkIns: sessionCheckIns,
+  596|     31|            notes: sessionNotes.isEmpty ? nil : sessionNotes,
+                                                        ^30   ^1
+  597|     31|            finishedAt: clock())
+  598|     31|        issueHistory.removeAll { $0.id == entry.id }
+                                             ^7
+  599|     31|        issueHistory.insert(entry, at: 0)
+  600|     31|        if issueHistory.count > FocusIssueHistory.maxStored {
+  601|      0|            issueHistory = Array(issueHistory.prefix(FocusIssueHistory.maxStored))
+  602|      0|        }
+  603|     31|    }
+  604|       |
+  605|     22|    private func appendSessionLog(_ session: FocusSession) {
+  606|     22|        rolloverLogIfNeeded()
+  607|     22|        let overtime = session.enteredOvertime
+  608|     22|            ? max(0, session.accumulatedSeconds - session.plannedSeconds)
+                            ^3
+  609|     22|            : 0
+                            ^19
+  610|     22|        log.insert(
+  611|     22|            FocusLogEntry.session(
+  612|     22|                day: todayKey(),
+  613|     22|                issue: session.issue,
+  614|     22|                startedAt: session.startedAt,
+  615|     22|                duration: session.accumulatedSeconds,
+  616|     22|                overtime: overtime),
+  617|     22|            at: 0)
+  618|     22|    }
+  619|       |
+  620|      1|    private func appendCheckInLog(_ issue: FocusPinnedIssue, answer: CheckInAnswer, notePosted: Bool) {
+  621|      1|        rolloverLogIfNeeded()
+  622|      1|        log.insert(
+  623|      1|            FocusLogEntry.checkIn(day: todayKey(), issue: issue, answer: answer, notePosted: notePosted),
+  624|      1|            at: 0)
+  625|      1|    }
+  626|       |
+  627|      4|    private func appendNoteLog(_ issue: FocusPinnedIssue, text: String) {
+  628|      4|        rolloverLogIfNeeded()
+  629|      4|        log.insert(FocusLogEntry.note(day: todayKey(), issue: issue, text: text), at: 0)
+  630|      4|    }
+  631|       |
+  632|      9|    private func appendForfeitLog(_ session: FocusSession, leaveInProgressXP: Int) {
+  633|      9|        rolloverLogIfNeeded()
+  634|      9|        log.insert(
+  635|      9|            FocusLogEntry.forfeit(
+  636|      9|                day: todayKey(),
+  637|      9|                issue: session.issue,
+  638|      9|                leaveInProgressXP: leaveInProgressXP),
+  639|      9|            at: 0)
+  640|      9|    }
+  641|       |
+  642|    363|    private func todayKey() -> String { LocalUsageReader.todayKey(clock()) }
+  643|       |
+  644|     48|    private func rolloverLogIfNeeded() {
+  645|     48|        let day = todayKey()
+  646|     48|        if logDay != day {
+  647|     28|            log = log.filter { $0.day == day }
+                                           ^0
+  648|     28|            logDay = day
+  649|     28|        }
+  650|     48|    }
+  651|       |
+  652|    163|    private func syncTimer() {
+  653|    163|        if session?.phase != .awaitingChoice { timerAlarmSilenced = false }
+                                                           ^141
+  654|    163|        let needs = ticksOnTimer && session?.isAccruing == true
+                                                  ^0
+  655|    163|        if needs {
+  656|      0|            if timer == nil {
+  657|      0|                let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+  658|      0|                    MainActor.assumeIsolated { self?.tick() }
+  659|      0|                }
+  660|      0|                t.tolerance = 0.2
+  661|      0|                RunLoop.main.add(t, forMode: .common)
+  662|      0|                timer = t
+  663|      0|            }
+  664|    163|        } else {
+  665|    163|            timer?.invalidate()
+  666|    163|            timer = nil
+  667|    163|        }
+  668|    163|    }
+  669|       |
+  670|     71|    private func load() {
+  671|     71|        isLoading = true
+  672|     71|        defer {
+  673|     71|            isLoading = false
+  674|     71|            persist()
+  675|     71|        }
+  676|     71|        let decoder = JSONDecoder()
+  677|     71|        decoder.dateDecodingStrategy = .iso8601
+  678|     71|        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+                                                                                      ^58
+  679|     13|        let saved: FocusPersistedState
+  680|     13|        do { saved = try decoder.decode(FocusPersistedState.self, from: Data(contentsOf: fileURL)) }
+                                                                                                                ^12
+  681|     13|        catch {
+  682|      1|            canSave = false
+  683|      1|            storageError = "The session file could not be read. It has been preserved."
+  684|      1|            return
+  685|     12|        }
+  686|     12|        plannedMinutes = SessionXP.clampMinutes(saved.plannedMinutes)
+  687|     12|        checkInMinutes = SessionXP.clampMinutes(saved.checkInMinutes)
+  688|     12|        log = saved.log
+  689|     12|        logDay = saved.logDay
+  690|     12|        issueHistory = Array(saved.issueHistory.prefix(FocusIssueHistory.maxStored))
+  691|     12|        var seen = Set<String>()
+  692|     12|        sessionRecords = saved.sessionRecords.filter { seen.insert($0.id).inserted }
+                                                                   ^9
+  693|     12|        trackingBeganAt = saved.trackingBeganAt ?? clock()
+                                                                 ^2
+  694|     12|        if saved.sessionRecords.isEmpty {
+  695|      6|            sessionRecords = saved.issueHistory.map { value in
+  696|      1|                TaskSessionRecord(id: "legacy-\(value.id)-\(value.finishedAt.timeIntervalSince1970)",
+  697|      1|                    issueID: value.id, identifier: value.identifier, title: value.identifier,
+  698|      1|                    projectID: nil, projectName: nil, blockID: nil, segments: [],
+  699|      1|                    activeSeconds: value.durationSeconds, plannedSeconds: value.plannedSeconds,
+  700|      1|                    finishedAt: value.finishedAt, finish: value.finish, xp: value.sessionXP, partial: true)
+  701|      1|            }
+  702|      6|        }
+  703|     12|        sessionGrantedXP = max(0, saved.sessionGrantedXP)
+  704|     12|        sessionCheckIns = saved.sessionCheckIns
+  705|     12|        sessionNotes = saved.sessionNotes
+  706|     12|        rolloverLogIfNeeded()
+  707|     12|        if var restored = saved.session {
+  708|      6|            restored = FocusTick.restoreAsPaused(restored)
+  709|      6|            if restored.activeSegments == nil {
+  710|      1|                // Start measurement at v2 adoption; retain the legacy clock and summary.
+  711|      1|                restored.activeSegments = []
+  712|      1|                restored.recordID = UUID()
+  713|      1|            }
+  714|      6|            session = restored
+  715|      6|            companion.setTimeOpenXPSuspended(true)
+  716|      6|        } else {
+  717|      6|            sessionGrantedXP = 0
+  718|      6|            sessionCheckIns = []
+  719|      6|            sessionNotes = []
+  720|      6|        }
+  721|     12|    }
+  722|       |
+  723|    335|    private func persist() {
+  724|    335|        persist(at: clock())
+  725|    335|    }
+  726|       |
+  727|    373|    private func persist(at now: Date) {
+  728|    373|        guard !isLoading, canSave else { return }
+                                                     ^26
+  729|    347|        let snapshot = FocusPersistedState(
+  730|    347|            plannedMinutes: plannedMinutes,
+  731|    347|            checkInMinutes: checkInMinutes,
+  732|    347|            session: session,
+  733|    347|            log: Array(log.prefix(200)),
+  734|    347|            logDay: logDay.isEmpty ? todayKey() : logDay,
+                                                   ^259         ^88
+  735|    347|            sessionGrantedXP: sessionGrantedXP,
+  736|    347|            sessionCheckIns: sessionCheckIns,
+  737|    347|            sessionNotes: sessionNotes,
+  738|    347|            issueHistory: Array(issueHistory.prefix(FocusIssueHistory.maxStored)),
+  739|    347|            sessionRecords: sessionRecords, trackingBeganAt: trackingBeganAt)
+  740|    347|        let encoder = JSONEncoder()
+  741|    347|        encoder.outputFormatting = [.sortedKeys]
+  742|    347|        encoder.dateEncodingStrategy = .iso8601
+  743|    347|        guard let data = try? encoder.encode(snapshot) else { return }
+                                                                          ^0
+  744|    347|        do { try data.write(to: fileURL, options: .atomic); storageError = nil }
+  745|    347|        catch { storageError = "Focus history could not be saved. Check the storage location." }
+                            ^0
+  746|    347|        lastPersistAt = now
+  747|    347|    }
+  748|       |}
+  749|       |
+  750|       |extension LaunchWindowPolicy {
+  751|       |    static let todayDeskIdentifier = "PokeTaskBar.TodayDesk"
+  752|       |    static let todayDeskAutosaveName = "PokeTaskBarTodayDesk"
+  753|       |}
+
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/UI/LinearIssueHierarchy.swift:
+    1|       |import Foundation
+    2|       |
+    3|       |/// Lift a matching child to its available parent, while preserving the caller's sort order.
+    4|       |enum LinearIssueHierarchy {
+    5|     51|    static func includingAncestors(_ visible: [LinearIssueSummary], in all: [LinearIssueSummary]) -> [LinearIssueSummary] {
+    6|    152|        let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                                                                                       ^0
+    7|     51|        var result = visible
+    8|     51|        var seen = Set(visible.map(\.id))
+                                                 ^20
+    9|     51|        for issue in visible {
+   10|     20|            var parentID = issue.parentID
+   11|     20|            while let id = parentID, let parent = byID[id], seen.insert(id).inserted {
+   12|      1|                result.append(parent)
+   13|      1|                parentID = parent.parentID
+   14|     20|            }
+   15|     51|        }
+   16|     51|        return result
+   17|     51|    }
+   18|     55|    static func roots(_ visible: [LinearIssueSummary], in all: [LinearIssueSummary]) -> [LinearIssueSummary] {
+   19|     55|        let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                                                    ^32                                ^0
+   20|     55|        var seen = Set<String>()
+   21|     55|        return visible.compactMap { issue in
+   22|     31|            var root = issue
+   23|     31|            var path: Set<String> = [issue.id]
+   24|     31|            while let parentID = root.parentID, let parent = byID[parentID] {
+   25|      8|                guard path.insert(parentID).inserted else {
+   26|      2|                    root = byID[path.min() ?? root.id] ?? root
+                                                            ^0          ^0
+   27|      2|                    break
+   28|      6|                }
+   29|      6|                root = parent
+   30|     31|            }
+   31|     31|            return seen.insert(root.id).inserted ? root : nil
+                                                                 ^26    ^5
+   32|     31|        }
+   33|     55|    }
+   34|       |}
+

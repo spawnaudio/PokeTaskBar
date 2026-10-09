@@ -1,0 +1,302 @@
+[
+  {
+    "time": 1790923750985,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923752093,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923753216,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -72)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923754327,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923755430,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923756556,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -72)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923757590,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923758673,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923759791,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -72)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923760821,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923761918,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "time": 1790923763041,
+    "styles": [
+      {
+        "class": "player ",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      {
+        "class": "opponent",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -2)"
+      },
+      {
+        "class": "pokemon-frames",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 0, -72)"
+      },
+      {
+        "class": "command-cursor",
+        "playState": "running",
+        "transform": "matrix(1, 0, 0, 1, 1, 0)"
+      }
+    ]
+  }
+]

@@ -1,0 +1,357 @@
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[2/6] Write swift-version-39B54973F684ADAB.txt
+[4/14] Compiling PokeTaskBar TaskPlanning.swift
+[5/17] Compiling PokeTaskBar FloatingTimerDragHandle.swift
+[6/17] Compiling PokeTaskBar MainWindowNavigation.swift
+[7/17] Compiling PokeTaskBar TaskTimelineView.swift
+[8/17] Compiling PokeTaskBar MainWindowView.swift
+[9/17] Compiling PokeTaskBar TaskInsightsView.swift
+[10/23] Compiling PokeTaskBar FocusSessionStore.swift
+[11/23] Compiling PokeTaskBar TaskTime.swift
+[12/23] Compiling PokeTaskBar FloatingTimerStrip.swift
+[13/23] Compiling PokeTaskBar TaskPlanningView.swift
+[14/23] Emitting module PokeTaskBar
+[15/58] Compiling PokeTaskBar MainWindowExtrasView.swift
+[16/58] Compiling PokeTaskBar MainWindowCollectionView.swift
+[17/58] Compiling PokeTaskBar TodayDeskView.swift
+[18/58] Compiling PokeTaskBar MainWindowWorkspacesView.swift
+[19/58] Compiling PokeTaskBar MainWindowFocusView.swift
+[20/58] Compiling PokeTaskBar PokeTaskBarApp.swift
+[21/82] Compiling PokeTaskBar OAuthLimitsProvider.swift
+[22/82] Compiling PokeTaskBar PokeAPIClient.swift
+[23/82] Compiling PokeTaskBar PokemonNameLocalization.swift
+[24/82] Compiling PokeTaskBar PokemonProfile.swift
+[25/82] Compiling PokeTaskBar LocalAntigravityUsageReader.swift
+[26/82] Compiling PokeTaskBar LocalUsageCache.swift
+[27/82] Compiling PokeTaskBar LocalUsageReader.swift
+[28/82] Compiling PokeTaskBar Localization.swift
+[29/82] Compiling PokeTaskBar Models.swift
+[30/82] Compiling PokeTaskBar AntigravityRateLimitsProvider.swift
+[31/82] Compiling PokeTaskBar BinaryLocator.swift
+[32/82] Compiling PokeTaskBar CompanionModel.swift
+[33/82] Compiling PokeTaskBar CompanionStore.swift
+[34/82] Compiling PokeTaskBar CrashReporter.swift
+[35/82] Compiling PokeTaskBar ProviderStatusChecker.swift
+[36/82] Compiling PokeTaskBar SaveTransfer.swift
+[37/82] Compiling PokeTaskBar SessionKeyLimitsProvider.swift
+[38/82] Compiling PokeTaskBar UnownForm.swift
+[39/82] Compiling PokeTaskBar CursorUsageAPI.swift
+[40/82] Compiling PokeTaskBar FocusSession.swift
+[41/82] Compiling PokeTaskBar LinearClient.swift
+[42/82] Compiling PokeTaskBar LinearIssueCreate.swift
+[43/82] Compiling PokeTaskBar LocalAdditionalUsageProvider.swift
+[44/82] Compiling PokeTaskBar MenuBarPanel.swift
+[45/82] Compiling PokeTaskBar MenuBarTheme.swift
+[46/82] Compiling PokeTaskBar MonthDailyTrend.swift
+[47/82] Compiling PokeTaskBar PokemonNameLabel.swift
+[48/82] Compiling PokeTaskBar FocusDurationPicker.swift
+[49/82] Compiling PokeTaskBar FocusTabView.swift
+[50/82] Compiling PokeTaskBar FocusTimerAlert.swift
+[51/82] Compiling PokeTaskBar LinearInitiativeCard.swift
+[52/82] Compiling PokeTaskBar LinearIssueSort.swift
+[53/82] Compiling PokeTaskBar LinearProjectCard.swift
+[54/82] Compiling PokeTaskBar LinearProjectControls.swift
+[55/82] Compiling PokeTaskBar MenuBarContentSizing.swift
+[56/82] Compiling PokeTaskBar TimeXPView.swift
+[57/82] Compiling PokeTaskBar UsageCostText.swift
+[58/82] Compiling PokeTaskBar UsageTabView.swift
+[59/82] Compiling PokeTaskBar XPFeedbackPresentation.swift
+[60/82] Compiling PokeTaskBar LinearIntegrationView.swift
+[61/82] Compiling PokeTaskBar LinearIssueCard.swift
+[62/82] Compiling PokeTaskBar LinearIssueComposer.swift
+[63/82] Compiling PokeTaskBar LinearIssueControls.swift
+[64/82] Compiling PokeTaskBar DifficultySettingsSection.swift
+[65/82] Compiling PokeTaskBar FloatingCompactTimer.swift
+[66/82] Compiling PokeTaskBar FloatingPetPanel.swift
+[67/82] Compiling PokeTaskBar FloatingTimerClock.swift
+[68/82] Compiling PokeTaskBar UsageStore.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[69/82] Compiling PokeTaskBar BagView.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[70/82] Compiling PokeTaskBar CollectionTabView.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[71/82] Compiling PokeTaskBar CompanionView.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Sources/PokeTaskBar/Core/UsageStore.swift:795:37: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 792 |         timer = nil
+ 793 |         guard !pollingSuspended, refreshInterval > 0 else { return }
+ 794 |         let t = Timer(timeInterval: refreshInterval, repeats: true) { _ in
+     |                                                                     |- note: 'self' implicitly strongly captured here
+     |                                                                     `- note: add 'self' as a capture list item to silence
+ 795 |             Task { @MainActor [weak self] in await self?.refresh() }
+     |                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                     `- note: explicitly assign the capture list item to silence
+ 796 |         }
+ 797 |         t.tolerance = refreshInterval * 0.1
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[72/82] Compiling PokeTaskBar PokemonStorageView.swift
+[73/82] Compiling PokeTaskBar PopoverChrome.swift
+[74/82] Compiling PokeTaskBar PopoverView.swift
+[75/82] Compiling PokeTaskBar RelativeTimestampText.swift
+[76/82] Compiling PokeTaskBar ScoreBoard.swift
+[77/82] Compiling PokeTaskBar SessionOverlayView.swift
+[78/82] Compiling PokeTaskBar SettingsView.swift
+[79/82] Compiling PokeTaskBar ShopView.swift
+[79/84] Write Objects.LinkFileList
+[80/84] Linking PokeTaskBar
+[81/84] Applying PokeTaskBar
+[83/175] Compiling PokeTaskBarTests ShopTests.swift
+[84/175] Compiling PokeTaskBarTests SingleInstanceTests.swift
+[85/175] Compiling PokeTaskBarTests SpriteAnimationPreviewTests.swift
+[86/175] Compiling PokeTaskBarTests SpriteAspectRatioTests.swift
+[87/175] Compiling PokeTaskBarTests SpriteImageCacheTests.swift
+[88/175] Compiling PokeTaskBarTests SpriteSubjectTests.swift
+[89/175] Compiling PokeTaskBarTests SwiftUIIsolationTests.swift
+[90/181] Compiling PokeTaskBarTests MonthDailyTrendTests.swift
+[91/181] Compiling PokeTaskBarTests NetworkReachabilityTests.swift
+[92/181] Compiling PokeTaskBarTests OmpUsageTests.swift
+[93/181] Compiling PokeTaskBarTests OutsideClickMonitorTests.swift
+[94/181] Compiling PokeTaskBarTests PerformanceTests.swift
+[95/181] Compiling PokeTaskBarTests PiUsageTests.swift
+[96/181] Compiling PokeTaskBarTests PokeTaskBarTests.swift
+[97/181] Emitting module PokeTaskBarTests
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[98/181] Compiling PokeTaskBarTests AdaptiveMenuBarSizingTests.swift
+[99/181] Compiling PokeTaskBarTests AntigravityGroupLocalizationTests.swift
+[100/181] Compiling PokeTaskBarTests AntigravityRateLimitsProviderTests.swift
+[101/181] Compiling PokeTaskBarTests AntigravityUsageTests.swift
+[102/181] Compiling PokeTaskBarTests AppLogTests.swift
+[103/181] Compiling PokeTaskBarTests AsideUsageTests.swift
+[104/181] Compiling PokeTaskBarTests BinaryLocatorTests.swift
+[105/181] Compiling PokeTaskBarTests TahoeButtonStyleTests.swift
+[106/181] Compiling PokeTaskBarTests TimeOpenCompanionTests.swift
+[107/181] Compiling PokeTaskBarTests TimeOpenXPTests.swift
+[108/181] Compiling PokeTaskBarTests TodayDeskLayoutTests.swift
+[109/181] Compiling PokeTaskBarTests UnownSpriteTests.swift
+[110/181] Compiling PokeTaskBarTests UnownSpriteViewTests.swift
+[111/181] Compiling PokeTaskBarTests RareCandyTests.swift
+[112/181] Compiling PokeTaskBarTests RepresentativeFooterLayoutTests.swift
+[113/181] Compiling PokeTaskBarTests SaveTransferTests.swift
+[114/181] Compiling PokeTaskBarTests ScreenshotGenTests.swift
+[115/181] Compiling PokeTaskBarTests SessionKeyLimitsTests.swift
+[116/181] Compiling PokeTaskBarTests SessionKeySettingsRenderingTests.swift
+[117/181] Compiling PokeTaskBarTests ShinyCharmTests.swift
+[118/181] Compiling PokeTaskBarTests LinearContainerPinTests.swift
+[119/181] Compiling PokeTaskBarTests LinearInitiativeCardTests.swift
+[120/181] Compiling PokeTaskBarTests LinearIssueCardTests.swift
+[121/181] Compiling PokeTaskBarTests LinearIssueSortTests.swift
+[122/181] Compiling PokeTaskBarTests LinearPlannedIssuesTests.swift
+[123/181] Compiling PokeTaskBarTests LinearProjectCardTests.swift
+[124/181] Compiling PokeTaskBarTests LinearProjectControlsTests.swift
+[125/181] Compiling PokeTaskBarTests KeychainAutoPathTests.swift
+[126/181] Compiling PokeTaskBarTests KiroUsageTests.swift
+[127/181] Compiling PokeTaskBarTests LanguageSurfaceRegressionTests.swift
+[128/181] Compiling PokeTaskBarTests LaunchWindowPolicyTests.swift
+[129/181] Compiling PokeTaskBarTests LimitPaceTests.swift
+[130/181] Compiling PokeTaskBarTests LimitProgressRenderingTests.swift
+[131/181] Compiling PokeTaskBarTests LinearCardMinimizeTests.swift
+[132/181] Compiling PokeTaskBarTests PokeTasksV2Tests.swift
+[133/181] Compiling PokeTaskBarTests PokemonNameLocalizationTests.swift
+[134/181] Compiling PokeTaskBarTests PokemonProfileTests.swift
+[135/181] Compiling PokeTaskBarTests PopoverNavigationTests.swift
+[136/181] Compiling PokeTaskBarTests PremiumEggTests.swift
+[137/181] Compiling PokeTaskBarTests ProfileGrowthIntegrationTests.swift
+[138/181] Compiling PokeTaskBarTests ProviderTabLayoutTests.swift
+[139/181] Compiling PokeTaskBarTests LinearRewardsTests.swift
+[140/181] Compiling PokeTaskBarTests LocalAdditionalUsageTests.swift
+[141/181] Compiling PokeTaskBarTests LocalUsageCacheTests.swift
+[142/181] Compiling PokeTaskBarTests LocalUsageParityTests.swift
+[143/181] Compiling PokeTaskBarTests LocalUsageReaderTests.swift
+[144/181] Compiling PokeTaskBarTests LocalizationErrorsTests.swift
+[145/181] Compiling PokeTaskBarTests LocalizationInterpolationTests.swift
+[146/181] Compiling PokeTaskBarTests CatchLogRenderingTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[147/181] Compiling PokeTaskBarTests CodexLargeRolloutPerformanceTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[148/181] Compiling PokeTaskBarTests CoinEconomyTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[149/181] Compiling PokeTaskBarTests CompanionDisplayStateTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[150/181] Compiling PokeTaskBarTests CompanionTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[151/181] Compiling PokeTaskBarTests CopilotUsageTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[152/181] Compiling PokeTaskBarTests CredentialSwitchCacheTests.swift
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/CredentialSwitchCacheTests.swift:459:69: warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+457 | 
+458 | /// Intercepts the usage call so the Refresh path can be asserted without a live token.
+459 | private final class ClaudeUsageURLProtocol: URLProtocol, @unchecked Sendable {
+    |                     |                                               `- warning: 'ClaudeUsageURLProtocol' inherits an unavailable 'Sendable' conformance; conforming here risks data races [#UnavailableSendableConformance]
+    |                     `- note: 'ClaudeUsageURLProtocol' inherits unavailable conformance to protocol 'Sendable' from superclass here
+460 |     nonisolated(unsafe) static var authorization: String?
+461 | 
+
+[#UnavailableSendableConformance]: <https://docs.swift.org/compiler/documentation/diagnostics/unavailable-sendable-conformance>
+[153/181] Compiling PokeTaskBarTests LocalizedUILiteralTests.swift
+[154/181] Compiling PokeTaskBarTests MainWindowTests.swift
+[155/181] Compiling PokeTaskBarTests MenuBarOverhaulTests.swift
+[156/181] Compiling PokeTaskBarTests MenuBarPanelTests.swift
+[157/181] Compiling PokeTaskBarTests MintTests.swift
+[158/181] Compiling PokeTaskBarTests ModelLogicTests.swift
+[159/181] Compiling PokeTaskBarTests ModelPricingTests.swift
+[160/181] Compiling PokeTaskBarTests UnownTests.swift
+[161/181] Compiling PokeTaskBarTests UpdateCheckerTests.swift
+[162/181] Compiling PokeTaskBarTests UsageCostTests.swift
+[163/181] Compiling PokeTaskBarTests UsageEnvironmentTests.swift
+[164/181] Compiling PokeTaskBarTests UsageStoreTests.swift
+[165/181] Compiling PokeTaskBarTests XPFeedbackTests.swift
+[166/181] Compiling PokeTaskBarTests CursorUsageTests.swift
+[167/181] Compiling PokeTaskBarTests CustomScanRootsTests.swift
+[168/181] Compiling PokeTaskBarTests DexNameMigrationTests.swift
+[169/181] Compiling PokeTaskBarTests DifficultySaveTests.swift
+[170/181] Compiling PokeTaskBarTests DifficultyTests.swift
+[171/181] Compiling PokeTaskBarTests DittoTests.swift
+[172/181] Compiling PokeTaskBarTests EvoLineLayoutTests.swift
+[173/181] Compiling PokeTaskBarTests FloatingTimerOverlayTests.swift
+[174/181] Compiling PokeTaskBarTests FocusDisplayOptionsTests.swift
+[175/181] Compiling PokeTaskBarTests FocusSessionTests.swift
+[176/181] Compiling PokeTaskBarTests FreshEggTests.swift
+[177/181] Compiling PokeTaskBarTests GeminiUsageTests.swift
+[178/181] Compiling PokeTaskBarTests GrokUsageTests.swift
+[179/181] Compiling PokeTaskBarTests IncrementalStoreScanTests.swift
+[179/181] Write Objects.LinkFileList
+[180/181] Linking PokeTaskBarPackageTests
+Build complete! (14.71s)
+Test Suite 'Selected tests' started at 2026-10-02 04:53:44.764.
+Test Suite 'PokeTaskBarPackageTests.xctest' started at 2026-10-02 04:53:44.765.
+Test Suite 'MainWindowTests' started at 2026-10-02 04:53:44.765.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testNativeNavigationCollapseResizeAndClosePreserveSession]' passed (3.992 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' started.
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:291: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("Optional(570)") is not equal to ("Optional(600)") - Native block drag moves by 30 minutes
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:300: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("Optional(50)") is not equal to ("Optional(70)") - Native lower-edge drag resizes by 20 minutes
+/Users/squeakyvermin/Developer/Github Repositories/PokeTaskBar/experiments/PokeTasks-v2/Tests/PokeTaskBarTests/MainWindowTests.swift:311: error: -[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel] : XCTAssertEqual failed: ("nil") is not equal to ("Optional(50)")
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeFoldAndTimeBlockMoveResizeCancel]' failed (4.411 seconds).
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' started.
+Test Case '-[PokeTaskBarTests.MainWindowTests testV2NativeIssueDropOntoTimeline]' passed (2.434 seconds).
+Test Suite 'MainWindowTests' failed at 2026-10-02 04:53:55.602.
+	 Executed 3 tests, with 3 failures (0 unexpected) in 10.837 (10.837) seconds
+Test Suite 'PokeTasksV2Tests' started at 2026-10-02 04:53:55.602.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testBlockSnappingConflictUndoAndPersistence]' passed (0.006 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testCompleteLedgerKeepsRepeatedSessionsPauseSleepAndRestoresPaused]' passed (0.012 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testDailySplitDSTCoverageAndCSV]' passed (0.001 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testIssueTrayMatchesExistingStatusSemantics]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLegacyHistoryIsPartialAndUnreadableFilesArePreserved]' passed (0.007 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testLinkedMovesFailureRetryUndoMissingMappingsAndClosedIssues]' passed (0.003 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testNavigationHidesInitiativesAndRailPreservesWidths]' passed (0.000 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' started.
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testPersonalMovesFoldReorderAndRelaunchNeverWriteStatus]' passed (0.005 seconds).
+Test Case '-[PokeTaskBarTests.PokeTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' started.
+Test Case '-[PokeTaskBarTests.Powarning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+keTasksV2Tests testResetZeroWaitAndForfeitPreserveMeasuredTimeWithoutExtraRewards]' passed (0.006 seconds).
+Test Suite 'PokeTasksV2Tests' passed at 2026-10-02 04:53:55.643.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.040 (0.041) seconds
+Test Suite 'PokeTaskBarPackageTests.xctest' failed at 2026-10-02 04:53:55.643.
+	 Executed 12 tests, with 3 failures (0 unexpected) in 10.877 (10.878) seconds
+Test Suite 'Selected tests' failed at 2026-10-02 04:53:55.643.
+	 Executed 12 tests, with 3 failures (0 unexpected) in 10.877 (10.879) seconds
+Note: Some test targets reported failures:
+  - PokeTaskBarPackageTests (XCTest)
