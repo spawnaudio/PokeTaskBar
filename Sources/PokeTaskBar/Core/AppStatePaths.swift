@@ -3,14 +3,18 @@ import Foundation
 /// Application Support state directory for PokeTaskBar files.
 /// `PTB_STATE_DIR` overrides the default for development/QA isolation.
 enum AppStatePaths {
-    /// Finder/menu-bar name and on-disk folder. Bundled apps use `CFBundleName` so a side-by-side
-    /// install (`PokeTaskBar v1` vs `PokeTokenBar v3`) does not share saves. Tests and `swift run`
-    /// use the same v1 folder name unless `PTB_STATE_DIR` overrides it.
+    /// A renamed build can retain its save folder through `PTBStateFolderName`.
+    /// Other bundled apps use `CFBundleName`; tests use v1 unless `PTB_STATE_DIR` overrides it.
     static var productFolderName: String {
-        if AppEnv.isBundledApp,
-           let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String {
-            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
+        AppEnv.isBundledApp ? folderName(info: Bundle.main.infoDictionary ?? [:]) : "PokeTaskBar v1"
+    }
+
+    static func folderName(info: [String: Any]) -> String {
+        for key in ["PTBStateFolderName", "CFBundleName"] {
+            if let name = info[key] as? String {
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { return trimmed }
+            }
         }
         return "PokeTaskBar v1"
     }

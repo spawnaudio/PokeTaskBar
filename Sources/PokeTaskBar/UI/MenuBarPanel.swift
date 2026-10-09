@@ -395,9 +395,7 @@ final class MenuBarPanelController: NSObject, NSWindowDelegate {
     }
 
     private func applyTitle() {
-        window?.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
-            ?? "PokeTaskBar"
+        window?.title = "PokeTasks"
     }
 
     private func applyChrome() {

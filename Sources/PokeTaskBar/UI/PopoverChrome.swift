@@ -579,7 +579,7 @@ struct PopoverShellToolbar: View {
                         .frame(width: 22, height: 22)
                         .accessibilityHidden(true)
                 }
-                Text(nav.showSettings ? l.settings : "PokeTaskBar")
+                Text(nav.showSettings ? l.settings : "PokeTasks")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 4)

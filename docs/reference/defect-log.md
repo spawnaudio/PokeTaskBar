@@ -128,6 +128,18 @@ read_when:
   and the actual drag payload at all three priority targets and the timeline.
   Delaying pickup to 750 ms makes the hold regression fail.
 
+- **Native drag tests must finish the AppKit session.** On macOS 27.2, injecting
+  synthetic mouse-up directly into the window left the first drag active; clearing
+  its pasteboard then made later pickup assertions fail. The earlier check passed
+  on older runners without proving session teardown. The pickup regression now
+  posts WindowServer mouse events, verifies their window routing, captures the live
+  payload before release, and lets AppKit consume release in its modal event loop.
+  Stationary pickup also yields to the main actor before tracking. Completed releases
+  are drained before subsequent control clicks. Both pickup tests
+  share this helper; drop destinations receive a retained copy of its captured payload.
+  It checks three consecutive whitespace drags, a stationary hold, quick clicks, foreground actions
+  and Escape. Runners without native event-posting permission skip these UI checks.
+
 - **Drag translations need a stationary coordinate space.** Timeline blocks and
   their lower-edge handles previously measured movement in their own moving local
   frames. Repeated native updates with a direction change moved a 30-minute drag

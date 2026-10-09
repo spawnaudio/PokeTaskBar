@@ -37,6 +37,12 @@ private final class TimelineDragInfo: NSObject, NSDraggingInfo {
 }
 
 @MainActor
+private final class NativeDragPayload {
+    var issueID: String?
+    var released = false
+}
+
+@MainActor
 final class MainWindowTests: XCTestCase {
     func testIssueSubtabsKeepParentsAndExpandedChildrenWithinTheirStatus() async throws {
         try XCTSkipIf(NSScreen.screens.isEmpty, "Requires the macOS display server")
@@ -117,55 +123,24 @@ final class MainWindowTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(250))
         host.setFrameSize(host.fittingSize); host.layoutSubtreeIfNeeded()
         let pasteboard = NSPasteboard(name: .drag)
-        for point in [NSPoint(x: 240, y: 25), NSPoint(x: 240, y: 45), NSPoint(x: 15, y: 45)] {
-            pasteboard.clearContents()
+        for (point, stationary) in [(NSPoint(x: 240, y: 25), false), (NSPoint(x: 240, y: 45), false),
+                                    (NSPoint(x: 15, y: 45), false), (NSPoint(x: 240, y: 25), true)] {
             let origin = window.frame.origin
-            func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
-                let location = host.convert(NSPoint(x: point.x + offset,
-                    y: host.isFlipped ? point.y : host.bounds.height - point.y), to: nil)
-                return try XCTUnwrap(NSEvent.mouseEvent(with: type, location: location,
-                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
-            }
-            NSApp.postEvent(try event(.leftMouseDragged, offset: 20), atStart: false)
-            NSApp.postEvent(try event(.leftMouseUp, offset: 20), atStart: false)
-            window.sendEvent(try event(.leftMouseDown))
-            while let next = NSApp.nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: Date(), inMode: .default, dequeue: true) {
-                window.sendEvent(next)
-            }
-            try await Task.sleep(for: .milliseconds(200))
-            XCTAssertEqual(pasteboard.string(forType: .string), issue.id, "Whitespace at \(point) must start the issue drag")
+            let location = host.convert(NSPoint(x: point.x,
+                y: host.isFlipped ? point.y : host.bounds.height - point.y), to: nil)
+            let payload = try await nativeIssuePickup(window, at: location, stationary: stationary)
+            XCTAssertEqual(payload, issue.id, "Whitespace at \(point), hold: \(stationary) must start the issue drag")
             XCTAssertEqual(window.frame.origin, origin, "Dragging an issue must not move the window")
             XCTAssertFalse(fixture.nav.issueExpansion[issue.id] ?? false, "Dragging must not expand the issue")
         }
-        // A stationary hold must pick up the issue without requiring a preliminary click.
-        pasteboard.clearContents()
+        try await Task.sleep(for: .milliseconds(200))
+        host.layoutSubtreeIfNeeded()
         let location = host.convert(NSPoint(x: 240, y: host.isFlipped ? 25 : host.bounds.height - 25), to: nil)
         func heldEvent(_ type: NSEvent.EventType, at point: NSPoint? = nil) throws -> NSEvent {
             try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point ?? location, modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+                context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1))
         }
-        let windowNumber = window.windowNumber
-        let timer = Timer(timeInterval: 0.25, repeats: false) { _ in
-            MainActor.assumeIsolated {
-                if let release = NSEvent.mouseEvent(with: .leftMouseUp, location: location, modifierFlags: [],
-                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: windowNumber,
-                    context: nil, eventNumber: 1, clickCount: 1, pressure: 1) {
-                    NSApp.postEvent(release, atStart: false)
-                }
-            }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        defer { timer.invalidate() }
-        window.sendEvent(try heldEvent(.leftMouseDown))
-        try await Task.sleep(for: .milliseconds(350))
-        XCTAssertEqual(pasteboard.string(forType: .string), issue.id, "A short hold starts dragging before the pointer moves")
-        if let release = NSApp.nextEvent(matching: .leftMouseUp, until: Date(), inMode: .default, dequeue: true) {
-            window.sendEvent(release)
-        }
-        try await Task.sleep(for: .milliseconds(200))
-        XCTAssertFalse(fixture.nav.issueExpansion[issue.id] ?? false)
         pasteboard.clearContents()
         try await click(window, in: host, x: 240, top: 45)
         XCTAssertEqual(fixture.nav.issueExpansion[issue.id], true, "A quick click still expands exactly once")
@@ -498,20 +473,12 @@ final class MainWindowTests: XCTestCase {
         func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
         let source = try XCTUnwrap(descendants(host).compactMap { $0 as? LinearIssueDragView }.first { $0.issueID == "issue" })
         let point = source.convert(NSPoint(x: source.bounds.midX, y: source.bounds.midY), to: nil)
-        func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
-            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: NSPoint(x: point.x + offset, y: point.y),
-                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
-        }
-        let pasteboard = NSPasteboard(name: .drag)
-        pasteboard.clearContents()
-        NSApp.postEvent(try event(.leftMouseDragged, offset: 20), atStart: false)
-        NSApp.postEvent(try event(.leftMouseUp, offset: 20), atStart: false)
-        window.sendEvent(try event(.leftMouseDown))
-        while let next = NSApp.nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: Date(), inMode: .default, dequeue: true) {
-            window.sendEvent(next)
-        }
-        XCTAssertEqual(pasteboard.string(forType: .string), "issue")
+        let pickup = try await nativeIssuePickup(window, at: point)
+        let payload = try XCTUnwrap(pickup)
+        XCTAssertEqual(payload, "issue")
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.writeObjects([payload as NSString])
         let targets = descendants(host).filter { !$0.registeredDraggedTypes.isEmpty && $0.bounds.width > 400 }
             .sorted { $0.convert($0.bounds, to: host).minY < $1.convert($1.bounds, to: host).minY }
         XCTAssertEqual(targets.count, 3)
@@ -871,6 +838,68 @@ final class MainWindowTests: XCTestCase {
         try await click(popup, in: reset, x: reset.bounds.midX, top: reset.bounds.midY)
         XCTAssertTrue(popup.isVisible)
         XCTAssertTrue(fixture.usage.hiddenLinearIssueStatuses.isEmpty, "Show all statuses resets every checkbox")
+    }
+
+    private func nativeIssuePickup(_ window: NSWindow, at point: NSPoint, stationary: Bool = false) async throws -> String? {
+        try XCTSkipUnless(CGPreflightPostEventAccess(), "Requires permission to post native mouse events")
+        let oldPolicy = NSApp.activationPolicy()
+        NSApp.setActivationPolicy(.accessory)
+        defer { NSApp.setActivationPolicy(oldPolicy) }
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        let oldPointer = CGEvent(source: nil)?.location
+        defer { if let oldPointer { CGWarpMouseCursorPosition(oldPointer) } }
+        NSPasteboard(name: .drag).clearContents()
+        let payload = NativeDragPayload()
+        let eventTag = Int64.random(in: 1...Int64.max)
+        let post: @MainActor @Sendable (CGEventType, NSPoint) -> Void = { type, point in
+            let screen = window.convertPoint(toScreen: point)
+            let event = CGEvent(mouseEventSource: nil, mouseType: type,
+                mouseCursorPosition: CGPoint(x: screen.x, y: NSScreen.screens[0].frame.maxY - screen.y), mouseButton: .left)
+            XCTAssertNotNil(event)
+            event?.setIntegerValueField(.eventSourceUserData, value: eventTag)
+            event?.post(tap: .cghidEventTap)
+        }
+        let end = NSPoint(x: point.x + (stationary ? 0 : 20), y: point.y)
+        let release = Timer(timeInterval: 0.25, repeats: false) { _ in
+            MainActor.assumeIsolated {
+                // Capture the live drag payload before WindowServer ends the session.
+                payload.issueID = NSPasteboard(name: .drag).string(forType: .string)
+                payload.released = true
+                post(.leftMouseUp, end)
+            }
+        }
+        let movement = Timer(timeInterval: 0.05, repeats: false) { _ in
+            MainActor.assumeIsolated { if !stationary { post(.leftMouseDragged, end) } }
+        }
+        let finish = Timer(timeInterval: 0.7, repeats: false) { _ in
+            MainActor.assumeIsolated { NSApp.stopModal() }
+        }
+        let monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged]) { event in
+            MainActor.assumeIsolated {
+                if event.cgEvent?.getIntegerValueField(.eventSourceUserData) == eventTag {
+                    XCTAssertEqual(event.windowNumber, window.windowNumber)
+                }
+            }
+            return event
+        }
+        defer {
+            for timer in [movement, release, finish] { timer.invalidate() }
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            if !payload.released { post(.leftMouseUp, end) }
+        }
+        post(.leftMouseDown, point)
+        let down = try XCTUnwrap(NSApp.nextEvent(matching: .leftMouseDown,
+            until: Date().addingTimeInterval(0.2), inMode: .default, dequeue: true))
+        XCTAssertEqual(down.cgEvent?.getIntegerValueField(.eventSourceUserData), eventTag)
+        NSApp.sendEvent(down)
+        for timer in [movement, release, finish] { RunLoop.main.add(timer, forMode: .common) }
+        if stationary { try await Task.sleep(for: .milliseconds(180)) }
+        // Drive AppKit's real event loop, including the drag session's own release handling.
+        NSApp.runModal(for: window)
+        while let up = NSApp.nextEvent(matching: .leftMouseUp, until: Date().addingTimeInterval(0.1),
+            inMode: .default, dequeue: true) { NSApp.sendEvent(up) }
+        return payload.issueID
     }
 
     private func click(_ window: NSWindow, in view: NSView, x: CGFloat, top: CGFloat) async throws {

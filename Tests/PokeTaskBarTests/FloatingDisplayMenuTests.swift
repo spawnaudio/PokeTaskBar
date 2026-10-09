@@ -183,6 +183,7 @@ final class FloatingDisplayMenuTests: XCTestCase {
         defer { controller.close() }
         controller.present(from: nil, resetNavigation: false)
         let window = try XCTUnwrap(NSApp.windows.compactMap { $0 as? MenuBarPanelWindow }.first { $0.isVisible })
+        XCTAssertEqual(window.title, "PokeTasks")
         let outside = NSWindow(contentRect: NSRect(x: 30, y: 30, width: 100, height: 100),
             styleMask: .borderless, backing: .buffered, defer: false)
         outside.isReleasedWhenClosed = false
@@ -222,6 +223,7 @@ final class FloatingDisplayMenuTests: XCTestCase {
         usage.menuBarPanelDetached = true
         controller.present(from: nil, resetNavigation: false)
         try await settle { window.styleMask.contains(.titled) }
+        XCTAssertEqual(window.title, "PokeTasks", "Detaching keeps the same product title")
         NSApp.sendEvent(try click(outside))
         NotificationCenter.default.post(name: NSApplication.didResignActiveNotification, object: NSApp)
         XCTAssertTrue(controller.isShown, "A detached window must stay open")
