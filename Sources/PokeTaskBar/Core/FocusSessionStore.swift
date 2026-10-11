@@ -68,7 +68,7 @@ final class FocusSessionStore {
     private enum PendingAfterForfeit: Equatable {
         case none
         case idle
-        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int, blockID: UUID?)
+        case pin(LinearIssueSummary, openDesk: Bool, minutes: Int, blockID: UUID?, battleRewardsDeferred: Bool)
         case createAndFocus(LinearIssueDraft, minutes: Int)
     }
 
@@ -140,7 +140,8 @@ final class FocusSessionStore {
         return FocusTick.addRemaining(session, minutes: 5, now: clock()) != nil
     }
 
-    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int, blockID: UUID? = nil) {
+    func pin(_ issue: LinearIssueSummary, openDesk: Bool = true, minutes: Int, blockID: UUID? = nil,
+             battleRewardsDeferred: Bool = false) {
         guard (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) else { return }
         pomodoroSetupOpen = false
         if let current = session, current.issue.id == issue.id {
@@ -148,10 +149,11 @@ final class FocusSessionStore {
             return
         }
         if session != nil {
-            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes, blockID: blockID))
+            presentForfeit(pending: .pin(issue, openDesk: openDesk, minutes: minutes, blockID: blockID,
+                                        battleRewardsDeferred: battleRewardsDeferred))
             return
         }
-        start(issue, minutes: minutes, blockID: blockID)
+        start(issue, minutes: minutes, blockID: blockID, battleRewardsDeferred: battleRewardsDeferred)
         if openDesk { self.openDesk() }
     }
 
@@ -167,10 +169,11 @@ final class FocusSessionStore {
     }
 
     /// Start the overlay/Focus clock without a Linear issue. No-op if a session is already running.
-    func startPomodoro() {
+    func startPomodoro(battleRewardsDeferred: Bool = false) {
         guard session == nil else { return }
         pomodoroSetupOpen = false
-        startPinned(FocusPinnedIssue.pomodoro(title: companion.l.pomodoroTitle))
+        startPinned(FocusPinnedIssue.pomodoro(title: companion.l.pomodoroTitle),
+                    battleRewardsDeferred: battleRewardsDeferred)
     }
 
     func startLocalTask(title: String, description: String, minutes: Int) {
@@ -212,8 +215,8 @@ final class FocusSessionStore {
         switch pending {
         case .none, .idle:
             break
-        case .pin(let issue, let openDesk, let minutes, let blockID):
-            start(issue, minutes: minutes, blockID: blockID)
+        case .pin(let issue, let openDesk, let minutes, let blockID, let battleRewardsDeferred):
+            start(issue, minutes: minutes, blockID: blockID, battleRewardsDeferred: battleRewardsDeferred)
             if openDesk { self.openDesk() }
         case .createAndFocus(let draft, let minutes):
             if let created = await performCreate(draft) {
@@ -588,14 +591,15 @@ final class FocusSessionStore {
         grantSessionXP(marked.topUpXP)
     }
 
-    private func start(_ issue: LinearIssueSummary, minutes: Int, blockID: UUID? = nil) {
+    private func start(_ issue: LinearIssueSummary, minutes: Int, blockID: UUID? = nil,
+                       battleRewardsDeferred: Bool = false) {
         plannedMinutes = minutes
-        startPinned(FocusPinnedIssue(issue))
+        startPinned(FocusPinnedIssue(issue), battleRewardsDeferred: battleRewardsDeferred)
         session?.plannedBlockID = blockID
         persist()
     }
 
-    private func startPinned(_ issue: FocusPinnedIssue) {
+    private func startPinned(_ issue: FocusPinnedIssue, battleRewardsDeferred: Bool = false) {
         let now = clock()
         usage.requestNotificationAuthorizationIfNeeded()
         companion.setTimeOpenXPSuspended(true)
@@ -611,7 +615,7 @@ final class FocusSessionStore {
             checkInMinutes: checkInMinutes,
             now: now)
         session?.battleOpponentID = [94, 25, 43].randomElement()
-        session?.battleRewardsDeferred = usage.floatingPetStyle == .battle
+        session?.battleRewardsDeferred = battleRewardsDeferred || usage.floatingPetStyle == .battle
         persist()
         syncTimer()
     }

@@ -5,13 +5,18 @@ import WebKit
 /// The approved game UI runs locally; Swift owns every timer, reward and inventory mutation.
 @MainActor
 final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+    enum Presentation { case floating, embedded }
+
     let webView: WKWebView
     let content: BattlePanelContent
     private let usage: UsageStore
     private let companion: CompanionStore
     private let focus: FocusSessionStore
     private let resourceURL: URL
+    private let presentation: Presentation
+    private let embeddedSizing = EmbeddedBattleSizing()
     private var timer: Timer?
+    private var artworkTask: Task<Void, Never>?
     private var itemImages: [String: String] = [:]
     private var playerImage = ""
     private var opponentImage = ""
@@ -19,23 +24,32 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private var ready = false
     private var pendingBag = false
     private var mutating = false
+    private var stopped = false
     private var gameHeight: CGFloat = 180
     private var gameInput = false
     var onLayout: ((CGFloat, Bool) -> Void)?
     var onTuck: (() -> Void)?
     var onHover: ((Bool) -> Void)?
 
-    init(usage: UsageStore, companion: CompanionStore, focus: FocusSessionStore) {
+    init(usage: UsageStore, companion: CompanionStore, focus: FocusSessionStore,
+         presentation: Presentation = .floating) {
         self.usage = usage; self.companion = companion; self.focus = focus
+        self.presentation = presentation
         let resources = Bundle.main.resourceURL
             .flatMap { Bundle(url: $0.appendingPathComponent("PokeTaskBar_PokeTaskBar.bundle")) } ?? Bundle.module
         resourceURL = resources.url(forResource: "index", withExtension: "html", subdirectory: "BattleWindow")!
         let configuration = WKWebViewConfiguration()
+        if presentation == .embedded {
+            configuration.userContentController.addUserScript(WKUserScript(source: Self.embeddedChromeScript,
+                injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        }
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.setValue(false, forKey: "drawsBackground")
-        content = BattlePanelContent(webView: webView, pinned: { usage.floatingTimerPinned })
+        content = BattlePanelContent(webView: webView, pinned: { usage.floatingTimerPinned },
+                                     allowsWindowDragging: presentation == .floating)
         super.init()
-        webView.configuration.userContentController.add(self, name: "battle")
+        // WebKit retains message handlers. The weak relay lets the owning panel/coordinator release this bridge.
+        webView.configuration.userContentController.add(WeakBattleMessageHandler(self), name: "battle")
         webView.navigationDelegate = self
         content.onHover = { [weak self] in self?.onHover?($0) }
         webView.loadFileURL(resourceURL, allowingReadAccessTo: resourceURL.deletingLastPathComponent())
@@ -44,7 +58,7 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
 
     func setPublishing(_ enabled: Bool) {
         if !enabled { timer?.invalidate(); timer = nil; return }
-        guard timer == nil else { return }
+        guard timer == nil, !stopped else { return }
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.publish() }
         }
@@ -53,11 +67,25 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 
     func stop() {
+        guard !stopped else { return }
+        stopped = true
         if content.taskPicker != nil { focus.cancelForfeit(); content.taskPicker = nil }
         ready = false
         setPublishing(false)
+        artworkTask?.cancel(); artworkTask = nil
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "battle")
+        webView.navigationDelegate = nil
         webView.stopLoading()
+        onLayout = nil; onTuck = nil; onHover = nil
+    }
+
+    /// Embedded sizing belongs to the page; resizing it never writes the floating window preference.
+    func setEmbeddedScale(_ scale: CGFloat) {
+        guard presentation == .embedded else { return }
+        let scale = CGFloat(FloatingTimerMetrics.scale(Double(scale)))
+        guard embeddedSizing.scale != scale else { return }
+        embeddedSizing.scale = scale
+        publish()
     }
 
     func openBag() {
@@ -75,7 +103,7 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
               let body = message.body as? [String: Any], let id = body["id"] as? Int,
               let action = body["action"] as? String else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !stopped else { return }
             var error: String?
             switch action {
             case "ready":
@@ -88,16 +116,19 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                     if content.taskPicker == nil { onLayout?(gameHeight, gameInput) }
                 }
             case "pause": focus.togglePause()
-            case "fold": usage.battleWindowFolded = true
-            case "pin": usage.floatingTimerPinned.toggle()
-            case "tuck": onTuck?()
+            case "fold":
+                if presentation == .floating { usage.battleWindowFolded = true }
+            case "pin":
+                if presentation == .floating { usage.floatingTimerPinned.toggle() }
+            case "tuck":
+                if presentation == .floating { onTuck?() }
             case "tasks": focus.openDesk()
             case "choose-task": openTaskPicker()
             case "start":
                 if let minutes = Self.wholeMinutes(body["minutes"]), !focus.isActive,
                    (SessionXP.minMinutes...SessionXP.maxMinutes).contains(minutes) {
                     focus.plannedMinutes = minutes
-                    focus.startPomodoro()
+                    focus.startPomodoro(battleRewardsDeferred: presentation == .embedded)
                 } else { error = "Choose 5–180 minutes while no timer is running." }
             case "potion":
                 if mutating { error = "An item is already being used." }
@@ -133,15 +164,17 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
 
     func openTaskPicker() {
         guard content.taskPicker == nil else { return }
-        let picker = BattleTaskPicker(onClose: { [weak self] in self?.closeTaskPicker() },
+        let picker = BattleTaskPicker(presentation: presentation, embeddedSizing: embeddedSizing,
+            onClose: { [weak self] in self?.closeTaskPicker() },
             onFocused: { [weak self] in
                 guard let self, focus.forfeitPrompt == nil else { return }
                 closeTaskPicker()
                 publish()
             })
             .environment(usage).environment(companion).environment(focus)
+            .environment(\.battleSessionContext, presentation == .embedded)
         content.taskPicker = NSHostingView(rootView: AnyView(picker))
-        onLayout?(380, true)
+        onLayout?(BattlePageMetrics.taskPickerHeight, true)
     }
 
     func closeTaskPicker() {
@@ -189,34 +222,60 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 "bag": Dictionary(uniqueKeysWithValues: FocusPotion.kinds.map { ($0.spriteName!, companion.itemCount($0)) }),
                 "prices": Dictionary(uniqueKeysWithValues: FocusPotion.kinds.map { ($0.spriteName!, companion.price(of: $0) ?? 0) }),
                 "itemImages": itemImages, "defaultMinutes": focus.plannedMinutes,
-                "scale": usage.battleWindowScale, "pinned": usage.floatingTimerPinned]
+                "scale": presentation == .floating ? CGFloat(usage.battleWindowScale) : embeddedSizing.scale,
+                "pinned": presentation == .floating && usage.floatingTimerPinned]
     }
+
+    /// Keep the packaged battle surface intact while removing controls that only belong to a floating panel.
+    private static let embeddedChromeScript = """
+    (() => {
+      const style = document.createElement('style');
+      style.textContent = '.native .fold-window, .native [data-floating-control] { display: none !important; } .native .game-header { cursor: default; }';
+      document.head.appendChild(style);
+      const configure = () => {
+        document.querySelectorAll('.more-menu button').forEach(button => {
+          if (['Pin window', 'Unpin window', 'Tuck at screen edge'].includes(button.textContent.trim())) {
+            button.setAttribute('data-floating-control', '');
+          }
+        });
+      };
+      configure();
+      new MutationObserver(configure).observe(document.body, { childList: true, subtree: true, characterData: true });
+    })();
+    """
 
     private func refreshArtwork() {
         let opponent = focus.session?.battleOpponentID ?? 94
-        let identity = "\(companion.currentSpeciesID ?? 0)-\(companion.currentIsShiny)-\(companion.currentUnownForm?.rawValue ?? "")-\(companion.isEgg)-\(opponent)"
+        let species = companion.currentSpeciesID
+        let shiny = companion.currentIsShiny
+        let unownForm = companion.currentUnownForm
+        let isEgg = companion.isEgg
+        let identity = "\(species ?? 0)-\(shiny)-\(unownForm?.rawValue ?? "")-\(isEgg)-\(opponent)"
         guard loadedIdentity != identity else { return }
         loadedIdentity = identity
-        Task { [weak self] in
-            guard let self else { return }
+        artworkTask?.cancel()
+        artworkTask = Task { [weak self] in
+            // Await sprite data without retaining the page bridge, so teardown does not wait for the network.
             let player: Data?
-            if let species = companion.currentSpeciesID {
-                let back = await SpriteStore.shared.data(speciesID: species, animated: false, shiny: companion.currentIsShiny,
-                                                         unownForm: companion.currentUnownForm, back: true)
+            if let species {
+                let back = await SpriteStore.shared.data(speciesID: species, animated: false, shiny: shiny,
+                                                         unownForm: unownForm, back: true)
                 if let back { player = back }
                 else { player = await SpriteStore.shared.data(speciesID: species, animated: false,
-                                                              shiny: companion.currentIsShiny, unownForm: companion.currentUnownForm) }
-            } else if companion.isEgg { player = await SpriteStore.shared.eggData() }
+                                                              shiny: shiny, unownForm: unownForm) }
+            } else if isEgg { player = await SpriteStore.shared.eggData() }
             else { player = nil }
+            guard !Task.isCancelled else { return }
             let frames = await SpriteLoader.animationFrames(speciesID: opponent, shiny: false)
             let fallback = frames.isEmpty ? await SpriteLoader.image(speciesID: opponent) : nil
             var items: [String: String] = [:]
             for kind in FocusPotion.kinds {
+                guard !Task.isCancelled else { return }
                 if let name = kind.spriteName, let data = await SpriteStore.shared.data(itemName: name) {
                     items[name] = Self.dataImage(data)
                 }
             }
-            guard loadedIdentity == identity else { return }
+            guard !Task.isCancelled, let self, !stopped, loadedIdentity == identity else { return }
             playerImage = player.map(Self.dataImage) ?? ""
             opponentImage = Self.spriteSheet(frames: Array(frames.prefix(2)).map(\.image), fallback: fallback) ?? ""
             itemImages = items
@@ -244,11 +303,39 @@ final class BattleWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 }
 
+@MainActor
+private final class WeakBattleMessageHandler: NSObject, WKScriptMessageHandler {
+    private weak var battle: BattleWindow?
+    init(_ battle: BattleWindow) { self.battle = battle; super.init() }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        battle?.userContentController(userContentController, didReceive: message)
+    }
+}
+
+@MainActor
+@Observable
+private final class EmbeddedBattleSizing {
+    var scale: CGFloat = 1
+}
+
+private enum BattleSessionContextKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Only newly selected sessions in the embedded Battle picker use deferred battle rewards.
+    var battleSessionContext: Bool {
+        get { self[BattleSessionContextKey.self] }
+        set { self[BattleSessionContextKey.self] = newValue }
+    }
+}
+
 /// Keep dragging on the header and route all game buttons/text input to WebKit.
 @MainActor
 final class BattlePanelContent: NSView {
     private let webView: WKWebView
     private let header: BattleHeaderDragView
+    private let allowsWindowDragging: Bool
     private var tracking: NSTrackingArea?
     var onHover: ((Bool) -> Void)?
     var gameSize = NSSize(width: 360, height: 180) { didSet { needsLayout = true } }
@@ -258,16 +345,18 @@ final class BattlePanelContent: NSView {
         didSet {
             if let taskPicker { addSubview(taskPicker) }
             webView.isHidden = taskPicker != nil
-            header.isHidden = taskPicker != nil
+            header.isHidden = !allowsWindowDragging || taskPicker != nil
             needsLayout = true
         }
     }
 
-    init(webView: WKWebView, pinned: @escaping () -> Bool) {
+    init(webView: WKWebView, pinned: @escaping () -> Bool, allowsWindowDragging: Bool = true) {
         self.webView = webView; self.header = BattleHeaderDragView(pinned: pinned)
+        self.allowsWindowDragging = allowsWindowDragging
         super.init(frame: .zero)
         wantsLayer = true; layer?.masksToBounds = true
         addSubview(webView); addSubview(header)
+        header.isHidden = !allowsWindowDragging
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func layout() {
@@ -292,6 +381,8 @@ final class BattlePanelContent: NSView {
 /// Reuse the actual issue cards and focus flow inside the existing Battle panel.
 @MainActor
 private struct BattleTaskPicker: View {
+    let presentation: BattleWindow.Presentation
+    let embeddedSizing: EmbeddedBattleSizing
     let onClose: () -> Void
     let onFocused: () -> Void
     @Environment(UsageStore.self) private var usage
@@ -351,7 +442,8 @@ private struct BattleTaskPicker: View {
         }
         .padding(12)
         .background(MenuBarTheme(scheme: scheme).canvas)
-        .scaledFloatingTimer(size: NSSize(width: 360, height: 380), scale: CGFloat(usage.battleWindowScale))
+        .scaledFloatingTimer(size: NSSize(width: 360, height: 380),
+            scale: presentation == .floating ? CGFloat(usage.battleWindowScale) : embeddedSizing.scale)
         .onChange(of: focus.session?.issue.id) { _, _ in onFocused() }
         .task {
             guard usage.linearIntegrationEnabled, usage.linearAPIKeyConfigured else { return }

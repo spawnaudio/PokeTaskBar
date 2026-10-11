@@ -66,6 +66,8 @@ struct MainWindowView: View {
         .onChange(of: nav.content.tab) { _, value in
             if value == .focus && nav.page != .today { nav.select(.focus) }
             if value == .collection { nav.select(.collection) }
+            if value == .pokedex { nav.select(.pokedex) }
+            if value == .battle { nav.select(.battle) }
         }
         .task(id: store.linearIntegrationEnabled && store.linearAPIKeyConfigured) {
             if store.linearIntegrationEnabled && store.linearAPIKeyConfigured {
@@ -209,11 +211,13 @@ struct MainWindowView: View {
 
     private var canvas: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(nav.page.title(l)).font(.system(size: 30, weight: .semibold))
-                if nav.page == .today {
-                    Text(session.plan.selectedDay, format: .dateTime.weekday(.wide).day().month(.wide).year())
-                        .foregroundStyle(theme.secondary)
+            if nav.page != .pokedex {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(nav.page.title(l)).font(.system(size: 30, weight: .semibold))
+                    if nav.page == .today {
+                        Text(session.plan.selectedDay, format: .dateTime.weekday(.wide).day().month(.wide).year())
+                            .foregroundStyle(theme.secondary)
+                    }
                 }
             }
             pageContent.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -225,16 +229,20 @@ struct MainWindowView: View {
     }
 
     @ViewBuilder private var pageContent: some View {
+        @Bindable var content = nav.content
         switch nav.page {
         case .today: TaskPlanningView()
         case .insights: TaskInsightsView()
         case .focus: MainWindowFocusView()
+        case .battle: BattlePageView()
         case .issues, .projects, .initiatives: MainWindowWorkspacesView(page: nav.page)
         case .collection: MainWindowCollectionView()
+        case .pokedex: PokedexPageView(store: companion, spacious: true,
+                                      showingCollectionLog: $content.showingCollectionLog)
         case .usage: UsageTabView()
         case .settings:
             SettingsView(onClose: { nav.back() }, onChooseRepresentative: {
-                nav.content.openRepresentativeDex(); nav.select(.collection)
+                nav.content.openRepresentativeDex(); nav.select(.pokedex)
             }, startExpanded: nav.content.expandAdvancedOnOpen)
         }
     }
@@ -301,7 +309,7 @@ struct MainWindowTodayView: View {
                                              count: geometry.size.width >= 500 ? 3 : 1), spacing: 12) {
                         shortcut(.issues, detail: "View and manage")
                         shortcut(.projects, detail: "Your workspaces")
-                        shortcut(.collection, detail: "Your Pokémon")
+                        shortcut(.pokedex, detail: "Your Pokédex")
                     }
                     nextFocus
                 }.frame(maxWidth: .infinity).padding(.bottom, 4)

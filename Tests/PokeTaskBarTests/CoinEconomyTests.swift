@@ -33,82 +33,107 @@ final class UniqueHatchTests: XCTestCase {
     }
 
     private func eggStore(dexJSON: String, seed: UInt64) -> CompanionStore {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("unique-hatch-\(UUID().uuidString).json")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("unique-hatch-\(UUID())")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("state.json")
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        let suite = "unique-hatch-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(1.0, forKey: "growthDifficulty")
+        defaults.set(1.0, forKey: "shopDifficulty")
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":10000000,\"spentTokens\":0,"
             + "\"lastDate\":\"d\",\"active\":null,\"dex\":[\(dexJSON)],\"collectedFinals\":[],"
             + "\"eggUsage\":\(PokemonBalance.eggHatchThreshold)}"
         try? json.data(using: .utf8)!.write(to: url)
         return CompanionStore(provider: OneSpeciesProvider(), clock: { Date(timeIntervalSince1970: 1) },
                               fileURL: url, rng: SeededRNG(seed: seed),
-                              dittoDisguiseRollingEnabled: false)
+                              dittoDisguiseRollingEnabled: false, defaults: defaults)
     }
 
-    func testAlreadyCaughtSpeciesDoesNotHatchUnlessShiny() async {
-        let dex = "{\"baseID\":1,\"finalID\":1,\"chainOrder\":[1],\"rarity\":\"common\"}"
-        var nonShiny: UInt64?
-        var shiny: UInt64?
-        for seed: UInt64 in 1...10_000 {
+    private func seed(shiny: Bool) throws -> UInt64 {
+        try XCTUnwrap((UInt64(1)...10_000).first { seed in
             var rng = SeededRNG(seed: seed)
-            let roll = rng.next()
-            if CompanionStore.rollsShiny(roll: roll, charmOwned: false) {
-                if shiny == nil { shiny = seed }
-            } else if nonShiny == nil {
-                nonShiny = seed
-            }
-            if shiny != nil, nonShiny != nil { break }
-        }
-        let blocked = eggStore(dexJSON: dex, seed: try! XCTUnwrap(nonShiny))
-        await blocked.hatch(baseID: 1)
-        XCTAssertNil(blocked.state.active, "이미 잡은 종은 이로치가 아니면 다시 부화하지 않는다")
-        XCTAssertTrue(blocked.isEgg)
-
-        let allowed = eggStore(dexJSON: dex, seed: try! XCTUnwrap(shiny))
-        await allowed.hatch(baseID: 1)
-        XCTAssertEqual(allowed.state.active?.baseID, 1)
-        XCTAssertTrue(allowed.currentIsShiny)
+            return CompanionStore.rollsShiny(roll: rng.next(), charmOwned: false) == shiny
+        })
     }
 
-    func testStoredUngraduatedSpeciesDoesNotHatchUnlessShiny() async throws {
+    func testGraduatedSpeciesAllowsFreshNormalAndShinyIndividuals() async throws {
+        let dex = "{\"baseID\":1,\"finalID\":1,\"chainOrder\":[1],\"rarity\":\"common\"}"
+        for shiny in [false, true] {
+            let store = eggStore(dexJSON: dex, seed: try seed(shiny: shiny))
+            let historical = store.state.dex
+            await store.hatch(baseID: 1)
+            XCTAssertEqual(store.state.active?.baseID, 1)
+            XCTAssertEqual(store.currentIsShiny, shiny)
+            XCTAssertEqual(store.state.active?.catchCount, 1)
+            XCTAssertEqual(store.state.dex, historical, "a new catch cannot mutate graduated history")
+        }
+    }
+
+    func testStoredNormalRepeatResumesIndividualAndAppliesFullEggXP() async throws {
         let normal = eggStore(dexJSON: "", seed: 1)
         await normal.hatch(baseID: 1)
-        XCTAssertNotNil(normal.state.active)
-        XCTAssertFalse(normal.currentIsShiny)
+        normal.applyUsage(100)
+        let original = try XCTUnwrap(normal.state.active)
+        XCTAssertFalse(original.isShiny)
         XCTAssertTrue(normal.buyFreshEgg())
         XCTAssertTrue(normal.storePartnerReplacingWithStoredEgg())
         XCTAssertTrue(normal.state.dex.isEmpty)
         XCTAssertTrue(normal.state.ownsSpecies(1))
-        await normal.hatch(baseID: 1)
-        XCTAssertNil(normal.state.active)
-        XCTAssertTrue(normal.isEgg)
+        let beforeXP = normal.lifetimeXP
+        let eggXP = PokemonBalance.eggHatchThreshold + 123
+        normal.creditEarnedXP(eggXP, fromTokens: true)
+        await normal.hatchIfNeeded()
+        let resumed = try XCTUnwrap(normal.state.active)
+        XCTAssertEqual(resumed.profile?.instanceID, original.profile?.instanceID)
+        XCTAssertEqual(resumed.profile?.ivs, original.profile?.ivs)
+        XCTAssertEqual(resumed.plannedPathIDs, original.plannedPathIDs)
+        XCTAssertEqual(resumed.usedAtStage, original.usedAtStage + eggXP)
+        XCTAssertEqual(resumed.catchCount, 2)
+        XCTAssertEqual(resumed.repeatCatchXP, eggXP)
+        XCTAssertEqual(normal.lifetimeXP, beforeXP + eggXP, "the hatch must not re-award earned wallet XP")
+        XCTAssertTrue(normal.storedCompanions.isEmpty)
+        XCTAssertEqual(normal.state.eggUsage, 0)
 
-        let shinySeed = try XCTUnwrap((1...10_000).map(UInt64.init).first { seed in
-            var rng = SeededRNG(seed: seed)
-            return CompanionStore.rollsShiny(roll: rng.next(), charmOwned: false)
-        })
-        // Persist/reload the real storage-swap result with a deterministic shiny roll.
+        let data = try SaveTransfer.encode(state: normal.state, appVersion: "v4", deviceName: "test", now: Date())
+        let restored = try SaveTransfer.decode(data).state.active
+        XCTAssertEqual(restored, resumed, "catch count, XP and original individual survive save transfer")
+    }
+
+    func testRepeatedShinyCatchesRemainSeparateFromNormalAndShinyPartners() async throws {
+        let normal = eggStore(dexJSON: "", seed: 1)
+        await normal.hatch(baseID: 1)
+        XCTAssertTrue(normal.buyFreshEgg())
+        XCTAssertTrue(normal.storePartnerReplacingWithStoredEgg())
         var saved = normal.state
         saved.usedSinceInstall = 30_000_000
         saved.eggUsage = PokemonBalance.eggHatchThreshold
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("stored-hatch-\(UUID().uuidString).json")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("stored-hatch-\(UUID()).json")
         defer { try? FileManager.default.removeItem(at: url) }
         try JSONEncoder().encode(saved).write(to: url)
-        let reloaded = CompanionStore(provider: OneSpeciesProvider(), fileURL: url,
-                                      rng: SeededRNG(seed: shinySeed), dittoDisguiseRollingEnabled: false)
-        await reloaded.hatch(baseID: 1)
-        XCTAssertTrue(reloaded.currentIsShiny)
-        XCTAssertEqual(reloaded.state.active?.baseID, 1)
-        XCTAssertEqual(reloaded.storedCompanions.count, 1)
-
-        XCTAssertTrue(reloaded.buyFreshEgg())
-        XCTAssertTrue(reloaded.storePartnerReplacingWithStoredEgg())
-        saved = reloaded.state
+        let firstShiny = CompanionStore(provider: OneSpeciesProvider(), fileURL: url,
+                                        rng: SeededRNG(seed: try seed(shiny: true)), dittoDisguiseRollingEnabled: false)
+        await firstShiny.hatch(baseID: 1)
+        let firstID = try XCTUnwrap(firstShiny.state.active?.profile?.instanceID)
+        XCTAssertTrue(firstShiny.currentIsShiny)
+        XCTAssertEqual(firstShiny.storedCompanions.count, 1)
+        XCTAssertTrue(firstShiny.buyFreshEgg())
+        XCTAssertTrue(firstShiny.storePartnerReplacingWithStoredEgg())
+        saved = firstShiny.state
+        saved.eggUsage = PokemonBalance.eggHatchThreshold
         try JSONEncoder().encode(saved).write(to: url)
-        let duplicateShiny = CompanionStore(provider: OneSpeciesProvider(), fileURL: url,
-                                            rng: SeededRNG(seed: shinySeed), dittoDisguiseRollingEnabled: false)
-        await duplicateShiny.hatch(baseID: 1)
-        XCTAssertNil(duplicateShiny.state.active, "A second shiny of the same species is also a duplicate")
-        XCTAssertTrue(duplicateShiny.isEgg)
+        let secondShiny = CompanionStore(provider: OneSpeciesProvider(), fileURL: url,
+                                         rng: SeededRNG(seed: try seed(shiny: true)), dittoDisguiseRollingEnabled: false)
+        let banked = secondShiny.storedCompanions
+        await secondShiny.hatch(baseID: 1)
+        XCTAssertTrue(secondShiny.currentIsShiny)
+        XCTAssertNotEqual(secondShiny.state.active?.profile?.instanceID, firstID)
+        XCTAssertEqual(secondShiny.state.active?.catchCount, 1)
+        XCTAssertEqual(secondShiny.storedCompanions, banked)
+        XCTAssertEqual(secondShiny.pokemonIndividuals(speciesID: 1).count, 3)
     }
+
 }
 
 @MainActor

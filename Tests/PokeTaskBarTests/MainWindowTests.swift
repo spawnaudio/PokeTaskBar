@@ -599,6 +599,24 @@ final class MainWindowTests: XCTestCase {
         XCTAssertFalse(nav.canGoForward)
     }
 
+    func testDedicatedPokemonPagesKeepCollectionSelectionAndNavigationHistory() {
+        let nav = MainWindowNavigation()
+        nav.select(.collection)
+        nav.content.collectionSegment = .storage
+        nav.select(.pokedex)
+        XCTAssertEqual(nav.content.tab, .pokedex)
+        XCTAssertEqual(nav.content.collectionSegment, .storage)
+        nav.select(.battle)
+        XCTAssertEqual(nav.content.tab, .battle)
+        nav.back()
+        XCTAssertEqual(nav.page, .pokedex)
+        nav.back()
+        XCTAssertEqual(nav.page, .collection)
+        XCTAssertEqual(nav.content.collectionSegment, .storage)
+        nav.forward()
+        XCTAssertEqual(nav.page, .pokedex)
+    }
+
     func testProjectRouteAndNavigationDoNotStartOrResetTimer() throws {
         let fixture = try Fixture(); defer { fixture.remove() }
         fixture.focus.plannedMinutes = 25
@@ -703,7 +721,7 @@ final class MainWindowTests: XCTestCase {
         fixture.usage.todayDeskLayout = fixture.usage.todayDeskLayout.togglingLeft().togglingRight()
         try await render(fixture, name: "today-collapsed", width: 860, height: 620, directory: directory)
         fixture.usage.todayDeskLayout = .default
-        for page in [MainWindowPage.issues, .projects, .initiatives, .usage, .settings] {
+        for page in [MainWindowPage.issues, .projects, .initiatives, .pokedex, .battle, .usage, .settings] {
             fixture.nav.select(page)
             try await render(fixture, name: page.rawValue, directory: directory)
         }
@@ -713,8 +731,8 @@ final class MainWindowTests: XCTestCase {
             fixture.nav.content.collectionSegment = segment
             try await render(fixture, name: "collection-\(segment)", directory: directory)
         }
-        fixture.nav.content.collectionSegment = .dex
         fixture.nav.content.showingCollectionLog = true
+        fixture.nav.select(.pokedex)
         try await render(fixture, name: "catch-log", directory: directory)
         fixture.nav.select(.focus)
         fixture.focus.pin(try XCTUnwrap(fixture.usage.linearInProgressIssues.first), openDesk: false, minutes: 25)

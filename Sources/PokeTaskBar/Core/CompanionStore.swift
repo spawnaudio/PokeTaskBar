@@ -133,16 +133,24 @@ final class CompanionStore {
             // Calculate the old threshold without the new range clamp during migration.
             let oldThreshold = max(1, Int((Double(base) * old).rounded()))
             let newThreshold = max(1, Int((Double(base) * new).rounded()))
-            let value = Double(credits) / Double(oldThreshold) * Double(newThreshold)
-            let rounded = Int(min(Double(SaveTransfer.maxTokenValue), max(0, value.rounded(.down))))
-            // Rounding must never turn an incomplete stage into a completed one.
-            return credits < oldThreshold ? min(newThreshold - 1, rounded) : rounded
+            return RepeatCatchTraining.repricedUsage(credits, oldThreshold: oldThreshold,
+                                                     newThreshold: newThreshold)
         }
         if var active = state.active {
             active.usedAtStage = rescaled(active.usedAtStage, base: active.phaseThreshold)
             state.active = active
         } else {
             state.eggUsage = rescaled(state.eggUsage, base: PokemonBalance.eggHatchThreshold)
+        }
+        state.pokemonStorage = state.pokemonStorage.map { item in
+            switch item {
+            case .egg(let id, let tier, let usage):
+                return .egg(id: id, tier: tier,
+                            usage: rescaled(usage, base: PokemonBalance.eggHatchThreshold))
+            case .partner(let id, var mon):
+                mon.usedAtStage = rescaled(mon.usedAtStage, base: mon.phaseThreshold)
+                return .partner(id: id, mon: mon)
+            }
         }
     }
 
@@ -310,7 +318,7 @@ final class CompanionStore {
             id: "active-\(active.baseID)-\(active.currentID)",
             baseID: active.baseID,
             finalID: active.currentID,
-            chainOrder: active.pathIDs,
+            chainOrder: Array(active.pathIDs.prefix(active.stageIndex + 1)),
             rarity: active.rarity,
             caughtAt: nil,
             isShiny: currentIsShiny,   // 위장 메타몽은 리빌 전까지 이로치를 숨긴다(판정 단일 소스)
@@ -320,7 +328,8 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     active.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            unownForm: active.unownForm
+            unownForm: active.unownForm,
+            catchCount: active.catchCount, repeatCatchXP: active.repeatCatchXP
         )
     }
 
@@ -351,7 +360,8 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     chain.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            releasedAt: now, unownForm: a.unownForm)
+            releasedAt: now, unownForm: a.unownForm,
+            catchCount: a.catchCount, repeatCatchXP: a.repeatCatchXP)
     }
 
     var dexEntries: [DexEntry] {
@@ -372,11 +382,19 @@ final class CompanionStore {
     ///
     /// caughtAt 이 없는 구버전 항목은 .distantPast 로 묶여 맨 뒤에 온다(그들끼리의 순서는 미정).
     var dexEntriesSorted: [DexEntry] {
-        let graduated = state.dex.sorted {
-            ($0.caughtAt ?? .distantPast) > ($1.caughtAt ?? .distantPast)
-        }
+        let graduated = historicalDexEntriesSorted
         guard let activeDexEntry else { return graduated }
         return [activeDexEntry] + graduated
+    }
+
+    private var historicalDexEntriesSorted: [DexEntry] {
+        state.dex.sorted { ($0.caughtAt ?? .distantPast) > ($1.caughtAt ?? .distantPast) }
+    }
+
+    /// PT-v4 catch log keeps every owned individual visible, including banked trainees.
+    /// Active first, then storage order, then immutable graduation/release records by date.
+    var pokemonCatchLogEntries: [DexEntry] {
+        [activeDexEntry].compactMap { $0 } + storedPartnerDexEntries + historicalDexEntriesSorted
     }
 
     /// 희귀도별 포획 로그 개수(요약 헤더용) — 개체 수 기준. 도감(종 단위)은 dexSpecies 를 쓴다.
@@ -445,6 +463,16 @@ final class CompanionStore {
                 var a = acc[key] ?? DexAccumulator(rarity: entry.rarity)
                 if let n = entry.names?[id] { a.names = n }   // 이름 없는 구버전 항목이 덮어쓰지 않게
                 if entry.isShiny { a.isShiny = true }
+                acc[key] = a
+            }
+        }
+        for item in state.pokemonStorage {
+            guard case .partner(_, let mon) = item else { continue }
+            for id in mon.pathIDs.prefix(mon.stageIndex + 1) {
+                let key = DexKey(id, unownForm: mon.unownForm, groupUnownForms: groupUnownForms)
+                var a = acc[key] ?? DexAccumulator(rarity: mon.rarity)
+                if let names = storedPartnerLines[mon.baseID]?.names[id] { a.names = names }
+                if mon.isShiny && (mon.dittoDisguise == nil || mon.dittoRevealed) { a.isShiny = true }
                 acc[key] = a
             }
         }
@@ -796,7 +824,8 @@ final class CompanionStore {
                                   names: currentLine.map { line in   // 체인 각 종의 다국어 이름 저장(표시 즉시)
                                       Dictionary(uniqueKeysWithValues:
                                           a.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
-                                  }, unownForm: a.unownForm))
+                                  }, unownForm: a.unownForm,
+                                  catchCount: a.catchCount, repeatCatchXP: a.repeatCatchXP))
         let name = UnownForm.displayName(currentLine?.localizedName(finalID, state.language) ?? "",
                                          speciesID: finalID, form: a.unownForm)
         justGraduated = name
@@ -1375,28 +1404,23 @@ final class CompanionStore {
         let generation = activeGeneration
         isHatching = true
         defer { isHatching = false }
-        // Retry owned rolls now; bound work when the eligible collection is already complete.
-        for _ in 0..<16 {
-            let base: Int?
-            if let pending = state.pendingHatchID {
-                base = pending
-            } else {
-                base = await chooseBase()
-            }
-            guard isCurrentReadyEgg(generation: generation) else {
-                AppLog.write("hatch: discarded before result handling — subject replaced during species roll")
-                kickLineLoadIfNeeded()
-                return
-            }
-            guard let base else {
-                isHatchRetryDelayed = true
-                return
-            }
-            let pendingForm = state.pendingHatchID == base ? state.pendingUnownForm : nil
-            guard case .duplicate = await hatchCore(baseID: base, generation: generation,
-                                                   unownForm: pendingForm) else { return }
+        let base: Int?
+        if let pending = state.pendingHatchID {
+            base = pending
+        } else {
+            base = await chooseBase()
         }
-        markHatchRetryDelayedIfReady(generation: generation)
+        guard isCurrentReadyEgg(generation: generation) else {
+            AppLog.write("hatch: discarded before result handling — subject replaced during species roll")
+            kickLineLoadIfNeeded()
+            return
+        }
+        guard let base else {
+            isHatchRetryDelayed = true
+            return
+        }
+        let pendingForm = state.pendingHatchID == base ? state.pendingUnownForm : nil
+        _ = await hatchCore(baseID: base, generation: generation, unownForm: pendingForm)
     }
 
     /// 부화가 폐기된 뒤 남은 개체(대개 방금 불러온 개체)의 진화 라인을 다시 로드한다.
@@ -1507,7 +1531,7 @@ final class CompanionStore {
         roll % (charmOwned ? ShinyCharm.shinyDenominator : PokemonOdds.shinyDenominator) == 0
     }
 
-    private enum HatchResult { case finished, duplicate }
+    private enum HatchResult { case finished }
 
     /// 실제 부화 로직 — isHatching 락은 호출자(hatch / hatchIfNeeded)가 소유·해제한다.
     private func hatchCore(baseID: Int, generation: Int, unownForm pendingForm: UnownForm? = nil) async -> HatchResult {
@@ -1542,14 +1566,6 @@ final class CompanionStore {
         let unownForm: UnownForm? = line.baseID == UnownForm.speciesID
             ? (pendingForm ?? .roll(rng.next(), collected: state.collectedUnownForms)) : nil
         let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
-        if state.ownsSpecies(line.baseID, unownForm: unownForm, shinyOnly: isShiny) {
-            AppLog.write("hatch: species \(line.baseID) already caught (shiny=\(isShiny)) — re-roll")
-            state.pendingHatchID = nil
-            state.pendingUnownForm = nil
-            prefetchedLineID = nil
-            save()
-            return .duplicate
-        }
         state.pendingHatchID = nil
         state.pendingUnownForm = nil
         // A later egg can roll the same species with another letter and must warm its own sprite.
@@ -1557,7 +1573,8 @@ final class CompanionStore {
         currentLine = line
         isHatchRetryDelayed = false
         // 부화 임계 초과분은 부화체 성장에 이월(낭비 없음).
-        let overflow = max(0, state.eggUsage - eggHatchThreshold)
+        let earnedEggXP = state.eggUsage
+        let overflow = max(0, earnedEggXP - eggHatchThreshold)
         state.eggUsage = 0
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
@@ -1567,6 +1584,34 @@ final class CompanionStore {
         if dittoDisguiseRollingEnabled,
            Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()) {
             dittoDisguise = line.baseID
+        }
+        let incoming = RepeatCatchTraining.Candidate(baseID: line.baseID,
+            form: unownForm?.rawValue, isShiny: isShiny, isUnrevealedDitto: dittoDisguise != nil)
+        let candidates = state.pokemonStorage.map { item -> RepeatCatchTraining.Candidate? in
+            guard case .partner(_, let mon) = item else { return nil }
+            return RepeatCatchTraining.Candidate(baseID: mon.baseID,
+                form: UnownForm.resolved(speciesID: mon.baseID, form: mon.unownForm)?.rawValue,
+                isShiny: mon.isShiny, isUnrevealedDitto: mon.dittoDisguise != nil && !mon.dittoRevealed)
+        }
+        if let index = RepeatCatchTraining.targetIndex(for: incoming, stored: candidates),
+           case .partner(_, var partner) = state.pokemonStorage.remove(at: index) {
+            // Consume this egg and resume the original individual. The ledger already credited
+            // incubation + overflow, so only growth and this individual's catch history change.
+            partner.catchCount = RepeatCatchTraining.addingCredit(1, to: max(1, partner.catchCount))
+            partner.repeatCatchXP = RepeatCatchTraining.addingCredit(earnedEggXP, to: partner.repeatCatchXP)
+            state.active = partner
+            state.trainingEmpty = false
+            activeGeneration += 1
+            justEvolvedTo = nil
+            displayState = .levelUp
+            eventUntil = clock().addingTimeInterval(4)
+            candyFeedbackAmount = earnedEggXP
+            candyFeedbackSeq += 1
+            applyUsage(earnedEggXP)
+            AppLog.write("repeat catch: base=\(line.baseID) XP=\(earnedEggXP) individual=\(partner.profile?.instanceID ?? "legacy")")
+            save()
+            if detailProvider != nil { Task { await self.loadPokemonDetails(speciesID: partner.currentID) } }
+            return .finished
         }
         let evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID)
         var profile = PokemonProfile.generate(seed: rng.next())
@@ -1817,14 +1862,49 @@ final class CompanionStore {
 
     // MARK: Pokémon combat profiles / details
 
+    private var storedPartnerDexEntries: [DexEntry] {
+        state.pokemonStorage.compactMap { item -> DexEntry? in
+            guard case .partner(let id, let mon) = item else { return nil }
+            let chain = Array(mon.pathIDs.prefix(mon.stageIndex + 1))
+            return DexEntry(id: id, baseID: mon.baseID, finalID: mon.currentID,
+                            chainOrder: chain, rarity: mon.rarity, caughtAt: nil,
+                            isShiny: mon.isShiny && (mon.dittoDisguise == nil || mon.dittoRevealed),
+                            nature: mon.nature, profile: mon.profile,
+                            names: storedPartnerLines[mon.baseID].map { line in
+                                Dictionary(uniqueKeysWithValues: chain.compactMap { id in
+                                    line.names[id].map { (id, $0) }
+                                })
+                            }, unownForm: mon.unownForm,
+                            catchCount: mon.catchCount, repeatCatchXP: mon.repeatCatchXP)
+        }
+    }
+
     /// Exact current/final individuals for a Pokédex species. Earlier evolution stages remain
     /// species reference pages; the same evolved individual is not duplicated as a second creature.
     func pokemonIndividuals(speciesID: Int, unownForm: UnownForm? = nil) -> [DexEntry] {
         let form = UnownForm.resolved(speciesID: speciesID, form: unownForm)
-        return dexEntriesSorted.filter {
+        return pokemonCatchLogEntries.filter {
             $0.finalID == speciesID && $0.profile != nil
                 && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
         }
+    }
+
+    /// Nil denotes an immutable graduation/release record; storage and active entries train.
+    func individualTrainingProgress(entryID: String) -> Double? {
+        let mon: MonState?
+        if entryID == activeDexEntry?.id {
+            mon = state.active
+        } else {
+            mon = state.pokemonStorage.compactMap { item -> MonState? in
+                guard case .partner(let id, let mon) = item, id == entryID else { return nil }
+                return mon
+            }.first
+        }
+        guard let mon else { return nil }
+        let growth = mon.profile?.growthTokens ?? Self.reconstructedGrowthTokens(
+            rarity: mon.rarity, totalForms: mon.totalForms,
+            completedStages: mon.stageIndex, currentStageUsage: 0)
+        return min(1, max(0, Double(growth) / Double(PokemonBalance.graduationTotal(mon.rarity))))
     }
 
     /// Loads immutable PokéAPI metadata and persists any deferred profile fields exactly once.
@@ -1873,6 +1953,17 @@ final class CompanionStore {
                 changed = true
             }
         }
+        for index in state.pokemonStorage.indices {
+            guard case .partner(let id, var mon) = state.pokemonStorage[index],
+                  mon.currentID == speciesID, var profile = mon.profile else { continue }
+            let before = profile
+            profile.enrich(with: details)
+            if profile != before {
+                mon.profile = profile
+                state.pokemonStorage[index] = .partner(id: id, mon: mon)
+                changed = true
+            }
+        }
         if changed { save() }
     }
 
@@ -1885,6 +1976,19 @@ final class CompanionStore {
             active.profile = PokemonProfile.generate(seed: PokemonProfileMigration.seed(key))
             state.active = active
             changed = true
+        }
+        for index in state.pokemonStorage.indices {
+            guard case .partner(let id, var mon) = state.pokemonStorage[index] else { continue }
+            let previous = mon.profile
+            if mon.profile == nil {
+                mon.profile = PokemonProfile.generate(seed: PokemonProfileMigration.seed("storage:\(id)"),
+                                                       instanceID: id)
+            }
+            reconcileProfileGrowth(for: &mon)
+            if previous != mon.profile {
+                state.pokemonStorage[index] = .partner(id: id, mon: mon)
+                changed = true
+            }
         }
         for index in state.dex.indices {
             let entry = state.dex[index]
@@ -1928,19 +2032,24 @@ final class CompanionStore {
     /// Completed phases retain their earned credit. Only the current raw phase is repriced
     /// by difficulty/repeat boost; its profile high-water mark prevents level loss.
     private func reconcileActiveProfileGrowth() {
-        guard var active = state.active, var profile = active.profile else { return }
+        guard var active = state.active else { return }
+        reconcileProfileGrowth(for: &active)
+        state.active = active
+    }
+
+    private func reconcileProfileGrowth(for active: inout MonState) {
+        guard var profile = active.profile else { return }
         let completed = Self.reconstructedGrowthTokens(
             rarity: active.rarity, totalForms: active.totalForms,
             completedStages: active.stageIndex, currentStageUsage: 0)
         let standardPhase = PokemonBalance.phaseThreshold(
             rarity: active.rarity, totalForms: active.totalForms, stageIndex: active.stageIndex)
-        let fraction = min(1, max(0, Double(active.usedAtStage) / Double(max(1, stageThreshold(for: active)))))
-        let candidate = min(PokemonBalance.graduationTotal(active.rarity),
-                            completed + Int((Double(standardPhase) * fraction).rounded(.down)))
+        let candidate = RepeatCatchTraining.standardGrowth(completed: completed,
+            currentUsage: active.usedAtStage, adjustedThreshold: stageThreshold(for: active),
+            standardPhase: standardPhase, graduationTotal: PokemonBalance.graduationTotal(active.rarity))
         profile.advanceGrowth(to: candidate, rarity: active.rarity)
         if let details = pokemonDetailsByID[active.currentID] { profile.enrich(with: details) }
         active.profile = profile
-        state.active = active
     }
 
     static func reconstructedGrowthTokens(rarity: Rarity, totalForms: Int,

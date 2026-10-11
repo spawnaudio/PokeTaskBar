@@ -1,18 +1,20 @@
 import SwiftUI
 
 enum MainWindowPage: String, CaseIterable, Identifiable {
-    case today, focus, issues, projects, initiatives, insights, collection, usage, settings
+    case today, focus, battle, issues, projects, initiatives, insights, pokedex, collection, usage, settings
     static var visiblePages: [Self] { allCases.filter { $0 != .initiatives } }
     var id: String { rawValue }
     var symbol: String {
         switch self {
         case .today: "house"
         case .focus: "target"
+        case .battle: "gamecontroller"
         case .issues: "list.bullet.rectangle"
         case .projects: "folder"
         case .initiatives: "flag"
         case .insights: "chart.xyaxis.line"
         case .collection: "square.grid.2x2"
+        case .pokedex: "book.closed"
         case .usage: "chart.bar"
         case .settings: "gearshape"
         }
@@ -21,11 +23,13 @@ enum MainWindowPage: String, CaseIterable, Identifiable {
         switch self {
         case .today: l.todayDeskWindowTitle
         case .focus: l.focusTab
+        case .battle: l.battlePageTitle
         case .issues: l.linearIssuesTab
         case .projects: l.linearProjectsTab
         case .initiatives: l.linearInitiativesTab
         case .insights: "Insights"
         case .collection: l.collection
+        case .pokedex: l.dexTitle
         case .usage: l.usageTab
         case .settings: l.settings
         }
@@ -92,8 +96,10 @@ final class MainWindowNavigation {
         content.showSettings = next == .settings
         switch next {
         case .focus: content.tab = .focus
+        case .battle: content.tab = .battle
         case .issues, .projects, .initiatives: content.tab = .linear
         case .collection: content.tab = .collection
+        case .pokedex: content.tab = .pokedex
         case .usage: content.tab = .usage
         default: break
         }

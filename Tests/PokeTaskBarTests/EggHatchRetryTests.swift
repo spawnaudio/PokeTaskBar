@@ -61,23 +61,23 @@ final class EggHatchRetryTests: XCTestCase {
         }
     }
 
-    func testTimeOpenAwardRerollsOwnedPendingSpeciesWithoutAnotherRefresh() async throws {
+    func testTimeOpenAwardHatchesOwnedPendingSpeciesWithoutAnotherRefresh() async throws {
         let provider = HatchRetryProvider()
         let store = try makeStore(provider)
         store.awardTimeOpenXP(today: day, enabled: true)
         await waitForHatch(store)
 
-        XCTAssertEqual(store.state.active?.baseID, 4)
+        XCTAssertEqual(store.state.active?.baseID, 1)
         XCTAssertEqual(store.state.eggUsage, 0)
         XCTAssertEqual(store.state.timeOpenAwardedToday, TimeOpenXP.tokensPerAward)
         XCTAssertEqual(store.state.bonusXP, TimeOpenXP.tokensPerAward)
         XCTAssertEqual(store.state.usedSinceInstall, 0)
         let ids = await provider.requestedIDs
-        XCTAssertEqual(ids, [1, 4])
-        XCTAssertEqual(store.state.dex.count, 1, "reject the duplicate without touching the collection")
+        XCTAssertEqual(ids, [1])
+        XCTAssertEqual(store.state.dex.count, 1, "a new catch preserves graduated history")
     }
 
-    func testAllXPPathsRerollDuplicateAndPreserveOverflow() async throws {
+    func testAllXPPathsAcceptHistoricalSpeciesAndPreserveOverflow() async throws {
         for source: XPReward.Source in [.tokens, .focus, .issue, .project] {
             let provider = HatchRetryProvider()
             let store = try makeStore(provider)
@@ -89,23 +89,26 @@ final class EggHatchRetryTests: XCTestCase {
             }
             await waitForHatch(store)
 
-            XCTAssertEqual(store.state.active?.baseID, 4, "\(source)")
+            XCTAssertEqual(store.state.active?.baseID, 1, "\(source)")
             XCTAssertEqual(store.state.active?.usedAtStage, 123, "\(source)")
-            XCTAssertEqual(store.lifetimeXP, xp, "retries must not award XP again")
+            XCTAssertEqual(store.lifetimeXP, xp, "hatching must not award XP again")
         }
     }
 
-    func testDuplicateOnlyPoolStopsAndKeepsReadyEggForLaterRetry() async throws {
+    func testFullyCollectedPoolCreatesNewIndividualWithoutRetryLoop() async throws {
         let provider = HatchRetryProvider(duplicatesOnly: true)
         let store = try makeStore(provider)
+        let history = store.state.dex
         store.applyProgressXP(PokemonBalance.eggHatchThreshold)
         await store.hatchIfNeeded()
 
-        XCTAssertTrue(store.isEgg)
-        XCTAssertTrue(store.isHatchRetryDelayed)
-        XCTAssertEqual(store.state.eggUsage, PokemonBalance.eggHatchThreshold)
+        XCTAssertEqual(store.state.active?.baseID, 1)
+        XCTAssertEqual(store.state.active?.catchCount, 1)
+        XCTAssertFalse(store.isHatchRetryDelayed)
+        XCTAssertEqual(store.state.eggUsage, 0)
+        XCTAssertEqual(store.state.dex, history)
         let ids = await provider.requestedIDs
-        XCTAssertEqual(ids.count, 16, "a completed collection must not cause an endless retry loop")
+        XCTAssertEqual(ids, [1], "historical ownership must not send a ready egg through retries")
     }
 
     func testNetworkFailureDoesNotRepeatRequestsOrConsumeEggXP() async throws {

@@ -6,16 +6,17 @@ import XCTest
 // except representative pick, which forces Dex.
 @MainActor
 final class PopoverNavigationTests: XCTestCase {
-    func testDefaultsToFocusAndDex() {
+    func testDefaultsToFocusAndBagWithDedicatedDex() {
         let nav = PopoverNavigation()
         XCTAssertFalse(nav.showSettings)
         XCTAssertEqual(nav.tab, .focus)
-        XCTAssertEqual(nav.collectionSegment, .dex)
+        XCTAssertEqual(nav.collectionSegment, .bag)
         XCTAssertFalse(nav.showingCollectionLog)
     }
 
     func testRootTabsMatchMenuBarMockup() {
-        XCTAssertEqual(PopoverTab.allCases, [.focus, .linear, .usage, .collection])
+        XCTAssertEqual(PopoverTab.allCases, [.focus, .battle, .linear, .pokedex, .collection, .usage])
+        XCTAssertEqual(CollectionSegment.allCases, [.bag, .storage, .shop])
     }
 
     func testResetReturnsToFocusFromSettingsAndKeepsCollectionSegment() {
@@ -31,7 +32,7 @@ final class PopoverNavigationTests: XCTestCase {
         XCTAssertTrue(nav.showingCollectionLog, "Dex vs catch-log stays unless representative pick forces Dex")
     }
 
-    func testOpenRepresentativeDexLeavesSettingsForCollectionDex() {
+    func testOpenRepresentativeDexLeavesSettingsForDedicatedPageAndKeepsCollectionSelection() {
         let nav = PopoverNavigation()
         nav.showSettings = true
         nav.collectionSegment = .shop
@@ -40,8 +41,8 @@ final class PopoverNavigationTests: XCTestCase {
         nav.openRepresentativeDex()
 
         XCTAssertFalse(nav.showSettings)
-        XCTAssertEqual(nav.tab, .collection)
-        XCTAssertEqual(nav.collectionSegment, .dex)
+        XCTAssertEqual(nav.tab, .pokedex)
+        XCTAssertEqual(nav.collectionSegment, .shop)
         XCTAssertFalse(nav.showingCollectionLog, "representative pick opens Dex, not catch log")
     }
 

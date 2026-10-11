@@ -71,7 +71,7 @@ enum SaveTransfer {
 
     /// 세이브에 들어올 수 있는 수치의 상한 — 실사용(수십억)의 10만 배라 정상 진행을 자르지 않으면서,
     /// 이 값끼리 더하고 빼도 Int64 범위 안에 머문다.
-    static let maxTokenValue = 1_000_000_000_000_000
+    static let maxTokenValue = RepeatCatchTraining.maxCredit
 
     /// 내보내기 파일명 — 날짜가 들어가야 여러 번 내보내도 덮어쓰지 않는다.
     static func suggestedFileName(date: Date) -> String {
@@ -144,6 +144,7 @@ enum SaveTransfer {
         func clampToken(_ v: Int) -> Int { min(max(0, v), maxTokenValue) }
         var s = state
         s.usedSinceInstall = clampToken(s.usedSinceInstall)
+        s.bonusXP = clampToken(s.bonusXP)
         s.spentTokens = clampToken(s.spentTokens)
         s.eggUsage = clampToken(s.eggUsage)
         s.timeOpenAwardedToday = clampToken(s.timeOpenAwardedToday)
@@ -168,15 +169,31 @@ enum SaveTransfer {
         // 파일을 손으로 지우기 전엔 앱을 못 쓴다.
         // 관대 디코딩은 모르는 rawValue 만 걸러낼 뿐 **아는데 만족 불가능한 값**은 그대로 통과시킨다.
         if s.eggTier?.captureRateCeiling == nil { s.eggTier = nil }
-        if var active = s.active {
+        func sanitizedPartner(_ mon: MonState) -> MonState {
+            var active = mon
             active.usedAtStage = clampToken(active.usedAtStage)
             // totalForms 는 `kk * (kk + 1)` 형태로 쓰여(PokemonBalance.phaseThreshold) 큰 값이 그 자체로 트랩이다.
             active.totalForms = min(max(1, active.totalForms), 12)
             active.stageIndex = min(max(0, active.stageIndex), max(0, active.pathIDs.count - 1))
             active.profile?.sanitize()
-            s.active = active
+            active.catchCount = max(1, clampToken(active.catchCount))
+            active.repeatCatchXP = clampToken(active.repeatCatchXP)
+            return active
         }
-        for index in s.dex.indices { s.dex[index].profile?.sanitize() }
+        if let active = s.active { s.active = sanitizedPartner(active) }
+        s.pokemonStorage = s.pokemonStorage.map { item in
+            switch item {
+            case .egg(let id, let tier, let usage):
+                return .egg(id: id, tier: tier?.captureRateCeiling == nil ? nil : tier, usage: clampToken(usage))
+            case .partner(let id, let mon):
+                return .partner(id: id, mon: sanitizedPartner(mon))
+            }
+        }
+        for index in s.dex.indices {
+            s.dex[index].profile?.sanitize()
+            s.dex[index].catchCount = max(1, clampToken(s.dex[index].catchCount))
+            s.dex[index].repeatCatchXP = clampToken(s.dex[index].repeatCatchXP)
+        }
         s.reconcileRepresentativeSelection()
         return s
     }

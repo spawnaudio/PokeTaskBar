@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Collection root: Bag | Dex | Shop. Dex is the default segment.
+/// Collection utilities; the Pokédex has its own dedicated root page.
 @MainActor
 struct CollectionTabView: View {
     let store: CompanionStore
@@ -14,7 +14,6 @@ struct CollectionTabView: View {
             TahoeTabBar(selection: $nav.collectionSegment, items: [
                 TahoeTabItem(.bag, title: l.bag, symbol: "bag"),
                 TahoeTabItem(.storage, title: l.pokemonStorage, symbol: "archivebox"),
-                TahoeTabItem(.dex, title: l.dexSegment, symbol: "square.grid.2x2"),
                 TahoeTabItem(.shop, title: l.shop, symbol: "cart"),
             ])
 
@@ -24,8 +23,6 @@ struct CollectionTabView: View {
                     BagView(store: store, nav: navigation)
                 case .storage:
                     PokemonStorageView(store: store)
-                case .dex:
-                    CollectionView(store: store, navigation: navigation)
                 case .shop:
                     ShopView(store: store, nav: navigation)
                 }

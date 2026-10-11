@@ -56,6 +56,7 @@ struct L {
     var timeXPTab: String { t("시간 XP", "Time XP", "時間XP", "XP tiempo", "XP temps", "XP tempo", "Zeit-XP") }
     /// 상위 탭 이름 — 안에서 가방/도감/상점을 세그먼트로 전환하므로 둘을 아우르는 말이어야 한다.
     var collection: String { t("컬렉션", "Collection", "コレクション", "Colección", "Collection", "Coleção", "Sammlung") }
+    var battlePageTitle: String { t("배틀", "Battle", "バトル", "Batalla", "Combat", "Batalha", "Kampf") }
     var dexSegment: String { t("도감", "Dex", "図鑑", "Pokédex", "Pokédex", "Pokédex", "Pokédex") }
     var activeIssueSection: String { t("활성 이슈", "Active issue", "進行中の課題", "Issue activa", "Issue active", "Issue ativa", "Aktives Issue") }
     var todayUsageSection: String { t("오늘 사용량", "Today's usage", "本日の使用量", "Uso de hoy", "Usage du jour", "Uso de hoje", "Heutige Nutzung") }

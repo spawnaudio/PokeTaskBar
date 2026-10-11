@@ -2,29 +2,33 @@ import AppKit
 import SwiftUI
 
 enum PopoverTab: Hashable, CaseIterable {
-    case focus, linear, usage, collection
+    case focus, battle, linear, pokedex, collection, usage
 
     var symbol: String {
         switch self {
         case .focus: return "target"
+        case .battle: return "gamecontroller"
         case .linear: return "circle"
         case .usage: return "chart.bar"
         case .collection: return "square.grid.2x2"
+        case .pokedex: return "book.closed"
         }
     }
 
     func title(_ l: L) -> String {
         switch self {
         case .focus: return l.focusTab
+        case .battle: return l.battlePageTitle
         case .linear: return l.linearTab
         case .usage: return l.usageTab
         case .collection: return l.collection
+        case .pokedex: return l.dexTitle
         }
     }
 }
 
 enum CollectionSegment: Hashable, CaseIterable {
-    case bag, storage, dex, shop
+    case bag, storage, shop
 }
 
 /// Compact / test layout width. The live menu-bar panel is a resizable window
@@ -55,10 +59,10 @@ extension EnvironmentValues {
 final class PopoverNavigation {
     var showSettings = false
     var tab: PopoverTab = .focus
-    /// Dex vs catch-log inside Collection → Dex. Reset does not clear this.
+    /// Registry vs catch log on the dedicated Pokédex page.
     var showingCollectionLog = false
-    /// Bag | Dex | Shop. Default Dex. Reset keeps the last segment; representative pick forces Dex.
-    var collectionSegment: CollectionSegment = .dex
+    /// Bag | Storage | Shop. The Pokédex is its own root page.
+    var collectionSegment: CollectionSegment = .bag
     /// 프로바이더 탭 선택 — reset() 대상이 아님(팝오버를 다시 열어도 보던 서비스 유지).
     var providerID: String?
     /// 설정을 열 때 고급 섹션을 펼친 채로 시작할지. 세션 키 행이 접힌 disclosure 안에 살아서,
@@ -98,12 +102,11 @@ final class PopoverNavigation {
         expandAdvancedOnOpen = true
     }
 
-    /// Settings representative row deep-links into Collection → Dex (not Bag/Shop, not catch log).
+    /// Settings representative row deep-links into the dedicated Pokédex registry.
     func openRepresentativeDex() {
         showSettings = false
         showingCollectionLog = false
-        collectionSegment = .dex
-        tab = .collection
+        tab = .pokedex
     }
 }
 
@@ -222,16 +225,21 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var tabContent: some View {
+        @Bindable var nav = nav
         Group {
             switch nav.tab {
             case .focus:
                 FocusTabView()
+            case .battle:
+                BattlePageView()
             case .linear:
                 LinearIntegrationView(store: store)
             case .usage:
                 UsageTabView()
             case .collection:
                 CollectionTabView(store: companion, navigation: nav)
+            case .pokedex:
+                PokedexPageView(store: companion, showingCollectionLog: $nav.showingCollectionLog)
             }
         }
         .frame(maxWidth: .infinity, alignment: .top)

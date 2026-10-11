@@ -16,6 +16,19 @@ read_when:
 
 ## Attached panel sizing
 
+- **Embedded Battle pages must release their presentation bridge, not their shared session.**
+  WebKit retains script-message handlers, so registering the bridge itself created
+  a bridge → web view → handler cycle. Earlier checks stopped a long-lived floating
+  panel without asserting release; repeated page visits introduce frequent teardown.
+  The bridge now uses a weak message relay, cancels artwork publishing on teardown,
+  and awaits sprite data without retaining itself. A coordinator owns each embedded
+  presentation and recreates it on return while preserving the existing focus store.
+  The handler-registration sweep found no other instances. `BattleWindowTests`
+  checks weak release, reappearance and the unchanged paused session; it also checks
+  embedded sizing and rejects floating-only fold/pin/tuck actions. These native
+  regressions require macOS; Linux validation covers syntax and the packaged browser
+  chrome with a simulated native bridge.
+
 - **Issue status tabs must scope hierarchy roots and expanded descendants.** The
   board feeds were filtered correctly, but resolving roots against all known issues
   replaced matching children with parents from other statuses. Expanded rows then
@@ -303,6 +316,32 @@ read_when:
   GIF 픽셀·크기, 캐시 재사용, 프레임 지연, 정적 원본 보존을 검사한다.
 
 ## 판정·데이터
+
+- **PT-v4 repeat catches train an unfinished individual without replaying reward ledgers.**
+  The prior ownership gate rejected every collected normal/shiny roll, so it could not
+  implement repeat-catch training. This experiment supersedes that exclusion: a normal
+  catch resumes the first banked normal partner of the same base family and exact Unown
+  letter, adding the ready egg's incubation and overflow XP through normal progression.
+  Both incoming and stored unrevealed Ditto disguises bypass merging; every shiny remains
+  a separate individual. Graduated/released history never supplies a training target.
+  `RepeatCatchTrainingTests` exercises selection and bounded arithmetic; the revised
+  `UniqueHatchTests`, `EggHatchRetryTests` and `UnownTests` retain the real buy/swap and
+  first-roll triggers while checking the new policy. Native `RepeatCatchIntegrationTests`
+  covers evolved identity/route preservation, graduation, and no overflow into the next
+  resumed partner. Temporary mutation checks prove the portable shiny guard assertions
+  fail when the incoming-shiny exclusion is removed.
+
+- **Banked progression needs the same difficulty and import boundary as the training slot.**
+  Difficulty repricing and save sanitization previously visited only the active partner
+  or active egg. A stored partner/egg kept credits priced at the old threshold, so swapping
+  after a slider change altered its earned fraction; old difficulty tests used only active
+  trainees and missed that path. Repricing now visits every stored item, and transfer
+  sanitization clamps stored progress, profiles and repeat history while preserving item
+  IDs and IVs. Legacy stored profiles migrate once with the reserved storage ID. Actual
+  Foundation model/save tests in `RepeatCatchPersistenceTests` cover old/malformed fields,
+  serialization, extreme/negative storage values, stored shiny visibility and Unown
+  ownership. Portable fraction tests fail under a temporary no-repricing mutation; the
+  native integration test adds the actual slider → swap → reload trigger.
 
 - **A ready egg must retry an owned roll within the same hatch attempt.** XP was
   credited correctly, but ownership rejection returned from `hatchIfNeeded`, leaving

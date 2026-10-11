@@ -1199,9 +1199,16 @@ struct PokemonDetailView: View {
         species.id == UnownForm.speciesID ? store.unownFormSpecies : []
     }
 
-    private var displayedSpecies: CompanionStore.DexSpecies {
+    var displayedSpecies: CompanionStore.DexSpecies {
         let forms = formSpecies
+        let initialForm = initialInstanceID.flatMap { instanceID in
+            forms.first { form in
+                store.pokemonIndividuals(speciesID: species.id, unownForm: form.unownForm)
+                    .contains { $0.id == instanceID }
+            }
+        }
         return forms.first { $0.unownForm == selectedUnownForm }
+            ?? initialForm
             ?? forms.first { store.isRepresentative($0) }
             ?? forms.first ?? species
     }

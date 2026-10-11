@@ -290,7 +290,7 @@ final class RareCandyStoreTests: XCTestCase {
                                        fileURL: url, rng: SeededRNG(seed: 7), defaults: defaults)
                 await s.hatch(baseID: 1)
                 if boosted {
-                    // Existing saves can contain boosted partners; new duplicate hatches are blocked.
+                    // Preserve the existing graduation repeat boost while testing a fresh batch.
                     var saved = s.state
                     saved.active?.hasGrowthBoost = true
                     try JSONEncoder().encode(saved).write(to: url)

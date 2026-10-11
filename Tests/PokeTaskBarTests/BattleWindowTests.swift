@@ -35,6 +35,145 @@ final class BattleWindowTests: XCTestCase {
             unownForm: .b, back: true).absoluteString.hasSuffix("back/shiny/201-b.png"))
     }
 
+    func testEmbeddedPageWidthProducesFiniteScaleWithinGameLimits() {
+        for (available, width): (CGFloat, CGFloat) in [(-1, 180), (280, 280), (360, 360), (448, 448),
+                                                       (900, 720), (.nan, 360), (.infinity, 360)] {
+            XCTAssertEqual(BattlePageMetrics.width(available: available), width)
+            XCTAssertEqual(BattlePageMetrics.scale(available: available), width / 360)
+        }
+    }
+
+    func testEmbeddedSessionOverrideSurvivesTaskSwitchWithoutConvertingExistingSession() async throws {
+        let (usage, companion, focus, _) = try stores()
+        XCTAssertEqual(usage.floatingPetStyle, .classic)
+        focus.startPomodoro()
+        let original = try XCTUnwrap(focus.session)
+        XCTAssertFalse(original.battleRewardsDeferred == true)
+        focus.startPomodoro(battleRewardsDeferred: true)
+        XCTAssertEqual(focus.session, original, "Opening Battle must keep the active session's reward policy")
+
+        let issue = LinearIssueSummary(id: "battle-next", identifier: "TEST-2", title: "Next task",
+            issueURL: nil, priority: 0, estimate: nil, stateId: "started", stateName: "In Progress",
+            stateType: "started", assigneeName: nil, assigneeEmail: nil, projectName: nil,
+            teamName: nil, teamKey: nil, teamID: nil, teamStates: [], completedStateId: nil,
+            labelNames: [], createdAt: nil, updatedAt: nil, dueDate: nil, completedAt: nil, descriptionText: nil)
+        let blockID = UUID()
+        focus.pin(issue, openDesk: false, minutes: 15, blockID: blockID, battleRewardsDeferred: true)
+        XCTAssertNotNil(focus.forfeitPrompt)
+        XCTAssertEqual(focus.session, original)
+        focus.cancelForfeit()
+        XCTAssertEqual(focus.session, original, "Cancelling the chooser must preserve the same active session")
+        focus.pin(issue, openDesk: false, minutes: 15, blockID: blockID, battleRewardsDeferred: true)
+        await focus.confirmForfeit()
+        XCTAssertEqual(focus.session?.issue.id, issue.id)
+        XCTAssertEqual(focus.session?.plannedSeconds, 15 * 60)
+        XCTAssertEqual(focus.session?.plannedBlockID, blockID)
+        XCTAssertTrue(focus.session?.battleRewardsDeferred == true,
+                      "The embedded picker must remember Battle semantics through the switch confirmation")
+        XCTAssertEqual(usage.floatingPetStyle, .classic)
+        let earned = companion.lifetimeXP
+        focus.tick(now: now.addingTimeInterval(15 * 60))
+        focus.continueOvertime()
+        XCTAssertEqual(focus.session?.phase, .awaitingChoice)
+        XCTAssertEqual(companion.lifetimeXP, earned)
+        focus.requestUnfocus()
+        await focus.confirmForfeit()
+        focus.startPomodoro(battleRewardsDeferred: true)
+        XCTAssertTrue(focus.session?.battleRewardsDeferred == true)
+        focus.requestUnfocus()
+        await focus.confirmForfeit()
+        usage.floatingPetStyle = .battle
+        focus.startPomodoro()
+        XCTAssertTrue(focus.session?.battleRewardsDeferred == true, "Preserve the floating Battle default")
+    }
+
+    func testEmbeddedCoordinatorReleasesBridgeAndPreservesSharedTimerOnDisappear() async throws {
+        _ = NSApplication.shared
+        let (usage, companion, focus, _) = try stores()
+        focus.startPomodoro()
+        focus.togglePause()
+        let original = focus.session
+        let coordinator = BattleGameSurface.Coordinator(usage: usage, companion: companion, focus: focus)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 448, height: 224))
+        coordinator.container = container
+        coordinator.configure(width: 448, height: 180) { _ in }
+        coordinator.start()
+        weak var released = coordinator.battle
+        XCTAssertEqual(released?.content.gameSize.width, 448)
+        XCTAssertEqual(focus.session, original)
+        released?.openTaskPicker()
+        XCTAssertEqual(try XCTUnwrap(released?.content.gameSize.height), 380 * 448 / 360, accuracy: 0.1,
+                      "The native chooser must expand at the embedded page's own scale")
+        coordinator.stop()
+        XCTAssertNil(coordinator.battle)
+        XCTAssertTrue(container.subviews.isEmpty)
+        for _ in 0..<100 where released != nil { try await Task.sleep(for: .milliseconds(20)) }
+        XCTAssertNil(released, "WebKit's script handler must not retain the bridge after page teardown")
+        XCTAssertEqual(focus.session, original, "Leaving Battle must keep the shared paused timer")
+        coordinator.start()
+        XCTAssertNotNil(coordinator.battle, "Returning to the page must create a fresh UI bridge")
+        coordinator.stop()
+        XCTAssertEqual(focus.session, original)
+    }
+
+    func testEmbeddedBattleHidesAndRejectsFloatingControlsAndUsesLocalScale() async throws {
+        _ = NSApplication.shared
+        let (usage, companion, focus, _) = try stores()
+        usage.battleWindowScale = 2
+        usage.floatingTimerPinned = true
+        let battle = BattleWindow(usage: usage, companion: companion, focus: focus, presentation: .embedded)
+        defer { battle.stop() }
+        battle.setEmbeddedScale(1.25)
+        battle.content.gameSize = NSSize(width: 450, height: 225)
+        battle.content.frame = NSRect(origin: .zero, size: battle.content.gameSize)
+        battle.content.layoutSubtreeIfNeeded()
+        var ready = false
+        for _ in 0..<100 {
+            ready = (try? await battle.webView.evaluateJavaScript("getComputedStyle(document.querySelector('main')).visibility === 'visible'")) as? Bool == true
+            if ready { break }
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        XCTAssertTrue(ready)
+        let foldHidden = try await battle.webView.evaluateJavaScript("getComputedStyle(document.querySelector('.fold-window')).display === 'none'") as? Bool
+        XCTAssertEqual(foldHidden, true)
+        _ = try await battle.webView.evaluateJavaScript("[...document.querySelectorAll('button')].find(b => b.textContent === 'More').click()")
+        for _ in 0..<50 {
+            if (try? await battle.webView.evaluateJavaScript("!!document.querySelector('.more-menu')")) as? Bool == true { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let visible = try await battle.webView.evaluateJavaScript("[...document.querySelectorAll('.more-menu button')].filter(b => getComputedStyle(b).display !== 'none').map(b => b.textContent)") as? [String]
+        XCTAssertTrue(visible?.contains("Choose task") == true)
+        XCTAssertFalse(visible?.contains("Pin window") == true)
+        XCTAssertFalse(visible?.contains("Unpin window") == true)
+        XCTAssertFalse(visible?.contains("Tuck at screen edge") == true)
+        var tucked = false
+        battle.onTuck = { tucked = true }
+        _ = try await battle.webView.evaluateJavaScript("['fold', 'pin', 'tuck'].forEach((action, id) => window.webkit.messageHandlers.battle.postMessage({ id: 900 + id, action }))")
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(usage.battleWindowFolded)
+        XCTAssertTrue(usage.floatingTimerPinned)
+        XCTAssertFalse(tucked)
+        XCTAssertEqual(usage.battleWindowScale, 2)
+        XCTAssertEqual(try XCTUnwrap(battle.snapshot()["scale"] as? CGFloat), 1.25)
+        XCTAssertEqual(battle.snapshot()["pinned"] as? Bool, false)
+        battle.openTaskPicker()
+        XCTAssertNotNil(battle.content.taskPicker)
+        battle.setEmbeddedScale(1)
+        XCTAssertEqual(usage.battleWindowScale, 2, "Resizing the embedded task chooser cannot resize the floating window")
+        battle.closeTaskPicker()
+        _ = try await battle.webView.evaluateJavaScript("[...document.querySelectorAll('button')].find(b => b.textContent === 'Back').click()")
+        for _ in 0..<50 {
+            if (try? await battle.webView.evaluateJavaScript("!![...document.querySelectorAll('button')].find(b => b.textContent === 'Start timer' && !b.disabled)")) as? Bool == true { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        _ = try await battle.webView.evaluateJavaScript("[...document.querySelectorAll('button')].find(b => b.textContent === 'Start timer').click()")
+        for _ in 0..<50 where !focus.isActive { try await Task.sleep(for: .milliseconds(20)) }
+        XCTAssertTrue(focus.isActive)
+        XCTAssertTrue(focus.session?.battleRewardsDeferred == true,
+                      "The embedded Start button must use Battle rewards with the Classic floating style")
+        XCTAssertEqual(usage.floatingPetStyle, .classic)
+    }
+
     func testBattleScalePersistsIndependentlyOfClassicSettings() throws {
         let suite = "battle-scale-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

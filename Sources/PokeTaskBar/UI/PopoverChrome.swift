@@ -628,7 +628,7 @@ struct PopoverShellToolbar: View {
         HStack(spacing: 2) {
             ForEach(PopoverTab.allCases, id: \.self) { tab in
                 let selected = nav.tab == tab
-                // Short visual label leaves room for all four tabs; VoiceOver keeps the full title.
+                // Six roots collapse to icons when needed; VoiceOver keeps every full title.
                 let title = tab == .usage ? l.menuBarUsage : tab.title(l)
                 Button {
                     nav.tab = tab

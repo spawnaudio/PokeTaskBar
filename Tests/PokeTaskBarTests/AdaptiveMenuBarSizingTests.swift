@@ -72,10 +72,12 @@ final class AdaptiveMenuBarSizingTests: XCTestCase {
             }
             try probe.capture("collection-\(segment)")
         }
-        fixture.nav.collectionSegment = .dex
         fixture.nav.showingCollectionLog = true
+        fixture.nav.tab = .pokedex
         try await probe.settle()
-        XCTAssertLessThan(try XCTUnwrap(probe.preferredHeight), 520)
+        XCTAssertLessThanOrEqual(probe.window.frame.height, 660)
+        XCTAssertGreaterThan(try XCTUnwrap(probe.preferredHeight), 180,
+                             "The dedicated Pokédex must retain a readable device display")
         try probe.capture("catch-log")
 
         fixture.nav.showSettings = true

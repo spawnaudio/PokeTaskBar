@@ -5,10 +5,6 @@ struct MainWindowCollectionView: View {
     @Environment(CompanionStore.self) private var store
     @Environment(MainWindowNavigation.self) private var nav
     @Environment(\.colorScheme) private var scheme
-    @State private var filter: DexHeaderFilter?
-    @State private var query = ""
-    @State private var detailSpecies: CompanionStore.DexSpecies?
-    @State private var detailInstanceID: String?
     private var l: L { store.l }
 
     var body: some View {
@@ -17,23 +13,13 @@ struct MainWindowCollectionView: View {
             TahoeTabBar(selection: $content.collectionSegment, items: [
                 TahoeTabItem(.bag, title: l.bag, symbol: "bag"),
                 TahoeTabItem(.storage, title: l.pokemonStorage, symbol: "archivebox"),
-                TahoeTabItem(.dex, title: l.dexSegment, symbol: "square.grid.2x2"),
                 TahoeTabItem(.shop, title: l.shop, symbol: "cart")])
-            if let species = detailSpecies {
-                PokemonDetailView(store: store, species: species, initialInstanceID: detailInstanceID) {
-                    detailSpecies = nil; detailInstanceID = nil
-                }
-            } else {
-                switch content.collectionSegment {
-                case .bag: bag
-                case .storage: storage
-                case .dex: dex
-                case .shop: shop
-                }
+            switch content.collectionSegment {
+            case .bag: bag
+            case .storage: storage
+            case .shop: shop
             }
         }
-        .onChange(of: content.collectionSegment) { _, _ in detailSpecies = nil; detailInstanceID = nil }
-        .task { await store.backfillMissingDexNames() }
     }
 
     private var bag: some View {
@@ -142,110 +128,6 @@ struct MainWindowCollectionView: View {
         if case .partner(_, let mon) = item { return mon.isShiny }; return false
     }
 
-    private var species: [CompanionStore.DexSpecies] {
-        store.dexSpecies.filter { matches(rarity: $0.rarity, shiny: $0.isShiny) &&
-            (query.isEmpty || "\($0.name) \($0.id)".localizedCaseInsensitiveContains(query)) }
-    }
-    private var records: [DexEntry] {
-        store.dexEntriesSorted.filter { matches(rarity: $0.rarity, shiny: $0.isShiny) &&
-            (query.isEmpty || recordName($0).localizedCaseInsensitiveContains(query)) }
-    }
-    private func matches(rarity: Rarity, shiny: Bool) -> Bool {
-        switch filter { case .none: true; case .rarity(let value): rarity == value; case .shiny: shiny }
-    }
-    private var dex: some View {
-        @Bindable var content = nav.content
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                TahoeTabBar(selection: $content.showingCollectionLog,
-                    items: [TahoeTabItem(false, title: l.dexSegment), TahoeTabItem(true, title: "Catch log")])
-                    .frame(width: 220)
-                Spacer()
-                Text("\(content.showingCollectionLog ? store.dexEntries.count : store.dexSpecies.count) \(content.showingCollectionLog ? "catches" : "species")")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-            }
-            TextField("Find a Pokémon…", text: $query).textFieldStyle(.roundedBorder)
-            DexFilterBar(localization: l, selected: filter,
-                rarityCounts: Dictionary(uniqueKeysWithValues: rarityDisplayOrder.map { rarity in
-                    (rarity, content.showingCollectionLog ? store.dexCount(rarity) : store.dexSpecies.filter { $0.rarity == rarity }.count)
-                }), shinyCount: content.showingCollectionLog ? store.dexShinyCount : store.dexSpecies.filter(\.isShiny).count) {
-                    filter = filter == $0 ? nil : $0
-                }
-            if content.showingCollectionLog { catchLog } else { pokedex }
-        }
-    }
-    private var pokedex: some View {
-        MainWindowSplit {
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    if species.isEmpty { Text("No matching Pokémon.").foregroundStyle(.secondary).padding() }
-                    ForEach(species, id: \.collectionID) { pokemon in
-                        selectionRow(name: pokemon.name, subtitle: String(format: "#%03d", pokemon.id), id: pokemon.id,
-                            shiny: pokemon.isShiny, selected: selectedSpecies?.id == pokemon.id) { nav.selectedSpeciesID = pokemon.id }
-                    }
-                }
-            }.mainWindowCard()
-        } detail: {
-            if let pokemon = selectedSpecies {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        Text(pokemon.name).font(.system(size: 28, weight: .semibold))
-                        Text("#\(pokemon.id) · \(l.rarityLabel(pokemon.rarity))\(pokemon.isRaising ? " · " + l.dexRaising : "")")
-                            .foregroundStyle(.secondary)
-                        SpriteView(speciesID: pokemon.id, size: 220, animated: true, shiny: pokemon.isShiny, cropToContent: true)
-                        Button(store.representativeSpeciesID == pokemon.id ? "Representative Pokémon" : "Set representative") {
-                            _ = store.setRepresentativeSpeciesID(pokemon.id)
-                        }.tahoeButtonStyle(.regular).disabled(store.representativeSpeciesID == pokemon.id)
-                        Text("\(store.pokemonIndividuals(speciesID: pokemon.id).count) collected individuals")
-                            .foregroundStyle(.secondary)
-                        Button("View details →") { detailSpecies = pokemon; detailInstanceID = nil }.buttonStyle(.link)
-                    }.frame(maxWidth: .infinity)
-                }.mainWindowCard()
-            }
-        }
-    }
-    private var selectedSpecies: CompanionStore.DexSpecies? { species.first { $0.id == nav.selectedSpeciesID } ?? species.first }
-    private var selectedRecord: DexEntry? { records.first { $0.id == nav.selectedRecordID } ?? records.first }
-    private func recordName(_ entry: DexEntry) -> String { store.dexStoredChainNames(entry)?[entry.finalID] ?? "#\(entry.finalID)" }
-    private func recordState(_ entry: DexEntry) -> String {
-        store.isActiveDexEntry(entry) ? l.dexRaising : entry.isReleased ? l.dexReleased : l.dexTrophy
-    }
-    private var catchLog: some View {
-        MainWindowSplit {
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    if records.isEmpty { Text("No matching records.").foregroundStyle(.secondary).padding() }
-                    ForEach(records) { entry in
-                        selectionRow(name: recordName(entry),
-                            subtitle: "\(recordState(entry)) · \(entry.caughtAt?.formatted(date: .abbreviated, time: .shortened) ?? "Unknown date")",
-                            id: entry.finalID, shiny: entry.isShiny, selected: selectedRecord?.id == entry.id) {
-                                nav.selectedRecordID = entry.id
-                            }
-                    }
-                }
-            }.mainWindowCard()
-        } detail: {
-            if let entry = selectedRecord {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        Text(recordName(entry)).font(.system(size: 28, weight: .semibold))
-                        Text("\(l.rarityLabel(entry.rarity)) · \(recordState(entry))\(entry.isShiny ? " · " + l.dexShinyLabel : "")")
-                            .foregroundStyle(.secondary)
-                        SpriteView(speciesID: entry.finalID, size: 200, animated: true, shiny: entry.isShiny, cropToContent: true)
-                        Text(entry.nature?.name(store.language) ?? "Unknown nature")
-                        Text(entry.caughtAt?.formatted(date: .abbreviated, time: .shortened) ?? "Unknown date").foregroundStyle(.secondary)
-                        EvoLineView(nodes: entry.chainOrder.map { EvoLineItem(.species($0), .done) },
-                            mysteryLabel: l.unknownNextEvolution, language: store.language, thumb: 40,
-                            shiny: entry.isShiny, names: store.dexStoredChainNames(entry), maxWidth: 360)
-                        Button("View details →") {
-                            detailInstanceID = entry.id
-                            detailSpecies = store.dexSpecies.first { $0.id == entry.finalID }
-                        }.buttonStyle(.link)
-                    }.frame(maxWidth: .infinity)
-                }.mainWindowCard()
-            }
-        }
-    }
     private func selectionRow(name: String, subtitle: String, id: Int?, shiny: Bool, selected: Bool,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {

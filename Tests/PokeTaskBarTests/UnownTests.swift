@@ -166,7 +166,7 @@ final class UnownTests: XCTestCase {
         XCTAssertTrue(s.isRepresentative(try XCTUnwrap(s.dexSpecies.first)))
     }
 
-    func testHatchUsesOwnedFormWeightsBeforeDuplicateCheck() async throws {
+    func testHatchUsesOwnedFormWeightsBeforeCatchPolicy() async throws {
         var original = CompanionState()
         original.dex = UnownForm.allCases.dropLast().map { entry($0) }
         let seed = try XCTUnwrap((UInt64(0)..<1_000).first { seed in
@@ -199,7 +199,7 @@ final class UnownTests: XCTestCase {
         XCTAssertEqual(s.state.pendingUnownForm, .question)
     }
 
-    func testFormOwnershipPreservesFirstRollAndRetriesOwnedForms() async throws {
+    func testFormOwnershipPreservesFirstRollAndAllowsHistoricalCatches() async throws {
         var selectedSpecies = Set<Int>()
         for seed: UInt64 in [1, 7, 17, 42, 128, 999] {
             for forms in [[], [UnownForm.b], UnownForm.allCases] {
@@ -217,13 +217,8 @@ final class UnownTests: XCTestCase {
                 let expectedNature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
                 let expectedProfileSeed = rng.next()
                 await s.hatchIfNeeded()
-                if let form, forms.contains(form), !expectedShiny {
-                    let active = try XCTUnwrap(s.state.active, "Owned normal forms must re-roll immediately")
-                    XCTAssertFalse(original.ownsSpecies(active.baseID, unownForm: active.unownForm,
-                                                        shinyOnly: active.isShiny))
-                    XCTAssertNil(s.state.pendingUnownForm)
-                    continue
-                }
+                let history = original.dex
+                XCTAssertEqual(s.state.dex.map(\.id), history.map(\.id), "a historical catch preserves every existing record")
                 XCTAssertEqual(s.currentSpeciesID, expectedSpecies)
                 XCTAssertEqual(s.currentUnownForm, form)
                 XCTAssertEqual(s.currentIsShiny, expectedShiny)
@@ -318,7 +313,7 @@ final class UnownTests: XCTestCase {
                 return matchesShiny && formIndex != 0
             })
             var rng = SeededRNG(seed: seed)
-            // Roll the letter before the fork's duplicate check; non-Unown draw order is unchanged.
+            // Roll the letter before the catch policy; non-Unown draw order is unchanged.
             let form = UnownForm.allCases[Int(rng.next() % 56 / 2)]
             _ = rng.next()
             let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]

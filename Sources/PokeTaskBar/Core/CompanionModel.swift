@@ -491,6 +491,10 @@ struct MonState: Codable, Equatable, Sendable {
     var unownForm: UnownForm?
     /// 개체 고유 전투 프로필. 구버전 저장은 nil이며 `CompanionStore`가 한 번만 마이그레이션한다.
     var profile: PokemonProfile?
+    /// The first catch plus normal repeat catches absorbed by this unfinished individual.
+    var catchCount = 1
+    /// Raw earned egg XP applied through repeat catches; already included in the wallet ledger.
+    var repeatCatchXP = 0
     var hasGrowthBoost = false
     // 메타몽 위장 — nil=일반. 값=정체 메타몽, 이 종으로 위장 중(위장 구간엔 baseID 와 동일, 리빌 후에도 원 위장체 보존).
     var dittoDisguise: Int?
@@ -508,7 +512,8 @@ struct MonState: Codable, Equatable, Sendable {
     init(baseID: Int, pathIDs: [Int], plannedPathIDs: [Int]? = nil, stageIndex: Int, usedAtStage: Int,
          rarity: Rarity, totalForms: Int, isShiny: Bool = false, nature: PokemonNature? = nil,
          profile: PokemonProfile? = nil, hasGrowthBoost: Bool = false,
-         dittoDisguise: Int? = nil, dittoRevealed: Bool = false, unownForm: UnownForm? = nil) {
+         dittoDisguise: Int? = nil, dittoRevealed: Bool = false, unownForm: UnownForm? = nil,
+         catchCount: Int = 1, repeatCatchXP: Int = 0) {
         self.baseID = baseID
         self.pathIDs = pathIDs
         if let plannedPathIDs, !plannedPathIDs.isEmpty {
@@ -523,6 +528,8 @@ struct MonState: Codable, Equatable, Sendable {
         self.isShiny = isShiny
         self.nature = nature
         self.profile = profile
+        self.catchCount = catchCount
+        self.repeatCatchXP = repeatCatchXP
         self.hasGrowthBoost = hasGrowthBoost
         self.dittoDisguise = dittoDisguise
         self.dittoRevealed = dittoRevealed
@@ -552,6 +559,8 @@ struct MonState: Codable, Equatable, Sendable {
         nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
         // 손상된 신규 프로필 하나 때문에 기존 성장 상태 전체를 잃지 않는다. nil이면 스토어가 재마이그레이션한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
+        catchCount = (try? c.decodeIfPresent(Int.self, forKey: .catchCount)) ?? 1
+        repeatCatchXP = (try? c.decodeIfPresent(Int.self, forKey: .repeatCatchXP)) ?? 0
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
         dittoDisguise = try c.decodeIfPresent(Int.self, forKey: .dittoDisguise)
         dittoRevealed = try c.decodeIfPresent(Bool.self, forKey: .dittoRevealed) ?? false
@@ -575,6 +584,8 @@ struct DexEntry: Codable, Equatable, Sendable, Identifiable {
     var unownForm: UnownForm?
     /// The individual profile at graduation/release. Nil only for pre-profile saves until migration.
     var profile: PokemonProfile?
+    var catchCount = 1
+    var repeatCatchXP = 0
     /// 진화 체인 각 종의 다국어 이름(speciesID → langCode → name). 졸업 시 로드된 라인에서 저장 →
     /// 도감의 단계별 스프라이트 밑 이름 표시가 네트워크 없이 즉시 + 언어 전환 대응. 구버전 저장분엔
     /// 없어(nil) 뷰가 line fetch 로 조회 후 백필한다.
@@ -597,7 +608,7 @@ struct DexEntry: Codable, Equatable, Sendable, Identifiable {
          baseID: Int, finalID: Int, chainOrder: [Int], rarity: Rarity,
          caughtAt: Date?, isShiny: Bool = false, nature: PokemonNature? = nil,
          profile: PokemonProfile? = nil, names: [Int: [String: String]]? = nil, releasedAt: Date? = nil,
-         unownForm: UnownForm? = nil) {
+         unownForm: UnownForm? = nil, catchCount: Int = 1, repeatCatchXP: Int = 0) {
         self.id = id
         self.baseID = baseID
         self.finalID = finalID
@@ -607,6 +618,8 @@ struct DexEntry: Codable, Equatable, Sendable, Identifiable {
         self.isShiny = isShiny
         self.nature = nature
         self.profile = profile
+        self.catchCount = catchCount
+        self.repeatCatchXP = repeatCatchXP
         self.names = names
         self.namesVersion = chainOrder.allSatisfy { names?[$0]?.isEmpty == false }
             ? Self.currentNamesVersion : nil
@@ -627,6 +640,8 @@ struct DexEntry: Codable, Equatable, Sendable, Identifiable {
         nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
         // 프로필만 손상되면 개체 기록은 보존하고 프로필을 다시 생성한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
+        catchCount = (try? c.decodeIfPresent(Int.self, forKey: .catchCount)) ?? 1
+        repeatCatchXP = (try? c.decodeIfPresent(Int.self, forKey: .repeatCatchXP)) ?? 0
         // try? — 구버전(최종체 단일 [String:String]) 형식이 남아 있어도 종별 맵 디코딩 실패 시 nil 로
         // 강등(항목 전체 로드는 유지). 뷰가 line 조회로 백필한다.
         names = (try? c.decodeIfPresent([Int: [String: String]].self, forKey: .names)) ?? nil
@@ -789,7 +804,8 @@ struct CompanionState: Codable, Sendable {
             return nil
         } + [active].compactMap { $0 }
         return partners.contains {
-            (!shinyOnly || $0.isShiny) && $0.pathIDs.prefix($0.stageIndex + 1).contains(speciesID)
+            (!shinyOnly || ($0.isShiny && ($0.dittoDisguise == nil || $0.dittoRevealed)))
+                && $0.pathIDs.prefix($0.stageIndex + 1).contains(speciesID)
                 && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
         }
     }
@@ -804,9 +820,14 @@ struct CompanionState: Codable, Sendable {
         var forms = Set(dex.filter { $0.chainOrder.contains(UnownForm.speciesID) }.compactMap {
             UnownForm.resolved(speciesID: UnownForm.speciesID, form: $0.unownForm)
         })
-        if let active, active.pathIDs.prefix(active.stageIndex + 1).contains(UnownForm.speciesID),
-           let form = UnownForm.resolved(speciesID: UnownForm.speciesID, form: active.unownForm) {
-            forms.insert(form)
+        let partners = pokemonStorage.compactMap { item -> MonState? in
+            if case .partner(_, let mon) = item { return mon }
+            return nil
+        } + [active].compactMap { $0 }
+        for mon in partners where mon.pathIDs.prefix(mon.stageIndex + 1).contains(UnownForm.speciesID) {
+            if let form = UnownForm.resolved(speciesID: UnownForm.speciesID, form: mon.unownForm) {
+                forms.insert(form)
+            }
         }
         return forms
     }
@@ -819,11 +840,15 @@ struct CompanionState: Codable, Sendable {
             $0.isShiny && $0.chainOrder.contains(speciesID)
                 && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
         }) { return true }
-        guard let active,
-              active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID),
-              UnownForm.resolved(speciesID: speciesID, form: active.unownForm) == form,
-              active.isShiny else { return false }
-        return active.dittoDisguise == nil || active.dittoRevealed
+        let partners = pokemonStorage.compactMap { item -> MonState? in
+            if case .partner(_, let mon) = item { return mon }
+            return nil
+        } + [active].compactMap { $0 }
+        return partners.contains {
+            $0.pathIDs.prefix($0.stageIndex + 1).contains(speciesID)
+                && UnownForm.resolved(speciesID: speciesID, form: $0.unownForm) == form
+                && $0.isShiny && ($0.dittoDisguise == nil || $0.dittoRevealed)
+        }
     }
 
     /// 대표 포켓몬은 사용자가 현재 보유한 종만 가리킨다. Fresh Egg·메타몽 리빌·손편집 세이브가

@@ -79,14 +79,14 @@ Seed shop prices:
 - Buying an egg does **not** release the current Pokémon. The egg goes to **Pokémon Storage**.
 - **Pokémon Storage** banks eggs and mid-evolution / not-yet-graduated partners so they can still be trained later.
 - **One** Pokémon training at a time. Swap with storage anytime (active → storage, stored → training).
-- Already-caught species cannot hatch again unless the new hatch would be **shiny**.
+- In the **PT-v4 experiment**, a repeat normal catch trains a matching unfinished stored individual. Shiny catches create separate individuals; species with only graduated history can start a new individual.
 - **Graduated** Pokémon cannot be trained. They get a trophy label on the Dex card.
 
 ## Surfaces
 
 | Surface | Job | Not this surface |
 |---|---|---|
-| Menu-bar popover | Focus, Linear, Collection (Bag / Storage / Dex / Shop), Token usage last | Not the timer workspace |
+| Menu-bar popover | Focus, Battle, Linear, Pokédex, Collection (Bag / Storage / Shop), Token usage last | Not the timer workspace |
 | Floating pet + island | Always-visible companion and session clock | Not Projects / Initiatives |
 | Today window | Hero timer, pin list, session + check-in log, score | Not bag / dex / shop |
 
@@ -103,6 +103,8 @@ swift test
 ```
 
 Linux Cloud Agent can install a Swift toolchain and edit sources; it cannot build the app (Apple frameworks). See `CLAUDE.md`.
+
+On `experiments/PT-v4`, run `bash scripts/rebuild-v4.sh` to install **PokeTasks v4 Experiment** with its own app identifier and save folder. See the [PT-v4 experiment guide](docs/reference/pt-v4-experiment.md) for the new Pokédex, repeat-catch rules, portable checks and Mac validation steps.
 
 ## Privacy
 

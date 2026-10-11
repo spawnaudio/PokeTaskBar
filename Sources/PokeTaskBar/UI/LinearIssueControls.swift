@@ -638,6 +638,7 @@ struct LinearFocusButton: View {
 
     @Environment(FocusSessionStore.self) private var session
     @Environment(CompanionStore.self) private var companion
+    @Environment(\.battleSessionContext) private var battleSessionContext
 
     @State private var choosingDuration = false
 
@@ -693,7 +694,8 @@ struct LinearFocusButton: View {
         }
     }
     private func pin(minutes: Int) {
-        session.pin(issue, openDesk: openDeskOnPin, minutes: minutes)
+        session.pin(issue, openDesk: openDeskOnPin, minutes: minutes,
+                    battleRewardsDeferred: battleSessionContext)
         onPinned?()
     }
 }
