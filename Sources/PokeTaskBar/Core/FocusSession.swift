@@ -100,30 +100,45 @@ enum MenuBarLinearCountGlyph {
 
 enum MenuBarPillTrailing: Equatable {
     case clock(String)
+    case pausedClock(String)
     case linearCounts(Int, Int)
     case doneToday(Int)
     case score(String)
 
     var plainFallback: String {
         switch self {
-        case .clock(let text), .score(let text): return text
+        case .clock(let text), .pausedClock(let text), .score(let text): return text
         case .linearCounts(let open, let done): return "\(open) · \(done)"
         case .doneToday(let done): return "\(done)"
         }
     }
 }
 
-/// Status-item lines while a focus session is running and the floating pet (overlay clock) is off.
+/// Status-item lines while a focus session is running. The menu bar is the primary surface,
+/// so the clock shows whether or not the floating pet is on.
 /// Usage-only `UsageStore.menuLines` stay unchanged; AppDelegate prepends this clock and keeps ≤2 lines.
 enum MenuBarLines {
     static func sessionClock(
         session: FocusSession?,
-        floatingPetEnabled: Bool,
         clock: (text: String, overtime: Bool),
         overtimeAbbrev: String
     ) -> String? {
-        guard session != nil, !floatingPetEnabled else { return nil }
+        guard session != nil else { return nil }
         return clock.overtime ? "\(clock.text) \(overtimeAbbrev)" : clock.text
+    }
+
+    /// After the pipe in the status item: the live clock while focusing (pause glyph when the
+    /// user paused), else Linear's done-today count, else nothing so the label is just the icon.
+    static func statusTrailing(
+        session: FocusSession?,
+        sessionClock: String?,
+        linearCounts: (Int, Int)?
+    ) -> MenuBarPillTrailing? {
+        if let session, let sessionClock, !sessionClock.isEmpty {
+            let paused = session.userPaused || session.phase == .paused
+            return paused ? .pausedClock(sessionClock) : .clock(sessionClock)
+        }
+        return doneTodayPill(linearCounts: linearCounts)
     }
 
     /// Session clock is the first line, then score (and Linear counts). Extra usage items collapse — never 3+.
@@ -224,6 +239,12 @@ enum MenuBarLines {
         switch trailing {
         case .clock(let text), .score(let text):
             result.append(NSAttributedString(string: text, attributes: [.font: font]))
+        case .pausedClock(let text):
+            result.append(symbolAttachment(name: "pause.fill", color: .secondaryLabelColor, font: font))
+            result.append(NSAttributedString(string: " \(text)", attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]))
         case .linearCounts(let open, let done):
             result.append(countRun(open, symbol: MenuBarLinearCountGlyph.inProgressSymbol,
                                    color: MenuBarLinearCountGlyph.inProgressColor, font: font))

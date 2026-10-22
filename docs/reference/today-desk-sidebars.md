@@ -44,7 +44,7 @@ Widths clamp to 160–320pt and at most 40% of the container, while reserving at
 
 Pin requests with `openDesk: true` open the main window on Focus. Popover issue pins keep their existing Focus routing without opening the main window. Main-window issue controls route to its Focus page. Navigation, sidebar collapse/resize and window close must never restart, stop or duplicate a session. Existing menu-bar and floating timer work remains shared with this build.
 
-`PTBOpenMainWindowOnLaunch=1` in a bundle opens the main window on launch and Finder reopen. The v1.3 build sets this flag. Other named bundles retain their existing launch behavior.
+`PTBOpenMainWindowOnLaunch=1` in a bundle opens the main window on launch and Finder reopen. The v1.3, v1.4, v2 and v2.5 builds set this flag. v3 is menubar-first and does not: Finder reopen opens the menu-bar panel instead.
 
 All timers wait at zero until Continue, Finish, Mark done (Linear only), or an explicit time change. Expiry presents an independent floating alarm window plus a macOS notification when authorized. The native Glass sound repeats while waiting; Settings → Notifications can disable it. Silence or closing the alarm stops sound while retaining the zero-time choice. Sleep holds silence playback; waking resumes it unless silenced. Extending or resetting rearms the next expiry. Relaunch restores running timers paused and presents any already-finished timer again.
 
