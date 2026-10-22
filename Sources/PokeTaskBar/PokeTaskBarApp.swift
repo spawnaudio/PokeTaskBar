@@ -148,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.cell?.usesSingleLineMode = false   // 사용량/한도를 2줄로 세로 스택 가능하게
             button.action = #selector(togglePopover)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])   // 우클릭 = 빠른 메뉴
             prepareSpriteLayer(on: button)   // 프레임 교체를 레이어 contents 로 — 설정이 먼저다
             setStatusImage(MenuBarIcon.pokeBall, cgFrame: Self.cgFrame(from: MenuBarIcon.pokeBall))
         }
@@ -187,9 +188,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { false }
 
+    /// Finder/Spotlight relaunch of the running app. Menubar-first: open the panel, unless the
+    /// bundle opts into the Today window (`PTBOpenMainWindowOnLaunch`).
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if Bundle.main.object(forInfoDictionaryKey: "PTBOpenMainWindowOnLaunch") as? String == "1" {
             todayDesk?.open()
+        } else if menuBarPanel?.isShown == false {
+            openPopover()
         }
         return false
     }
@@ -221,11 +226,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// 펫이 꺼진 동안 메뉴바 세션 시계를 1초 tick 에 맞춘다. overlay 가 있을 땐 시계를 중복하지 않지만
-    /// 펫 토글·일시정지·종료는 여기로 받아야 applyState 가 사용량-only 로 돌아간다.
+    /// 메뉴바 세션 시계를 1초 tick 에 맞춘다(펫 on/off 무관 — 메뉴바가 주 표면).
+    /// 일시정지·종료도 여기로 받아야 applyState 가 일시정지 글리프·완료 개수로 돌아간다.
     private func observeSession() {
         withObservationTracking {
             _ = sessionStore.session?.phase
+            _ = sessionStore.session?.userPaused
             _ = sessionStore.session?.accumulatedSeconds
             _ = sessionStore.session?.plannedSeconds
             _ = sessionStore.session?.issue.title
@@ -284,10 +290,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBarStatusItemChrome.apply(to: button)
         let sessionClock = MenuBarLines.sessionClock(
             session: sessionStore.session,
-            floatingPetEnabled: store.floatingPetEnabled,
             clock: sessionStore.clockDisplay(),
             overtimeAbbrev: companion.l.overtimeAbbrev)
-        let trailing = MenuBarLines.doneTodayPill(linearCounts: store.menuLinearIssueCounts) ?? .doneToday(0)
+        let trailing = MenuBarLines.statusTrailing(
+            session: sessionStore.session,
+            sessionClock: sessionClock,
+            linearCounts: store.menuLinearIssueCounts)
         let focusedTitle = MenuBarLines.focusedIssueTitle(
             sessionStore.session, show: store.showFocusedIssueTitleInMenu)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
@@ -658,11 +666,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func togglePopover() {
         guard let button = statusItem.button else { return }
+        if let event = NSApp.currentEvent,
+           StatusItemMenu.isMenuRequest(type: event.type, modifiers: event.modifierFlags) {
+            showStatusMenu()
+            return
+        }
         let wasShown = menuBarPanel.isShown
         menuBarPanel.toggle(from: button)
         if menuBarPanel.isShown, !wasShown {
             store.requestNotificationAuthorizationIfNeeded()
             Task { await updater.check() }
+        }
+    }
+
+    // MARK: 우클릭 빠른 메뉴
+
+    /// 메뉴 행 → 액션. 메뉴를 열 때마다 다시 만든다(세션 상태·언어가 바뀌므로).
+    private var statusMenuActions: [StatusItemMenuAction] = []
+
+    private func showStatusMenu() {
+        if menuBarPanel.isShown { menuBarPanel.close() }
+        let menu = NSMenu()
+        statusMenuActions = []
+        let sections = StatusItemMenu.sections(session: sessionStore.session, l: companion.l)
+        for (index, section) in sections.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            for entry in section {
+                let item = NSMenuItem(title: entry.title, action: #selector(performStatusMenuItem(_:)), keyEquivalent: "")
+                item.target = self
+                item.tag = statusMenuActions.count
+                statusMenuActions.append(entry.action)
+                menu.addItem(item)
+            }
+        }
+        // 표준 패턴: 잠깐 menu 를 달고 클릭을 재생하면 버튼 하이라이트·위치가 시스템 메뉴와 같다.
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func performStatusMenuItem(_ sender: NSMenuItem) {
+        guard statusMenuActions.indices.contains(sender.tag) else { return }
+        switch statusMenuActions[sender.tag] {
+        case .togglePause:
+            sessionStore.togglePause()
+        case .finishTimer:
+            sessionStore.finishLeavingInProgress()
+        case .markDone:
+            Task { await sessionStore.markIssueDone() }
+        case .quickStart(let minutes):
+            sessionStore.plannedMinutes = minutes
+            sessionStore.startPomodoro()
+        case .openToday:
+            todayDesk.open()
+        case .openSettings:
+            openPopover()
+            navigation.showSettings = true
+        case .quit:
+            NSApp.terminate(nil)
         }
     }
 

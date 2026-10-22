@@ -13,6 +13,15 @@ Navigation locked 2026-09-12; menu-bar styling updated 2026-09-18 from the appro
 
 This file lives under `docs/reference/` because the repo publishes only that docs tree (`docs/*` is gitignored).
 
+## Status item
+
+Menubar-first (overhaul phase 1, 2026-10-22). The menu bar is the primary surface, so the label never depends on the floating pet.
+
+- **Focusing:** sprite, optional focused title, then the live countdown (`MenuBarLines.statusTrailing`). A user pause shows a `pause.fill` glyph and dims the clock; a sleep hold does not.
+- **Idle:** sprite plus Linear's done-today count. Without Linear connected the label is the sprite alone — no placeholder `✓0`.
+- **Left click** toggles the panel. **Right click** or control-click opens a quick menu (`StatusItemMenu`): Pause/Resume and Finish timer (Linear: Mark done, Finish timer and leave in progress) while focusing; Start focus 25/50/90 min when idle; then Open Today, Settings… and Quit. The finish row uses `statusMenuFinishTimer`, because `finishFocusTimer` reads the same as Quit in ko/ja/de.
+- **Launch / reopen:** the v3 build no longer opens Today on launch. Relaunching the running app from Finder or Spotlight opens the panel, unless the bundle sets `PTBOpenMainWindowOnLaunch=1`.
+
 ## Root chrome
 
 **NSWindow** (not a transient `NSPopover`). Click-outside and focus loss do **not** close it. Status-item click toggles visibility via `orderOut` (the attached window is not `.closable`, so `performClose` is a no-op). The close button and pet/open paths bring it forward if already shown. Hosting is still torn down on close (energy).

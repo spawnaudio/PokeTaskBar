@@ -25,6 +25,8 @@ struct L {
     var menuBarUsage: String { t("사용량", "Usage", "使用量", "Uso", "Usage", "Uso", "Nutzung") }
     var currentFocus: String { t("현재 집중", "Current focus", "現在の集中", "Enfoque actual", "Focus actuel", "Foco atual", "Aktueller Fokus") }
     var finishFocusTimer: String { t("종료", "Finish", "終了", "Finalizar", "Terminer", "Concluir", "Beenden") }
+    /// Status-item menu. Not `finishFocusTimer`: in ko/ja/de that word is also "Quit" in the same menu.
+    var statusMenuFinishTimer: String { t("타이머 끝내기", "Finish timer", "タイマーを終える", "Terminar temporizador", "Terminer le minuteur", "Encerrar timer", "Timer abschließen") }
     var localTaskTimer: String { t("작업 타이머", "Task timer", "タスクタイマー", "Temporizador de tarea", "Minuteur de tâche", "Temporizador de tarefa", "Aufgabentimer") }
     var localTaskTitle: String { t("제목 (선택)", "Title (optional)", "タイトル（任意）", "Título (opcional)", "Titre (facultatif)", "Título (opcional)", "Titel (optional)") }
     var localTaskDescription: String { t("설명 (선택)", "Description (optional)", "説明（任意）", "Descripción (opcional)", "Description (facultative)", "Descrição (opcional)", "Beschreibung (optional)") }

@@ -992,7 +992,6 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertFalse(clock.overtime)
         let line = MenuBarLines.sessionClock(
             session: session,
-            floatingPetEnabled: false,
             clock: clock,
             overtimeAbbrev: L(.en).overtimeAbbrev)
         XCTAssertEqual(line, clock.text)
@@ -1002,24 +1001,51 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(MenuBarLines.toolTip(identifier: session.issue.identifier, sessionClock: line), "ENG-142 47:55")
     }
 
-    func testMenuBarHidesClockWhenFloatingPetEnabled() {
-        let session = runningSession()
-        let clock = session.clockDisplay(at: t0)
-        XCTAssertNil(MenuBarLines.sessionClock(
-            session: session,
-            floatingPetEnabled: true,
-            clock: clock,
-            overtimeAbbrev: L(.en).overtimeAbbrev))
+    /// Menubar-first: the floating pet no longer hides the status-item clock. The pet flag is
+    /// not an input any more, so the countdown shows with the pet on and off alike.
+    func testMenuBarStatusItemShowsClockWhileFocusingAndPausedGlyphWhenPaused() {
+        var session = runningSession()
+        let clock = session.clockDisplay(at: t0.addingTimeInterval(125))
+        let line = MenuBarLines.sessionClock(
+            session: session, clock: clock, overtimeAbbrev: L(.en).overtimeAbbrev)
+        XCTAssertEqual(line, "47:55")
         XCTAssertEqual(
-            MenuBarLines.compose(usageLines: ["1.2M"], sessionClock: nil),
-            ["1.2M"])
-        XCTAssertNil(MenuBarLines.toolTip(identifier: session.issue.identifier, sessionClock: nil))
+            MenuBarLines.statusTrailing(session: session, sessionClock: line, linearCounts: (3, 1)),
+            .clock("47:55"),
+            "the clock wins over the done-today count while focusing")
+
+        session = FocusTick.pause(FocusTick.apply(session, now: t0.addingTimeInterval(125)).session,
+                                  now: t0.addingTimeInterval(125))
+        XCTAssertEqual(
+            MenuBarLines.statusTrailing(session: session, sessionClock: line, linearCounts: (3, 1)),
+            .pausedClock("47:55"))
+        XCTAssertEqual(MenuBarPillTrailing.pausedClock("47:55").plainFallback, "47:55")
+
+        // Sleep hold freezes the clock without a user pause: no pause glyph.
+        var held = runningSession()
+        held = FocusTick.holdSleep(held, now: t0.addingTimeInterval(60))
+        XCTAssertFalse(held.userPaused)
+        XCTAssertEqual(
+            MenuBarLines.statusTrailing(session: held, sessionClock: "49:00", linearCounts: nil),
+            .clock("49:00"))
+    }
+
+    func testMenuBarStatusItemIdleShowsDoneTodayOrIconOnly() {
+        XCTAssertEqual(
+            MenuBarLines.statusTrailing(session: nil, sessionClock: nil, linearCounts: (3, 1)),
+            .doneToday(1))
+        XCTAssertNil(
+            MenuBarLines.statusTrailing(session: nil, sessionClock: nil, linearCounts: nil),
+            "no Linear connected: icon only, not a fake ✓0")
+        XCTAssertEqual(
+            MenuBarLines.statusTrailing(session: nil, sessionClock: nil, linearCounts: (0, 0)),
+            .doneToday(0),
+            "Linear connected with nothing done yet still shows the real 0")
     }
 
     func testMenuBarHidesClockWithoutSession() {
         XCTAssertNil(MenuBarLines.sessionClock(
             session: nil,
-            floatingPetEnabled: false,
             clock: (FocusClock.format(0), false),
             overtimeAbbrev: L(.en).overtimeAbbrev))
         XCTAssertEqual(
@@ -1039,7 +1065,6 @@ final class FocusSessionTests: XCTestCase {
         let abbrev = L(.en).overtimeAbbrev
         let line = MenuBarLines.sessionClock(
             session: session,
-            floatingPetEnabled: false,
             clock: clock,
             overtimeAbbrev: abbrev)
         XCTAssertEqual(line, "\(clock.text) \(abbrev)")
@@ -1060,7 +1085,6 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertEqual(
             MenuBarLines.sessionClock(
                 session: session,
-                floatingPetEnabled: false,
                 clock: later,
                 overtimeAbbrev: L(.en).overtimeAbbrev),
             frozen.text)
@@ -1243,7 +1267,6 @@ final class FocusSessionTests: XCTestCase {
                 usageLines: stores.usage.menuFlashLines,
                 sessionClock: MenuBarLines.sessionClock(
                     session: stores.focus.session,
-                    floatingPetEnabled: false,
                     clock: stores.focus.clockDisplay(at: t0.addingTimeInterval(50 * 60)),
                     overtimeAbbrev: l.overtimeAbbrev)),
             ["0:00", "\(l.timesUpFlashTitle) · ENG-142"])
